@@ -237,5 +237,8 @@ Blueprinter bundles can only use components that already exist in the game, and 
   - The engine spool ratio idles at 0.33; the plugin maps it to 70 % idle and 100 % military.
   - `IsLanded()` means stopped on the ground; on-ground uses radar altitude instead.
 - **Testing in game.** `BepInEx/mig29_dump.flag` turns on developer mode: a hierarchy and camera dump (`BepInEx/mig29_dump.txt`),
-  telemetry in the log every 2 s, and F10 / F11 for orbit and cockpit camera.
+  telemetry in the log every 2 s, F10 / F11 for orbit and cockpit camera, and F9 to lift the jet 1,500 m at 220 m/s. F9 moves
+  every rigidbody of the aircraft (the part list misses some, and a stretched joint wrecks the jet). It also resets
+  `Pilot.velocityPrev` and `Aircraft.velocityPrev`, or the pilot sees a ~1,000 g jump and dies. First in-flight check: IAS
+  655 km/h at M0.59 and 1,600 m, AoA 9 deg, 3.3 g in a pull-up, then climbing at 21 m/s.
 

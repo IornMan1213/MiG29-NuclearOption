@@ -48,6 +48,29 @@ namespace MiG29Instruments
                 var cams = SceneSingleton<CameraStateManager>.i;
                 if (cams != null && Input.GetKeyDown(KeyCode.F10)) cams.SwitchState(cams.orbitState);
                 if (cams != null && Input.GetKeyDown(KeyCode.F11)) cams.SwitchState(cams.cockpitState);
+                if (Input.GetKeyDown(KeyCode.F9))   // teleport the player's aircraft 1,500 m up at 220 m/s to test the instruments in flight
+                {
+                    var hud = SceneSingleton<CombatHUD>.i;
+                    if (hud != null && hud.aircraft != null)
+                    {
+                        var ac = hud.aircraft; var fwd = ((Component)ac.cockpit).transform.forward;
+                        fwd.y = 0f; fwd.Normalize();
+                        // every rigidbody of the aircraft (parts, wheels, pilot...), moved together so no joint stretches
+                        foreach (var rb in UnityEngine.Object.FindObjectsOfType<Rigidbody>())
+                        {
+                            var up = rb.GetComponentInParent<UnitPart>();
+                            var unit = up != null ? up.parentUnit : rb.GetComponentInParent<Unit>();
+                            if (unit != ac) continue;
+                            rb.transform.position += Vector3.up * 1500f; rb.position = rb.transform.position;
+                            rb.velocity = fwd * 220f; rb.angularVelocity = Vector3.zero;
+                        }
+                        // the pilot and aircraft compute g from the velocity change: tell them we were already flying, or the jump kills the pilot
+                        var vp = typeof(Pilot).GetField("velocityPrev", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+                        foreach (var pl in ac.pilots) if (pl != null) vp?.SetValue(pl, fwd * 220f);
+                        typeof(Aircraft).GetField("velocityPrev", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)?.SetValue(ac, fwd * 220f);
+                        MiG29InstrumentsPlugin.Log.LogInfo("dev: teleported 1500 m up at 220 m/s");
+                    }
+                }
             }
             if (Time.unscaledTime < nextScan) return;
             nextScan = Time.unscaledTime + 0.5f;
@@ -239,7 +262,7 @@ namespace MiG29Instruments
             st.aoaDeg = speed > 15f ? Mathf.Atan2(-vl.y, vl.z) * Mathf.Rad2Deg : 0f;
             // accelerometer load factor: the pilot's acceleration along his up axis (the game leaves gravity out) plus 1 g of gravity
             var pilot = ac.pilots != null && ac.pilots.Length > 0 ? ac.pilots[0] : null;
-            st.g = pilot != null ? pilot.gForce + Vector3.Dot(Vector3.up, ((Component)pilot).transform.up) : 1f;
+            st.g = pilot != null ? Mathf.Clamp(pilot.gForce + Vector3.Dot(Vector3.up, ((Component)pilot).transform.up), -6f, 14f) : 1f;
             var e = cock.eulerAngles;
             st.pitchDeg = -Wrap(e.x); st.rollDeg = -Wrap(e.z); st.headingDeg = e.y;
             st.radAltM = ac.radarAlt;
