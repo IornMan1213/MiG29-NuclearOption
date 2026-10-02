@@ -161,3 +161,10 @@ missile prefabs cloned in the builder (R-73 from AAM1, R-27R from AAM2 with SARH
   dark duct. Not damage renderers (liveries retexture those).
 - Dev: `MIG29_IDCOLORS=1` with MiG29Preview.RenderAll colours each leftover KR-67 renderer uniquely (legend in the log);
   `MiG29Inspect.RunVisible` lists every KR-67 renderer that still draws.
+
+### Livery 4: Fulcrum Display Blue (2026-10-01)
+- `tools/livery_display.py` designs on the airframe instead of in texture space: each exterior triangle of mig29_mesh.json is
+  rasterised into the 2K texture with interpolated MiG-frame position + normal. Upper/lower split by normal (crisp blue/white line
+  along the sides), red/white chevron a fixed distance behind the planform leading edge (two straight lines, LERX and wing,
+  fitted to the forward-most vertex per 5 cm span bin), white/red bands on the fins by height, white radome tip. Only paint
+  texels change; shading relative to a blurred copy. Islands grown 4 texels for mip seams. ~10 s.

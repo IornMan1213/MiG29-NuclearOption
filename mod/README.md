@@ -1,7 +1,7 @@
 # MiG-29 Fulcrum for Nuclear Option (v0.5.0)
 
 A flyable MiG-29 (9.12) with its own flight model, R-27R / R-27T / R-73 / R-60M missiles, the GSh-30-1 cannon, working canopy
-and gear doors, its own damage display, three liveries and loading screens.
+and gear doors, its own damage display, four liveries and loading screens.
 
 ## Install
 1. Install [BepInEx 5](https://github.com/BepInEx/BepInEx) into the Nuclear Option folder.
@@ -31,7 +31,7 @@ Multiplayer: everyone needs the same mod set (Blueprinter checks this).
   the gear; parts break off and show scorch damage; hitboxes are the KR-67 part colliders scaled to the MiG.
 - **MiG-29 cockpit**: the model's own cockpit interior, with the tactical display on a retrofit console.
 - **Cockpit damage display** and map icon drawn from the MiG itself.
-- **Liveries**: Two-Tone Grey, Desert Tan and Digital Grey (both factions can pick any).
+- **Liveries**: Two-Tone Grey, Desert Tan, Digital Grey and Display Blue (both factions can pick any).
 - Three loading screens.
 
 ## Known limitations
