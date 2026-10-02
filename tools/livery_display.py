@@ -39,7 +39,10 @@ def colour(p, n):
     """p, n: (k,3) MiG-frame positions (x right, y up, z fwd, metres) and unit normals -> (k,3) linear-ish RGB."""
     x, y, z = p[:, 0], p[:, 1], p[:, 2]
     ny, nx = n[:, 1], np.abs(n[:, 0])
-    top = smooth(-0.06, 0.06, ny)                                   # crisp two-tone split along the fuselage sides
+    # blue above / white below: by the normal on clearly up- or down-facing skin, by height (crisp line at y 0.15) on the sides,
+    # where the normal alone flips back and forth and mottles the paint
+    side = 1 - smooth(0.25, 0.4, np.abs(ny))
+    top = (1 - side) * (ny > 0) + side * smooth(0.13, 0.17, y)
     c = WHITE[None] * (1 - top[:, None]) + BLUE[None] * top[:, None]
     # red/white stripe on the upper surfaces, following the LERX and wing leading edges (planform-derived), from the LERX root out
     ax = np.abs(x)

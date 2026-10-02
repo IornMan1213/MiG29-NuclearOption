@@ -32,7 +32,7 @@ Multiplayer: everyone needs the same mod set (Blueprinter checks this).
 - **MiG-29 cockpit**: the model's own cockpit interior, with the tactical display on a retrofit console.
 - **Cockpit damage display** and map icon drawn from the MiG itself.
 - **Liveries**: Two-Tone Grey, Desert Tan, Digital Grey and Display Blue (both factions can pick any).
-- Three loading screens.
+- Four loading screens.
 
 ## Known limitations
 - Cockpit: the MiG-29's own cockpit (gauges, HUD frame, canopy arch) with the game's tactical display and warning lights
