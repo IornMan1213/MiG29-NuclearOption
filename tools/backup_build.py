@@ -40,7 +40,7 @@ def main():
         shutil.copy2(dll_src, os.path.join(local, dll_name))
     dll_src = os.path.join(local, dll_name) if os.path.exists(os.path.join(local, dll_name)) else None
     # the all-in-one release zip is kept locally (not on the builds branch: it duplicates the .nobp)
-    zip_src = os.path.join(os.path.dirname(src), f"MiG29-Fulcrum_{ver}.zip")
+    zip_src = os.path.join(os.path.dirname(src), f"MiG-29-Fulcrum_{ver}.zip")
     if os.path.exists(zip_src) and os.path.abspath(zip_src) != os.path.abspath(os.path.join(local, os.path.basename(zip_src))):
         shutil.copy2(zip_src, local)
 

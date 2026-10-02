@@ -73,8 +73,8 @@ if ($LASTEXITCODE -ne 0) { throw "instruments plugin build failed" }
 Get-ChildItem $env:MIG29_OUT -Filter MiG29Instruments.dll | ForEach-Object { "OUTPUT $($_.FullName) $($_.Length)" }
 
 # 5. One archive with everything (the first release asset; what NOMNOM / NOMM install): .nobp + plugin + credits.
-$zip = Join-Path $env:MIG29_OUT "MiG29-Fulcrum_$ver.zip"
-Remove-Item "$env:MIG29_OUT\MiG29-Fulcrum_*.zip" -ErrorAction SilentlyContinue
+$zip = Join-Path $env:MIG29_OUT "MiG-29-Fulcrum_$ver.zip"
+Remove-Item "$env:MIG29_OUT\MiG-29-Fulcrum_*.zip" -ErrorAction SilentlyContinue
 Copy-Item (Join-Path $repo "mod\CREDITS.txt") $env:MIG29_OUT -Force
 Compress-Archive -Path "$env:MIG29_OUT\MiG-29 Fulcrum_$ver.nobp", "$env:MIG29_OUT\MiG29Instruments.dll", "$env:MIG29_OUT\CREDITS.txt" -DestinationPath $zip -Force
 "OUTPUT $zip $((Get-Item $zip).Length)"

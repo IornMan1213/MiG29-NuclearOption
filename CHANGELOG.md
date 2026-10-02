@@ -2,7 +2,7 @@
 
 ## 0.7.1
 - Packaged for mod managers ([NOMNOM](https://github.com/KopterBuzz/NOMNOM) / NOMM): each release now starts with
-  `MiG29-Fulcrum_<version>.zip`, holding the .nobp, `MiG29Instruments.dll` and `CREDITS.txt`.
+  `MiG-29-Fulcrum_<version>.zip`, holding the .nobp, `MiG29Instruments.dll` and `CREDITS.txt`.
 - The instruments plugin's version now follows the mod version (0.7.1), as mod managers expect.
 - No gameplay changes from 0.7.0.
 

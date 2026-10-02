@@ -37,8 +37,9 @@ def main():
         {"tag_name": f"v{ver}", "target_commitish": sha, "name": f"v{ver}", "body": notes, "prerelease": pre, "make_latest": "true"}).encode())
     print("release:", rel["html_url"])
     base = rel["upload_url"].split("{")[0]
-    # the all-in-one zip goes first: NOMNOM / NOMM take the first release asset
-    zipf = os.path.join(ROOT, "builds", f"MiG29-Fulcrum_{ver}.zip")
+    # the all-in-one zip must be the first asset (NOMNOM / NOMM use assets[0]); GitHub lists assets by name, and
+    # "MiG-29-Fulcrum_x.zip" sorts before "MiG-29.Fulcrum_x.nobp" and "MiG29Instruments.dll"
+    zipf = os.path.join(ROOT, "builds", f"MiG-29-Fulcrum_{ver}.zip")
     uploads = [(zipf, os.path.basename(zipf), "application/zip")] if os.path.exists(zipf) else []
     uploads += [(nobp, os.path.basename(nobp), "application/octet-stream")]
     if os.path.exists(dll):   # published under the name it needs in the game folder
