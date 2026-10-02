@@ -16,6 +16,8 @@ display, and two liveries.
 
 See [mod/README.md](mod/README.md) for the full feature list and known limitations.
 
+![The four liveries](docs/img/liveries.jpg)
+
 ## Repository layout
 | Path | What it is |
 |---|---|

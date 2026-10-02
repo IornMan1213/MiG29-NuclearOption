@@ -104,7 +104,7 @@ def set_livery(path):
         if not m.use_nodes or m == mmat:
             continue
         for n in m.node_tree.nodes:
-            if n.type == "TEX_IMAGE" and n.image and n.image.name.lower().startswith("basecolor"):
+            if n.type == "TEX_IMAGE" and n.image and n.image.name.lower().startswith(("basecolor", "mig29_basecolor")):
                 n.image = img
 
 
@@ -119,6 +119,10 @@ shots = [
     ("display_bank", "mig29_basecolor_display.png", (math.radians(-55), math.radians(-6), 0), (220, 260, 160), (math.radians(40), 0, math.radians(120)), 50),
     ("display_quarter", "mig29_basecolor_display.png", (math.radians(-12), math.radians(-6), 0), (250, 200, -60), (math.radians(35), 0, math.radians(140)), 50),
     ("display_below", "mig29_basecolor_display.png", (math.radians(-15), math.radians(-8), 0), (90, 70, -300), (math.radians(160), 0, math.radians(120)), 50),
+    ("lv_grey", "mig29_basecolor.png", (math.radians(-20), math.radians(-8), math.radians(10)), (230, 215, 70), (math.radians(40), 0, math.radians(135)), 50),
+    ("lv_desert", "mig29_basecolor_desert.png", (math.radians(-20), math.radians(-8), math.radians(10)), (230, 215, 70), (math.radians(40), 0, math.radians(135)), 50),
+    ("lv_digital", "mig29_basecolor_digital.png", (math.radians(-20), math.radians(-8), math.radians(10)), (230, 215, 70), (math.radians(40), 0, math.radians(135)), 50),
+    ("lv_display", "mig29_basecolor_display.png", (math.radians(-20), math.radians(-8), math.radians(10)), (230, 215, 70), (math.radians(40), 0, math.radians(135)), 50),
     ("loading_digital", "mig29_basecolor_digital.png", (math.radians(-28), math.radians(-14), math.radians(4)), (185, 290, -50), (math.radians(30), 0, math.radians(150)), 42),
 ]
 only = [a for a in argv[2:]]
