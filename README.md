@@ -51,7 +51,16 @@ Steps:
    `python tools/prepare_textures.py <sketchfab>/textures <project>/MiG29Source`
 3. With Unity Hub running and signed in, run the build from PowerShell:
    `./tools/build_mig29.ps1 -Project <project>`. It copies `unity/MiG29Tools` into the project, generates the missiles, the
-   flight-model export and the desert / digital livery textures, and writes the `.nobp` to `<project>/MiG29Build/`.
+   flight-model export, the livery textures and the cockpit (atlas, then Blender), writes the `.nobp` to
+   `<project>/MiG29Build/`, and builds `MiG29Instruments.dll` next to it (needs the .NET SDK and the game installed; pass
+   `-p:GameDir=...` via the csproj if the game is elsewhere).
+4. `-Release -Note "..."` also backs the build up to the `builds` branch; `python tools/gh_release.py <version>` publishes the
+   GitHub release with both files.
+
+`python tools/cockpit_atlas.py <project>/MiG29Source` and
+`blender -b --python blender/cockpit_build.py -- <project>/MiG29Source <preview dir>` rebuild just the cockpit and render
+previews. `MIG29_PRETTY=1 MIG29_POSE=sample` with `MiG29Tools.MiG29Preview.RenderCockpit` (via `tools/unity_run.ps1 -Graphics`)
+renders the built cockpit from the pilot's eye with the instruments posed for a sample flight state.
 
 To check flight-model changes offline, run `python tools/fm_sim.py`. It reads `tools/fm_config.json` and the part data
 dumped from the built prefab (`tools/aero_reference.json`, refreshed with `MiG29Tools.MiG29AeroDump.Dump`).
