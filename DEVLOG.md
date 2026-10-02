@@ -115,3 +115,19 @@ missile prefabs cloned in the builder (R-73 from AAM1, R-27R from AAM2 with SARH
   split following the model's fan triangulation, not depth noise. Per-part images are downsampled from the same id map with
   coverage as alpha, so they line up with the outline exactly.
 - `blender/showcase.py`: armed renders (missiles from missiles.json on the real pylon positions) in both liveries for the site.
+
+## v0.5.0 (2026-10-01)
+- GSh-30-1: WeaponInfo cloned from Gun27mm_Autocannon (870 m/s, 600 pierce, 0.06 blast, 0.83 kg/round, 1.8 km), gun prefab from
+  gun_27mm_internal (1650 rpm, 150 rds, recoil 420), mount `mig29_gsh301_internal`. The "Internal Cannon" set (renamed GSh-30-1)
+  keeps its hardpoint transform `gun` (fuselage_F); moved so the prefab muzzle (+3 m, +0.038 m) sits at MiG (-1.10, 0.11, 5.0),
+  inside the left LERX root (ray cast: LERX skin y -0.02..0.24 there).
+- R-27T: AAM2 clone + IRSeeker copied from AAM1 (IRSeeker has no object references, safe to copy), info cloned from AAM1_info,
+  model = R-27 airframe with a short IR section and glass dome. R-60M: AAM1 clone, no TVC, 44 kg, APU-60 rail. Pylon options:
+  inner R-27R/R-27T/R-73/R-60M, middle R-73/R-60M, outer R-73/R-60M. armedB preview confirms rail contact.
+- Loadouts: `loadouts[1]` is the loadout screen default / fallback (Aircraft, LoadoutSelector, WeaponManager) -> gun + 2x R-27R
+  + 4x R-73. `StandardLoadouts` (empty before, so AI MiGs spawned with only the gun) are picked at random for AI spawns
+  (FactionHQ) and used as the mission-editor default: air superiority, dogfight, strike.
+- Livery 3 "Fulcrum Digital Grey" (`tools/livery_digital.py`): 3-tone 16-texel block camo on exterior paint texels; shading is
+  brightness relative to a blurred copy so panel lines stay but the old two-tone shapes don't ghost through. The build now
+  regenerates the desert and digital textures.
+- Not done: in-game spawn check. Windows input idle stayed under 2 minutes (someone at the PC), so the game was not driven.
