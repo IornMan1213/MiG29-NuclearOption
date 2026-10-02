@@ -4,5 +4,6 @@
  "0.5.1": "R-27R/R-27T seeker fix; glass-cockpit panel in the MiG canopy arch",
  "0.5.2": "Flies: thrust at CG height (no more flipping above 70% throttle); cockpit floor/tub",
  "0.6.0": "Cockpit modelled from scratch for the MiG-29; missile launch fix confirmed",
- "0.7.0": "Every cockpit instrument works (needs MiG29Instruments.dll)"
+ "0.7.0": "Every cockpit instrument works (needs MiG29Instruments.dll)",
+ "0.7.1": "Mod-manager zip (NOMNOM / NOMM); plugin version = mod version"
 }

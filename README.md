@@ -4,6 +4,7 @@ Every released build of the mod, kept here so nothing gets lost. Put **one** `.n
 
 | Version | File | Size | SHA-256 | Notes |
 |---|---|---|---|---|
+| 0.7.1 | [MiG-29 Fulcrum_0.7.1.nobp](https://github.com/IornMan1213/MiG29-NuclearOption/raw/builds/MiG-29%20Fulcrum_0.7.1.nobp) + [MiG29Instruments_0.7.1.dll](https://github.com/IornMan1213/MiG29-NuclearOption/raw/builds/MiG29Instruments_0.7.1.dll) | 29.8 MB | `fa3e2e14e3fd2624a4c79f068b556a0727ddb1d67be41dedbb268c1620dd08a3` | Mod-manager zip (NOMNOM / NOMM); plugin version = mod version |
 | 0.7.0 | [MiG-29 Fulcrum_0.7.0.nobp](https://github.com/IornMan1213/MiG29-NuclearOption/raw/builds/MiG-29%20Fulcrum_0.7.0.nobp) + [MiG29Instruments_0.7.0.dll](https://github.com/IornMan1213/MiG29-NuclearOption/raw/builds/MiG29Instruments_0.7.0.dll) | 29.7 MB | `b3a7c69512864ddc905f91b53917495c7941bc464f5492a6c19de70558c05be8` | Every cockpit instrument works (needs MiG29Instruments.dll) |
 | 0.6.0 | [MiG-29 Fulcrum_0.6.0.nobp](https://github.com/IornMan1213/MiG29-NuclearOption/raw/builds/MiG-29%20Fulcrum_0.6.0.nobp) | 29.6 MB | `c39ab08076f821406713ae5c2acd1ec47484e85ca39ec61ce3d329fdb7ab4260` | Cockpit modelled from scratch for the MiG-29; missile launch fix confirmed |
 | 0.5.2 | [MiG-29 Fulcrum_0.5.2.nobp](https://github.com/IornMan1213/MiG29-NuclearOption/raw/builds/MiG-29%20Fulcrum_0.5.2.nobp) | 28.6 MB | `995fef58beb0ceaeecfe9b05c7d2a17ea773800f8b4df5beacbe850915f306a6` | Flies: thrust at CG height (no more flipping above 70% throttle); cockpit floor/tub |
