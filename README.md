@@ -24,6 +24,7 @@ See [mod/README.md](mod/README.md) for the full feature list and known limitatio
 | `blender/` | The model export (`export_mig29.py`), the loading-screen and showcase renders, and the measurement scripts used while fitting parts |
 | `assets/loading/` | Loading screens (model renders over game terrain) |
 | `docs/` | The GitHub Pages project site |
+| `CHANGELOG.md` | What changed in each version |
 | `DEVLOG.md` | The development journal, including the game internals the build relies on |
 
 ## Building from source
