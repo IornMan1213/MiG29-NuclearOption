@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.3 (testing)
+- Missiles hang 1.5 cm below their rails and the rail colliders stop 3 cm short of them, so a launched missile no longer spawns
+  touching the rail on the wing. Attempted fix for "the aircraft explodes when firing missiles"; needs confirming in game.
+
 ## 0.5.2
 - Fixed the jet flipping over backwards above ~70 % throttle and pitching up uncontrollably at low speed: the engine thrust acted
   0.73 m below the centre of mass (at the MiG's real nozzle height), so full afterburner out-muscled the weight on the main

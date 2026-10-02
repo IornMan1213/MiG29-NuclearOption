@@ -453,10 +453,16 @@ namespace MiG29Tools
             pylon.localPosition = Vector3.zero; pylon.localRotation = Quaternion.identity; pylon.localScale = Vector3.one; // stock children carry scales for the stock meshes; ours are true size
             pylon.GetComponent<MeshFilter>().sharedMesh = launcher;
             pylon.GetComponent<MeshRenderer>().sharedMaterials = new[] { mat };
-            foreach (var bc in pylon.GetComponents<BoxCollider>()) { bc.center = launcher.bounds.center; bc.size = launcher.bounds.size; }
+            // rail collider: the launcher's box minus its bottom 3 cm, so it never touches the missile (a launched missile spawning
+            // in contact with the rail on the wing is a candidate for the reported "aircraft explodes when firing")
+            foreach (var bc in pylon.GetComponents<BoxCollider>())
+            {
+                var b = launcher.bounds; var size = b.size; size.y = Mathf.Max(size.y - 0.03f, 0.02f);
+                bc.center = b.center + Vector3.up * (b.size.y - size.y) / 2; bc.size = size;
+            }
 
             var msl = Child(go.transform, missileChild);
-            msl.localPosition = new Vector3(0, missileY, 0); msl.localRotation = Quaternion.identity; msl.localScale = Vector3.one;
+            msl.localPosition = new Vector3(0, missileY - 0.015f, 0); msl.localRotation = Quaternion.identity; msl.localScale = Vector3.one; // 1.5 cm below the rail
             msl.GetComponent<MeshFilter>().sharedMesh = missile;
             msl.GetComponent<MeshRenderer>().sharedMaterials = new[] { mat };
             foreach (var c in msl.GetComponents<CapsuleCollider>()) { c.radius = radius; c.height = length; c.center = Vector3.zero; c.direction = 2; }
