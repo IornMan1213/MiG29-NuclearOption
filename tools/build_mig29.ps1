@@ -21,11 +21,14 @@ $dst = Join-Path $Project "Assets\Editor\MiG29Tools"
 New-Item -ItemType Directory -Force $dst | Out-Null
 Copy-Item (Join-Path (Split-Path $PSScriptRoot) "unity\MiG29Tools\*.cs") $dst -Force
 
-# 0b. Generated sources: missile/launcher models and the flight-model export.
+# 0b. Generated sources: missile/launcher models, the flight-model export and the livery textures.
 $tools = $PSScriptRoot
+$src = "$Project\MiG29Source"
 Push-Location (Split-Path $tools)
-python "$tools\missile_gen.py" "$Project\MiG29Source"; if ($LASTEXITCODE -ne 0) { throw "missile_gen failed" }
-python "$tools\fm_export.py" "$Project\MiG29Source\fm_unity.json"; if ($LASTEXITCODE -ne 0) { throw "fm_export failed" }
+python "$tools\missile_gen.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "missile_gen failed" }
+python "$tools\fm_export.py" "$src\fm_unity.json"; if ($LASTEXITCODE -ne 0) { throw "fm_export failed" }
+python "$tools\livery_desert.py" "$src\mig29_basecolor.png" "$src\mig29_mesh.json" "$src\mig29_basecolor_desert.png"; if ($LASTEXITCODE -ne 0) { throw "livery_desert failed" }
+python "$tools\livery_digital.py" "$src\mig29_basecolor.png" "$src\mig29_mesh.json" "$src\mig29_basecolor_digital.png"; if ($LASTEXITCODE -ne 0) { throw "livery_digital failed" }
 Pop-Location
 
 # 1. Compile pass. Blueprinter keeps the game's Assembly-CSharp in ScriptAssemblies read-only, which makes

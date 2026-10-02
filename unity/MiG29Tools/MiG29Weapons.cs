@@ -7,12 +7,15 @@ using UnityEngine;
 
 namespace MiG29Tools
 {
-    // R-73 (AA-11 Archer) and R-27R (AA-10 Alamo-A) for the MiG-29.
+    // MiG-29 (9.12) weapons: R-73 (AA-11 Archer), R-27R / R-27T (AA-10 Alamo-A / -B), R-60M (AA-8 Aphid), GSh-30-1 cannon.
     // Models: tools/missile_gen.py (procedural, from scratch) -> MiG29Source/missiles.json.
     // Missiles are cloned from stock prefabs for their effects/networking and re-tuned:
     //   R-73  <- AAM1 (MMR-S3, IR + thrust vectoring)
     //   R-27R <- AAM2 (AAM-29, two-stage motor) with its ARH seeker replaced by the SARH seeker of SAM_Radar1
     //            (SARHSeeker guides on missile.owner.radar, so the launching MiG must keep the target illuminated).
+    //   R-27T <- AAM2 with the IR seeker of AAM1
+    //   R-60M <- AAM1 without thrust vectoring
+    //   GSh-30-1 <- gun_27mm_internal (150 rounds, ~1650 rpm, 870 m/s), muzzle moved to the left LERX root.
     public static class MiG29Weapons
     {
         const string ModDir = "Assets/Blueprinter/Mods/mig29";
@@ -23,7 +26,7 @@ namespace MiG29Tools
         [Serializable] class PartDump { public string name; public float[] vertices, normals, uvs; public int[] triangles; }
         [Serializable] class Dump { public PartDump[] parts; }
 
-        public class Result { public ScriptableObject r73Mount, r27Mount; }
+        public class Result { public ScriptableObject r73Mount, r27Mount, r27tMount, r60Mount, gunMount; }
 
         public delegate T Saver<T>(T obj, string path) where T : UnityEngine.Object;
 
@@ -47,7 +50,7 @@ namespace MiG29Tools
             var mat = (Material)save(MissileMaterial(skinTemplate), $"{Dir}/MiG29_missiles.mat");
 
             // ---------- R-73 ----------
-            var r73 = MakeMissile("AAM1", "mig29_R73", meshes["R73"], mat, length: 2.90f, radius: 0.085f, seekerSwapFrom: null);
+            var r73 = MakeMissile("AAM1", "mig29_R73", meshes["R73"], mat, length: 2.90f, radius: 0.085f, seekerFrom: null, seekerType: null);
             Tune(r73, so =>
             {
                 so.FindProperty("mass").floatValue = 105f;
@@ -74,7 +77,7 @@ namespace MiG29Tools
                 minRange: 300f, maxRange: 20000f, minAlignment: 45f, cost: 0.30f, massPerRound: 105f);
 
             // ---------- R-27R ----------
-            var r27 = MakeMissile("AAM2", "mig29_R27R", meshes["R27R"], mat, length: 4.08f, radius: 0.115f, seekerSwapFrom: "SAM_Radar1");
+            var r27 = MakeMissile("AAM2", "mig29_R27R", meshes["R27R"], mat, length: 4.08f, radius: 0.115f, seekerFrom: "SAM_Radar1", seekerType: "SARHSeeker");
             Tune(r27, so =>
             {
                 so.FindProperty("mass").floatValue = 253f;
@@ -115,8 +118,155 @@ namespace MiG29Tools
 
             var r73Mount = CloneMount("AAM1_single", "mig29_R73_mount", r73MountPrefab, r73Info, "mig29_R73_single", "R-73", mass: 145f, emptyMass: 40f, drag: 0.04f);
             var r27Mount = CloneMount("AAM2_single", "mig29_R27R_mount", r27MountPrefab, r27Info, "mig29_R27R_single", "R-27R", mass: 333f, emptyMass: 80f, drag: 0.07f);
-            Debug.Log("[MiG29] weapons built: R-73, R-27R");
-            return new Result { r73Mount = r73Mount, r27Mount = r27Mount };
+
+            // ---------- R-27T: R-27 airframe, infrared seeker ----------
+            var r27t = MakeMissile("AAM2", "mig29_R27T", meshes["R27T"], mat, length: 3.80f, radius: 0.115f, seekerFrom: "AAM1", seekerType: "IRSeeker");
+            Tune(r27t, so =>
+            {
+                so.FindProperty("mass").floatValue = 245f;
+                so.FindProperty("finArea").floatValue = 0.7f;
+                so.FindProperty("gLimit").floatValue = 25f;
+                so.FindProperty("maxTurnRate").floatValue = 25f;
+                so.FindProperty("torque").floatValue = 1.5f;
+                Motor(so, 0, thrust: 52000f, burn: 2.5f, fuel: 55f, tvc: 0f);
+                Motor(so, 1, thrust: 16000f, burn: 6.0f, fuel: 40f, tvc: 0f);
+            });
+            TuneSeeker(r27t, "IRSeeker", so => so.FindProperty("flareRejection").floatValue = 1.6f);
+            var r27tPrefab = SavePrefab(r27t, $"{Dir}/mig29_R27T.prefab");
+            var r27tDef = CloneDef("AAM2", "mig29_R27T_def", d =>
+            {
+                d.FindProperty("jsonKey").stringValue = "mig29_R27T";
+                d.FindProperty("unitName").stringValue = "R-27T";
+                d.FindProperty("description").stringValue = "R-27T (AA-10 Alamo-B). The R-27 airframe with an infrared seeker: fire-and-forget at medium range, but the seeker must lock before launch.";
+                d.FindProperty("mass").floatValue = 245f;
+                d.FindProperty("unitPrefab").objectReferenceValue = r27tPrefab;
+            });
+            SetDefinition(r27tPrefab, r27tDef);
+            var r27tInfo = CloneInfo("AAM1", "mig29_R27T_info", r27tPrefab, "R-27T", "R-27T",
+                "Medium-range infrared missile. Fire-and-forget; lock the target's heat signature before launch.",
+                minRange: 800f, maxRange: 30000f, minAlignment: 25f, cost: 0.60f, massPerRound: 245f);
+            var r27tMountPrefab = MakeMount("AAM2_single", "mig29_R27T_AKU470", "pylon", "aam2", meshes["AKU470"], meshes["R27T"], mat,
+                missileY: -0.14f - 0.115f, r27tInfo, 3.80f, 0.115f, $"{Dir}/mig29_R27T_AKU470.prefab");
+            var r27tMount = CloneMount("AAM2_single", "mig29_R27T_mount", r27tMountPrefab, r27tInfo, "mig29_R27T_single", "R-27T", mass: 325f, emptyMass: 80f, drag: 0.07f);
+
+            // ---------- R-60M: small dogfight missile ----------
+            var r60 = MakeMissile("AAM1", "mig29_R60M", meshes["R60M"], mat, length: 2.09f, radius: 0.06f, seekerFrom: null, seekerType: null);
+            Tune(r60, so =>
+            {
+                so.FindProperty("mass").floatValue = 44f;
+                so.FindProperty("finArea").floatValue = 0.06f;
+                so.FindProperty("gLimit").floatValue = 40f;
+                so.FindProperty("maxTurnRate").floatValue = 55f;
+                so.FindProperty("torque").floatValue = 2.5f;
+                Motor(so, 0, thrust: 9500f, burn: 3.0f, fuel: 12f, tvc: 0f);
+            });
+            TuneSeeker(r60, "IRSeeker", so => so.FindProperty("flareRejection").floatValue = 1.4f);
+            var r60Prefab = SavePrefab(r60, $"{Dir}/mig29_R60M.prefab");
+            var r60Def = CloneDef("AAM1", "mig29_R60M_def", d =>
+            {
+                d.FindProperty("jsonKey").stringValue = "mig29_R60M";
+                d.FindProperty("unitName").stringValue = "R-60M";
+                d.FindProperty("description").stringValue = "R-60M (AA-8 Aphid). Light, very agile short-range infrared missile. Less range and flare resistance than the R-73, but small and cheap.";
+                d.FindProperty("mass").floatValue = 44f;
+                d.FindProperty("unitPrefab").objectReferenceValue = r60Prefab;
+            });
+            SetDefinition(r60Prefab, r60Def);
+            var r60Info = CloneInfo("AAM1", "mig29_R60M_info", r60Prefab, "R-60M", "R-60M",
+                "Light short-range infrared missile. Very agile; best inside 6 km.",
+                minRange: 200f, maxRange: 8000f, minAlignment: 30f, cost: 0.12f, massPerRound: 44f);
+            var r60MountPrefab = MakeMount("AAM1_single", "mig29_R60M_APU60", "pylon", "aam1", meshes["APU60"], meshes["R60M"], mat,
+                missileY: -0.08f - 0.06f, r60Info, 2.09f, 0.06f, $"{Dir}/mig29_R60M_APU60.prefab");
+            var r60Mount = CloneMount("AAM1_single", "mig29_R60M_mount", r60MountPrefab, r60Info, "mig29_R60M_single", "R-60M", mass: 66f, emptyMass: 22f, drag: 0.025f);
+
+            var gunMount = BuildGun();
+            Debug.Log("[MiG29] weapons built: R-73, R-27R, R-27T, R-60M, GSh-30-1");
+            return new Result { r73Mount = r73Mount, r27Mount = r27Mount, r27tMount = r27tMount, r60Mount = r60Mount, gunMount = gunMount };
+        }
+
+        // ---------------- GSh-30-1 ----------------
+
+        // MiG frame: muzzle inside the left LERX root, level with the rear of the canopy (blender ray cast: LERX y -0.02..0.24 at x -1.1, z 5.0)
+        public static readonly Vector3 GunMuzzle = new Vector3(-1.10f, 0.11f, 5.0f);
+
+        static ScriptableObject BuildGun()
+        {
+            var info = Clone("Gun27mm_Autocannon", "mig29_GSh301_info");
+            var iso = new SerializedObject(info);
+            iso.FindProperty("weaponName").stringValue = "GSh-30-1 Cannon";
+            iso.FindProperty("shortName").stringValue = "GUN 30MM";
+            iso.FindProperty("description").stringValue = "GSh-30-1: single-barrel 30 mm recoil-operated cannon in the left wing root, 150 rounds. Fires about 1,650 rounds per minute; a one-second burst is a sixth of the magazine, so fire short bursts.";
+            iso.FindProperty("muzzleVelocity").floatValue = 870f;
+            iso.FindProperty("pierceDamage").floatValue = 600f;
+            iso.FindProperty("blastDamage").floatValue = 0.06f;
+            iso.FindProperty("massPerRound").floatValue = 0.83f;
+            iso.FindProperty("targetRequirements.maxRange").floatValue = 1800f;
+            iso.FindProperty("visibilityWhenFired").floatValue = 2500f;
+            iso.ApplyModifiedPropertiesWithoutUndo();
+
+            var go = Instance("gun_27mm_internal", "mig29_GSh301");
+            var gso = new SerializedObject(go.GetComponentInChildren(T("Gun"), true));
+            gso.FindProperty("info").objectReferenceValue = info;
+            gso.FindProperty("fireRate").floatValue = 1650f;
+            gso.FindProperty("magazineCapacity").intValue = 150;
+            gso.FindProperty("ammo").intValue = 150;
+            gso.FindProperty("recoilImpulse").floatValue = 420f;
+            gso.FindProperty("tracerRatio").intValue = 3;
+            gso.FindProperty("bulletSpread").floatValue = 3f;
+            gso.ApplyModifiedPropertiesWithoutUndo();
+            var prefab = SavePrefab(go, $"{Dir}/mig29_GSh301.prefab");
+
+            var m = Clone("gun_27mm_internal", "mig29_GSh301_mount");
+            var mso = new SerializedObject(m);
+            mso.FindProperty("prefab").objectReferenceValue = prefab;
+            mso.FindProperty("info").objectReferenceValue = info;
+            mso.FindProperty("jsonKey").stringValue = "mig29_gsh301_internal";
+            mso.FindProperty("mountName").stringValue = "30mm GSh-30-1 (150 rds)";
+            mso.FindProperty("ammo").intValue = 150;
+            mso.ApplyModifiedPropertiesWithoutUndo();
+            return m;
+        }
+
+        // Internal cannon: the GSh-30-1 mount replaces the 27 mm; the hardpoint moves so the muzzle (3 m ahead of it in the gun prefab) is at GunMuzzle.
+        public static UnityEngine.Object SetupGun(GameObject go, Vector3 modelOffset, Result w)
+        {
+            var so = new SerializedObject(go.GetComponentInChildren(T("WeaponManager"), true));
+            var sets = so.FindProperty("hardpointSets");
+            UnityEngine.Object old = null;
+            for (int i = 0; i < sets.arraySize; i++)
+            {
+                var set = sets.GetArrayElementAtIndex(i);
+                if (set.FindPropertyRelative("name").stringValue != "Internal Cannon") continue;
+                set.FindPropertyRelative("name").stringValue = "GSh-30-1";
+                var opts = set.FindPropertyRelative("weaponOptions");
+                for (int k = 0; k < opts.arraySize; k++)
+                    if (opts.GetArrayElementAtIndex(k).objectReferenceValue != null)
+                    {
+                        old = opts.GetArrayElementAtIndex(k).objectReferenceValue;
+                        opts.GetArrayElementAtIndex(k).objectReferenceValue = w.gunMount;
+                    }
+                var hp = set.FindPropertyRelative("hardpoints").GetArrayElementAtIndex(0);
+                var t = (Transform)hp.FindPropertyRelative("transform").objectReferenceValue;
+                t.position = GunMuzzle + modelOffset - new Vector3(0, 0.038f, 3.0f);
+            }
+            so.ApplyModifiedPropertiesWithoutUndo();
+            if (old == null) throw new Exception("[MiG29] internal cannon set not found");
+            Debug.Log($"[MiG29] GSh-30-1 installed in place of {old.name}");
+            return old;
+        }
+
+        public static int ReplaceInLoadouts(SerializedObject pso, UnityEngine.Object from, UnityEngine.Object to)
+        {
+            int n = 0;
+            void Rep(SerializedProperty weapons)
+            {
+                for (int i = 0; i < weapons.arraySize; i++)
+                    if (weapons.GetArrayElementAtIndex(i).objectReferenceValue == from) { weapons.GetArrayElementAtIndex(i).objectReferenceValue = to; n++; }
+            }
+            var loadouts = pso.FindProperty("loadouts");
+            for (int i = 0; i < loadouts.arraySize; i++) Rep(loadouts.GetArrayElementAtIndex(i).FindPropertyRelative("weapons"));
+            var std = pso.FindProperty("StandardLoadouts");
+            for (int i = 0; i < std.arraySize; i++) Rep(std.GetArrayElementAtIndex(i).FindPropertyRelative("loadout.weapons"));
+            return n;
         }
 
         // ---------------- helpers ----------------
@@ -172,7 +322,7 @@ namespace MiG29Tools
             return go;
         }
 
-        static GameObject MakeMissile(string basePrefab, string name, Mesh mesh, Material mat, float length, float radius, string seekerSwapFrom)
+        static GameObject MakeMissile(string basePrefab, string name, Mesh mesh, Material mat, float length, float radius, string seekerFrom, string seekerType)
         {
             var go = Instance(basePrefab, name);
             // the stock missile mesh lives on the root: swap it, drop other stock meshes (fins etc.)
@@ -193,15 +343,15 @@ namespace MiG29Tools
             }
             foreach (var c in go.GetComponentsInChildren<CapsuleCollider>(true)) { c.radius = radius; c.height = length; c.center = Vector3.zero; c.direction = 2; }
 
-            if (seekerSwapFrom != null)
+            if (seekerFrom != null)
             {
                 foreach (var s in go.GetComponents(T("MissileSeeker"))) UnityEngine.Object.DestroyImmediate(s, true);
-                var donor = AssetDatabase.LoadAssetAtPath<GameObject>(GO + seekerSwapFrom + "_PLACEHOLDER.prefab");
-                ComponentUtility.CopyComponent(donor.GetComponent(T("SARHSeeker")));
+                var donor = AssetDatabase.LoadAssetAtPath<GameObject>(GO + seekerFrom + "_PLACEHOLDER.prefab");
+                ComponentUtility.CopyComponent(donor.GetComponent(T(seekerType)));
                 ComponentUtility.PasteComponentAsNew(go);
-                // the copy still points at objects inside the SAM prefab (its radar etc.); those are runtime-assigned anyway
+                // the copy may point at objects inside the donor prefab (e.g. the SAM's radar); those are runtime-assigned anyway
                 var donorPath = AssetDatabase.GetAssetPath(donor);
-                var sso = new SerializedObject(go.GetComponent(T("SARHSeeker")));
+                var sso = new SerializedObject(go.GetComponent(T(seekerType)));
                 var it = sso.GetIterator();
                 while (it.Next(true))
                     if (it.propertyType == SerializedPropertyType.ObjectReference && it.objectReferenceValue != null && AssetDatabase.GetAssetPath(it.objectReferenceValue) == donorPath)
@@ -367,19 +517,20 @@ namespace MiG29Tools
                 }
             }
             sets.GetArrayElementAtIndex(inner).FindPropertyRelative("name").stringValue = "Inner Pylons";
-            AddOptions(inner, w.r27Mount, w.r73Mount);
+            AddOptions(inner, w.r27Mount, w.r27tMount, w.r73Mount, w.r60Mount);
             sets.GetArrayElementAtIndex(middle).FindPropertyRelative("name").stringValue = "Middle Pylons";
-            AddOptions(middle, w.r73Mount);
+            AddOptions(middle, w.r73Mount, w.r60Mount);
 
-            // new outer pair (R-73 only), inserted right after the middle pylons
+            // new outer pair (R-73 / R-60M), inserted right after the middle pylons
             int outer = middle + 1;
             sets.InsertArrayElementAtIndex(middle);
             var os = sets.GetArrayElementAtIndex(outer);
             os.FindPropertyRelative("name").stringValue = "Outer Pylons";
             var oo = os.FindPropertyRelative("weaponOptions");
-            oo.arraySize = 2;
+            oo.arraySize = 3;
             oo.GetArrayElementAtIndex(0).objectReferenceValue = null;
             oo.GetArrayElementAtIndex(1).objectReferenceValue = w.r73Mount;
+            oo.GetArrayElementAtIndex(2).objectReferenceValue = w.r60Mount;
             var hps = os.FindPropertyRelative("hardpoints");
             var upType = T("UnitPart");
             for (int i = 0; i < hps.arraySize && i < 2; i++)
@@ -402,6 +553,37 @@ namespace MiG29Tools
             so.ApplyModifiedPropertiesWithoutUndo();
             Debug.Log($"[MiG29] pylons: inner {inner}, middle {middle}, outer {outer}; {sets.arraySize} hardpoint sets");
             return outer;
+        }
+
+        // Default loadout (loadouts[1]: the loadout screen's starting point and the fallback) and the standard loadouts AI-flown
+        // MiGs spawn with. Hardpoint sets: 0 gun, 1 inner, 2 middle, 3 outer, 4 tail hook.
+        public static void SetLoadouts(SerializedObject pso, Result w)
+        {
+            UnityEngine.Object Stock(string n) => AssetDatabase.LoadAssetAtPath<ScriptableObject>(MB + n + "_PLACEHOLDER.asset");
+            var airSup = new UnityEngine.Object[] { w.gunMount, w.r27Mount, w.r73Mount, w.r73Mount, null };
+            var presets = new (string name, float fuel, UnityEngine.Object[] weapons)[]
+            {
+                ("Air Superiority (R-27R / R-73)", 0.8f, airSup),
+                ("Dogfight (R-27T / R-73 / R-60M)", 0.6f, new UnityEngine.Object[] { w.gunMount, w.r27tMount, w.r73Mount, w.r60Mount, null }),
+                ("Strike (FAB-500 / rockets / R-73)", 0.7f, new UnityEngine.Object[] { w.gunMount, Stock("bomb_500_single"), Stock("Rocket2_4Pod"), w.r73Mount, null }),
+            };
+            void Fill(SerializedProperty weapons, UnityEngine.Object[] src)
+            {
+                weapons.arraySize = src.Length;
+                for (int i = 0; i < src.Length; i++) weapons.GetArrayElementAtIndex(i).objectReferenceValue = src[i];
+            }
+            Fill(pso.FindProperty("loadouts").GetArrayElementAtIndex(1).FindPropertyRelative("weapons"), airSup);
+            var std = pso.FindProperty("StandardLoadouts");
+            std.arraySize = presets.Length;
+            for (int i = 0; i < presets.Length; i++)
+            {
+                var e = std.GetArrayElementAtIndex(i);
+                e.FindPropertyRelative("disabled").boolValue = false;
+                e.FindPropertyRelative("Name").stringValue = presets[i].name;
+                e.FindPropertyRelative("FuelRatio").floatValue = presets[i].fuel;
+                Fill(e.FindPropertyRelative("loadout.weapons"), presets[i].weapons);
+            }
+            Debug.Log($"[MiG29] default loadout + {presets.Length} standard loadouts set");
         }
 
         // keep loadout.weapons aligned with hardpointSets after inserting the outer pylon set

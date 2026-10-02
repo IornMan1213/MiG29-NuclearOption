@@ -35,12 +35,11 @@ The Sketchfab model and the game's assemblies are **not** in this repo. You need
 Steps:
 1. Export the model into the project:
    `blender -b MiG-29.blend --python blender/export_mig29.py -- <project>/MiG29Source`
-2. Prepare the textures (2K set, scorch texture, loading screens), then the desert livery:
+2. Prepare the textures (2K set, scorch texture, loading screens):
    `python tools/prepare_textures.py <sketchfab>/textures <project>/MiG29Source`
-   `python tools/livery_desert.py <project>/MiG29Source/mig29_basecolor.png <project>/MiG29Source/mig29_mesh.json <project>/MiG29Source/mig29_basecolor_desert.png`
 3. With Unity Hub running and signed in, run the build from PowerShell:
-   `./tools/build_mig29.ps1 -Project <project>`. It copies `unity/MiG29Tools` into the project, generates the missiles and the
-   flight-model export, and writes the `.nobp` to `<project>/MiG29Build/`.
+   `./tools/build_mig29.ps1 -Project <project>`. It copies `unity/MiG29Tools` into the project, generates the missiles, the
+   flight-model export and the desert / digital livery textures, and writes the `.nobp` to `<project>/MiG29Build/`.
 
 To check flight-model changes offline, run `python tools/fm_sim.py`. It reads `tools/fm_config.json` and the part data
 dumped from the built prefab (`tools/aero_reference.json`, refreshed with `MiG29Tools.MiG29AeroDump.Dump`).

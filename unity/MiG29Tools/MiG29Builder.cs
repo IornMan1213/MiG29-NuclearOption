@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -21,7 +21,7 @@ namespace MiG29Tools
 
         public const string JsonKey = "mig29_Fulcrum";
         public const string DisplayName = "MiG-29 Fulcrum";
-        public const string Version = "0.4.2";
+        public const string Version = "0.5.0";
 
         // MiG model frame -> aircraft root. Puts MiG main wheels on the KR-67 main gear and MiG wheels on KR-67 ground line.
         static readonly Vector3 ModelOffset = new Vector3(0f, -0.44f, -2.655f);
@@ -98,6 +98,7 @@ namespace MiG29Tools
             bayIndices = BayIndices(go);
             RemoveInternalBays(go);
             var outerPylonSet = MiG29Weapons.SetupPylons(go, ModelOffset, weapons);
+            var oldGun = MiG29Weapons.SetupGun(go, ModelOffset, weapons);
             var displays = MiG29Polish.BuildDisplays(go);
 
             var prefabPath = ModDir + "/MiG29.prefab";
@@ -110,6 +111,8 @@ namespace MiG29Tools
             pso.FindProperty("aircraftName").stringValue = "MiG-29";
             RemoveBayLoadouts(pso);
             MiG29Weapons.InsertLoadoutSlot(pso, outerPylonSet);
+            Debug.Log($"[MiG29] loadouts: {MiG29Weapons.ReplaceInLoadouts(pso, oldGun, weapons.gunMount)} gun entries switched to GSh-30-1");
+            MiG29Weapons.SetLoadouts(pso, weapons);
             MiG29Polish.SetLiveries(pso);
             pso.FindProperty("StatusDisplay").objectReferenceValue = displays.statusDisplay;
             MiG29FlightModel.ApplyToParameters(pso, fm);

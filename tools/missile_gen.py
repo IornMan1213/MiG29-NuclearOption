@@ -3,7 +3,9 @@
 Output: MiG29Source/missiles.json (same mesh-dump format as mig29_mesh.json: Unity coords, metres, +Z forward,
 Unity front-face winding) and MiG29Source/missile_atlas.png (+ flat normal / metallic textures).
 Dimensions from open sources: R-73 2.90 m x 0.17 m, canard span 0.385 m, wing span 0.51 m;
-R-27R 4.08 m x 0.23 m, canard span 0.97 m ("butterfly" control fins), wing span 0.80 m.
+R-27R 4.08 m x 0.23 m, canard span 0.97 m ("butterfly" control fins), wing span 0.80 m;
+R-27T 3.80 m x 0.23 m (same airframe, short infrared nose with a glass dome);
+R-60M 2.09 m x 0.12 m, wing span 0.39 m, with its APU-60 rail.
 """
 import json, math, sys
 import numpy as np
@@ -136,6 +138,45 @@ def r27r():
     return m
 
 
+def r27_body(m, L, nose_prof, nose_cells):
+    R = 0.115; zt = L / 2
+    prof = nose_prof(zt) + [(-zt + 0.08, R), (-zt + 0.03, 0.104), (-zt, 0.09)]
+    m.revolve(prof, cells=nose_cells(zt))
+    for roll in (45, 135, 225, 315):
+        m.fin([(R, zt - 1.05), (R, zt - 1.30), (0.485, zt - 1.62), (0.485, zt - 1.14)], roll, 0.010, "lgrey")
+        m.fin([(R, -zt + 1.05), (R, -zt + 0.10), (0.40, -zt + 0.12), (0.40, -zt + 0.42)], roll, 0.010, "lgrey")
+
+
+def r27t():
+    """R-27T: the R-27 airframe with a short infrared seeker section ending in a hemispherical glass dome."""
+    m = Mesh(); L = 3.80; R = 0.115
+    nose = lambda zt: [(zt, 0), (zt - 0.012, 0.042), (zt - 0.035, 0.066), (zt - 0.07, 0.080), (zt - 0.09, 0.083),  # dome
+                       (zt - 0.10, 0.090), (zt - 0.22, 0.104), (zt - 0.36, R)]
+    cells = lambda zt: (lambda z: "glass" if z > zt - 0.092 else ("dgrey" if z > zt - 0.36 else ("yellow" if zt - 0.72 < z < zt - 0.66 else "white")))
+    r27_body(m, L, nose, cells)
+    return m
+
+
+def r60m():
+    m = Mesh(); L = 2.09; R = 0.06; zt = L / 2
+    prof = [(zt, 0), (zt - 0.01, 0.025), (zt - 0.03, 0.040), (zt - 0.05, 0.048), (zt - 0.09, 0.055), (zt - 0.14, R),
+            (-zt + 0.05, R), (-zt + 0.015, 0.054), (-zt, 0.046)]
+    m.revolve(prof, seg=20, cells=lambda z: "glass" if z > zt - 0.06 else ("yellow" if zt - 0.40 < z < zt - 0.36 else "white"))
+    for roll in (45, 135, 225, 315):
+        m.fin([(R, zt - 0.10), (R, zt - 0.16), (R + 0.03, zt - 0.16)], roll, 0.004, "lgrey")              # destabilisers
+        m.fin([(R, zt - 0.20), (R, zt - 0.36), (0.150, zt - 0.33), (0.150, zt - 0.27)], roll, 0.006, "lgrey")  # control canards
+        m.fin([(R, -zt + 0.42), (R, -zt + 0.04), (0.195, -zt + 0.06), (0.195, -zt + 0.20)], roll, 0.006, "lgrey")  # wings + rollerons
+    return m
+
+
+def apu60():
+    """APU-60 rail launcher for the R-60M: missile body top touches the rail underside at y = -0.08."""
+    m = Mesh()
+    m.box(-0.035, 0.035, -0.08, 0.0, -0.95, 0.80, "camo", nose_taper=0.2)
+    m.box(-0.018, 0.018, -0.092, -0.08, -0.90, 0.72, "metal")
+    return m
+
+
 def apu73():
     """APU-73 rail launcher: missile body top touches the rail underside at y = -0.10."""
     m = Mesh()
@@ -168,7 +209,8 @@ def textures():
 
 if __name__ == "__main__":
     textures()
-    parts = [r73().dump("R73"), r27r().dump("R27R"), apu73().dump("APU73"), aku470().dump("AKU470")]
+    parts = [r73().dump("R73"), r27r().dump("R27R"), r27t().dump("R27T"), r60m().dump("R60M"),
+             apu73().dump("APU73"), aku470().dump("AKU470"), apu60().dump("APU60")]
     json.dump({"parts": parts}, open(OUT + "/missiles.json", "w"))
     for p in parts:
         v = np.array(p["vertices"]).reshape(-1, 3)

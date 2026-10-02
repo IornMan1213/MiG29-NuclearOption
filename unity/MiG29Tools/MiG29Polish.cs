@@ -387,11 +387,12 @@ namespace MiG29Tools
             return AssetDatabase.AssetPathToGUID(path);
         }
 
-        // Two schemes, both selectable by either faction; Boscali defaults to grey, PALA to desert.
+        // Three schemes, all selectable by either faction; Boscali defaults to grey, PALA to desert.
         public static void SetLiveries(SerializedObject pso)
         {
             var grey = Livery("MiG29_livery", AssetDatabase.LoadAssetAtPath<Texture2D>(ModDir + "/textures/mig29_basecolor.png"), new Color32(170, 178, 178, 255));
             var desert = Livery("MiG29_livery_desert", ImportColor("mig29_basecolor_desert.png"), new Color32(196, 172, 128, 255));
+            var digital = Livery("MiG29_livery_digital", ImportColor("mig29_basecolor_digital.png"), new Color32(150, 160, 170, 255));
 
             var liveries = pso.FindProperty("liveries");
             var factions = new List<(UnityEngine.Object faction, bool pala)>();
@@ -402,12 +403,12 @@ namespace MiG29Tools
                 if (factions.Any(x => x.faction == f)) continue;
                 factions.Add((f, e.FindPropertyRelative("name").stringValue.ToUpperInvariant().Contains("PALA")));
             }
-            liveries.arraySize = factions.Count * 2;
+            liveries.arraySize = factions.Count * 3;
             int k = 0;
             foreach (var (faction, pala) in factions)
             {
-                var order = pala ? new[] { ("Fulcrum Desert Tan", desert), ("Fulcrum Two-Tone Grey", grey) }
-                                 : new[] { ("Fulcrum Two-Tone Grey", grey), ("Fulcrum Desert Tan", desert) };
+                var order = pala ? new[] { ("Fulcrum Desert Tan", desert), ("Fulcrum Two-Tone Grey", grey), ("Fulcrum Digital Grey", digital) }
+                                 : new[] { ("Fulcrum Two-Tone Grey", grey), ("Fulcrum Desert Tan", desert), ("Fulcrum Digital Grey", digital) };
                 foreach (var (name, guid) in order)
                 {
                     var e = liveries.GetArrayElementAtIndex(k++);

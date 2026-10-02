@@ -27,6 +27,7 @@ namespace MiG29Tools
                 Render("ground", tintParts: false, gearUp: false, open: true);
                 Render("parts", tintParts: true, gearUp: true, open: false);
                 Render("armed", tintParts: false, gearUp: true, open: false, armed: true);
+                Render("armedB", tintParts: false, gearUp: true, open: false, armed: true, inner: "mig29_R27T_AKU470", outer: "mig29_R60M_APU60");
                 EditorApplication.Exit(0);
             }
             catch (Exception e)
@@ -36,7 +37,7 @@ namespace MiG29Tools
             }
         }
 
-        static void Render(string prefix, bool tintParts, bool gearUp, bool open, bool armed = false)
+        static void Render(string prefix, bool tintParts, bool gearUp, bool open, bool armed = false, string inner = "mig29_R27R_AKU470", string outer = "mig29_R73_APU73")
         {
             var go = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath));
             go.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
@@ -73,8 +74,8 @@ namespace MiG29Tools
             if (armed)
             {
                 // hang the mounts the way WeaponManager does: mount prefab at the hardpoint transform
-                var r27 = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Blueprinter/Mods/mig29/weapons/mig29_R27R_AKU470.prefab");
-                var r73 = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Blueprinter/Mods/mig29/weapons/mig29_R73_APU73.prefab");
+                var r27 = AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Blueprinter/Mods/mig29/weapons/{inner}.prefab");
+                var r73 = AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Blueprinter/Mods/mig29/weapons/{outer}.prefab");
                 foreach (var (hp, prefab) in new[] { ("hardpoint_pylon_L1", r27), ("hardpoint_pylon_R1", r27), ("hardpoint_pylon_L2", r73), ("hardpoint_pylon_R2", r73), ("hardpoint_pylon_L3", r73), ("hardpoint_pylon_R3", r73) })
                 {
                     var t = go.GetComponentsInChildren<Transform>(true).First(x => x.name == hp);

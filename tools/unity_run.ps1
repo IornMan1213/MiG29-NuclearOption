@@ -7,6 +7,8 @@ param(
 )
 $ErrorActionPreference = "Stop"
 if (-not $Project -or -not (Test-Path (Join-Path $Project "Assets"))) { throw "Pass -Project <Blueprinter-Editor folder> or set BLUEPRINTER_PROJECT" }
+$dst = Join-Path $Project "Assets\Editor\MiG29Tools"; New-Item -ItemType Directory -Force $dst | Out-Null
+Copy-Item (Join-Path (Split-Path $PSScriptRoot) "unity\MiG29Tools\*.cs") $dst -Force  # repo is the source of truth
 $sa = Join-Path $Project "Library\ScriptAssemblies"
 $dlls = "Assembly-CSharp.dll", "Assembly-CSharp-firstpass.dll"
 function Invoke-Unity([string[]]$extra, [string]$log) {
