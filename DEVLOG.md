@@ -241,4 +241,8 @@ Blueprinter bundles can only use components that already exist in the game, and 
   every rigidbody of the aircraft (the part list misses some, and a stretched joint wrecks the jet). It also resets
   `Pilot.velocityPrev` and `Aircraft.velocityPrev`, or the pilot sees a ~1,000 g jump and dies. First in-flight check: IAS
   655 km/h at M0.59 and 1,600 m, AoA 9 deg, 3.3 g in a pull-up, then climbing at 21 m/s.
+- **RWR tested live** (Free Flight with 16 AI aircraft): fighters lit the sector toward them with type П, a ship radar
+  type О. `Aircraft.onRadarWarning` arrives once per sweep, so warnings are held 4 s. The strength ladder uses distance
+  (1 bar at 50 km, 10 bars close), because the game's `power` (max range / distance, capped) saturates. `isTarget` is only set
+  for non-aircraft emitters, so ЗАХВАТ means a SAM or ship tracking you.
 

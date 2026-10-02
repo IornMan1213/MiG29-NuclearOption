@@ -306,16 +306,19 @@ namespace MiG29Instruments
             st.canopyOpen = open;
             st.blink = Mathf.Sin(Time.time * 12f) > 0f;
 
-            // threats: radar emitters painting us in the last 2.5 s, plus incoming missiles (flashing sector)
+            // threats: radar emitters painting us in the last 4 s (warnings arrive once per radar sweep), plus incoming missiles (flashing sector)
             st.rwr.Clear(); st.rwrPower = 0f; st.lockedOn = false;
-            radar.RemoveAll(r => r.emitter == null || Time.time - r.time > 2.5f);
+            radar.RemoveAll(r => r.emitter == null || Time.time - r.time > 4f);
             var fwd = Vector3.ProjectOnPlane(cock.forward, Vector3.up);
             foreach (var r in radar)
             {
                 var to = Vector3.ProjectOnPlane(r.emitter.transform.position - cock.position, Vector3.up);
                 int type = r.emitter is Aircraft ? 0 : r.emitter is Ship ? 5 : r.power > 0.5f ? 1 : 2;
                 st.rwr.Add((Vector3.SignedAngle(fwd, to, Vector3.up), type));
-                st.rwrPower = Mathf.Max(st.rwrPower, 0.3f + 0.7f * Mathf.Clamp01(r.power));
+                // signal-strength ladder: closer radars light more bars (1 bar at 50 km, all 10 inside ~5 km)
+                float dist = Vector3.Distance(r.emitter.transform.position, cock.position);
+                st.rwrPower = Mathf.Max(st.rwrPower, Mathf.Clamp(1f - dist / 55000f, 0.1f, 1f));
+                rawPower = Mathf.Max(rawPower, r.power);
                 st.lockedOn |= r.target;
             }
             var mw = ac.GetMissileWarningSystem();
@@ -331,7 +334,7 @@ namespace MiG29Instruments
         }
 
         int errors;
-        float nextLog;
+        float nextLog, rawPower;
         static readonly bool Dev = System.IO.File.Exists(System.IO.Path.Combine(BepInEx.Paths.BepInExRootPath, "mig29_dump.flag"));
 
         void LateUpdate()
@@ -385,7 +388,8 @@ namespace MiG29Instruments
                 nextLog = Time.time + 2f;
                 MiG29InstrumentsPlugin.Log.LogInfo($"IAS {st.iasKmh:F0} M{st.mach:F2} ALT {st.altM:F0} RA {st.radAltM:F0} VS {st.vsMs:F1} AoA {st.aoaDeg:F1} G {st.g:F1} P {st.pitchDeg:F1} R {st.rollDeg:F1} HDG {st.headingDeg:F0} " +
                     $"RPM {st.rpmL:F0}/{st.rpmR:F0} EGT {st.egtL:F0}/{st.egtR:F0} FUEL {st.fuelKg:F0} ({st.fuelFrac:P0}) HYD {st.hydraulic:F0} THR {st.throttle:F2} BRK {st.brake:F2} GEAR {(st.gearDown ? "down" : st.gearMoving ? "moving" : "up")} " +
-                    $"GND {st.onGround} CANOPY {st.canopyOpen} TOD {st.hours:00}:{st.minutes:00} LIT [{string.Join(" ", on)}]");
+                    $"GND {st.onGround} CANOPY {st.canopyOpen} TOD {st.hours:00}:{st.minutes:00} RWRRAW {rawPower:G4} LIT [{string.Join(" ", on)}]");
+                rawPower = 0f;
             }
             foreach (var kv in lamps)
             {
