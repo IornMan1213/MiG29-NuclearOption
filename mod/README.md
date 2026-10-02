@@ -29,12 +29,14 @@ Multiplayer: everyone needs the same mod set (Blueprinter checks this).
     (R-27T / R-73 / R-60M), strike (FAB-500 / rockets / R-73).
 - **Airframe**: canopy opens from its rear hinge on the ground and ejects with the seat; nose and main gear doors open with
   the gear; parts break off and show scorch damage; hitboxes are the KR-67 part colliders scaled to the MiG.
+- **MiG-29 cockpit**: the model's own cockpit interior, with the tactical display on a retrofit console.
 - **Cockpit damage display** and map icon drawn from the MiG itself.
 - **Liveries**: Two-Tone Grey, Desert Tan and Digital Grey (both factions can pick any).
 - Two loading screens.
 
 ## Known limitations
-- The cockpit interior is the KR-67 Ifrit's (functional displays), positioned under the MiG canopy.
+- Cockpit: the MiG-29's own cockpit (gauges, HUD frame, canopy arch) with the game's tactical display and warning lights
+  fitted on a console in the lower panel. The rest of the cockpit systems are the KR-67 Ifrit's.
 - Flight model was tuned and verified offline; report handling issues with your controls and speed/altitude.
 
 ## Links

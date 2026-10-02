@@ -18,6 +18,96 @@ namespace MiG29Tools
 
         static Type T(string n) => AppDomain.CurrentDomain.GetAssemblies().Where(a => a.GetName().Name == "Assembly-CSharp").Select(a => a.GetType(n)).First(t => t != null);
 
+        // Pilot's-eye views as the game shows them: exterior renderers off (Aircraft.SetCockpitRenderers), camera at cockpitViewPoint.
+        // KR-67 leftovers render orange, MiG pieces textured, glass blue-grey.
+        public static void RenderCockpit() => RenderCockpitImpl(false);
+        public static void RenderCockpitMiG() => RenderCockpitImpl(true);
+
+        static void RenderCockpitImpl(bool migInterior)
+        {
+            try
+            {
+                Directory.CreateDirectory("MiG29Out");
+                var go = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath));
+                go.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+                var aso = new SerializedObject(go.GetComponent(T("Aircraft")));
+                var ext = aso.FindProperty("exteriorRenderers");
+                var hidden = new System.Collections.Generic.HashSet<Renderer>();
+                for (int i = 0; i < ext.arraySize; i++) if (ext.GetArrayElementAtIndex(i).objectReferenceValue is Renderer r) hidden.Add(r);
+                foreach (var pilot in go.GetComponentsInChildren(T("Pilot"), true))   // CameraCockpitState hides the pilots
+                    foreach (var r in pilot.GetComponentsInChildren<Renderer>(true)) hidden.Add(r);
+                if (migInterior)
+                {
+                    // candidate: the MiG's own cockpit + canopy stay visible inside, the KR-67 canopy glass/frame interiors go
+                    hidden.RemoveWhere(r => r.name.StartsWith("MiG29_"));
+                    foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+                        if (r.name.StartsWith("canopy_") && r.name.EndsWith("_int") || r.name.StartsWith("canopyFrame_") && r.name.EndsWith("_int")) hidden.Add(r);
+                }
+                var vp = new SerializedObject(go.GetComponent(T("Unit"))).FindProperty("cockpitViewPoint").objectReferenceValue as Transform;
+                Debug.Log($"[MiG29] cockpit view point {(vp ? vp.position.ToString("F3") : "null")}, {hidden.Count} exterior renderers hidden");
+                foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+                    if (!hidden.Contains(r) && !r.name.StartsWith("MiG29_") && vp && r.bounds.SqrDistance(vp.position) < 2.5f * 2.5f)
+                        Debug.Log($"[MiG29] near-eye mats {r.name}: {string.Join(",", r.sharedMaterials.Select(m => m ? m.name : "null"))}");
+                // dev: MIG29_TAC="x,y,z,scale" repositions the tac screen to try placements without a full build
+                var tacEnv = Environment.GetEnvironmentVariable("MIG29_TAC");
+                if (!string.IsNullOrEmpty(tacEnv))
+                {
+                    var v = tacEnv.Split(',').Select(x => float.Parse(x, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+                    var tt = go.GetComponentsInChildren<Transform>(true).First(x => x.name == "tacScreen");
+                    var tr = tt.GetComponent<Renderer>();
+                    tt.localScale *= v[3] / (tr.bounds.size.x / 0.4725f);
+                    tt.position += new Vector3(v[0], v[1], v[2]) - tr.bounds.center;
+                }
+                var lit = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
+                var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(BaseTex);
+                foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+                {
+                    if (hidden.Contains(r)) { r.enabled = false; continue; }
+                    if (!(r is SkinnedMeshRenderer) && (!r.TryGetComponent<MeshFilter>(out var mf) || mf.sharedMesh == null)) continue;
+                    bool mig = r.name.StartsWith("MiG29_");
+                    bool glass = r.name.ToLower().Contains("glass") || r.name.Contains("windscreen") || r.name == "MiG29_canopy";
+                    var m = new Material(lit);
+                    if (glass) { m.SetColor("_BaseColor", new Color(0.3f, 0.4f, 0.5f, 0.25f)); m.SetFloat("_Surface", 1); m.renderQueue = 3000; m.SetOverrideTag("RenderType", "Transparent"); m.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha); m.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha); m.SetInt("_ZWrite", 0); m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT"); }
+                    else if (r.name == "MiG29_mfd_console") m.SetColor("_BaseColor", new Color(0.24f, 0.25f, 0.26f));   // atlas dgrey in game
+                    else if (mig) { m.SetTexture("_BaseMap", tex); m.SetColor("_BaseColor", Color.white); }
+                    else if (r.name == "tacScreen") m.SetColor("_BaseColor", new Color(1f, 0.1f, 0.9f));
+                    else if (r.name == "warningLights") m.SetColor("_BaseColor", new Color(0.1f, 1f, 0.2f));
+                    else m.SetColor("_BaseColor", new Color(1f, 0.45f, 0.15f));
+                    if (r.name == "tacScreen" || r.name == "warningLights") Debug.Log($"[MiG29] {r.name} bounds c={r.bounds.center:F3} s={r.bounds.size:F3}");
+                    r.sharedMaterials = Enumerable.Repeat(m, r.sharedMaterials.Length).ToArray();
+                    r.enabled = true;
+                }
+                var eyeP = vp ? vp.position : Vector3.zero;
+                foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+                    if (r.enabled && !r.name.StartsWith("MiG29_") && r.bounds.SqrDistance(eyeP) < 2.5f * 2.5f)
+                    {
+                        var mats = string.Join(",", (r.sharedMaterials ?? new Material[0]).Select(m => m ? m.name : "null"));
+                        Debug.Log($"[MiG29] near-eye renderer {r.transform.parent?.name}/{r.name} c={r.bounds.center:F2} s={r.bounds.size:F2}");
+                    }
+                var lightGo = new GameObject("light"); var light = lightGo.AddComponent<Light>();
+                light.type = LightType.Directional; light.intensity = 1.3f; lightGo.transform.rotation = Quaternion.Euler(50, 30, 0);
+                RenderSettings.ambientLight = new Color(0.5f, 0.52f, 0.56f);
+                var camGo = new GameObject("cam"); var cam = camGo.AddComponent<Camera>();
+                cam.clearFlags = CameraClearFlags.SolidColor; cam.backgroundColor = new Color(0.55f, 0.65f, 0.78f);
+                cam.nearClipPlane = 0.02f; cam.farClipPlane = 100f; cam.fieldOfView = 75;
+                var rt = new RenderTexture(1600, 1000, 24) { antiAliasing = 4 }; cam.targetTexture = rt;
+                var eye = vp ? vp.position : new Vector3(0, 1.0f, 4.5f);
+                foreach (var (name, euler) in new[] { ("fwd", new Vector3(8, 0, 0)), ("left", new Vector3(10, -70, 0)), ("right", new Vector3(10, 70, 0)), ("up_back", new Vector3(-45, 160, 0)), ("down", new Vector3(35, 0, 0)) })
+                {
+                    camGo.transform.SetPositionAndRotation(eye, Quaternion.Euler(euler));
+                    cam.Render();
+                    RenderTexture.active = rt;
+                    var img = new Texture2D(rt.width, rt.height, TextureFormat.RGB24, false);
+                    img.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0); img.Apply();
+                    File.WriteAllBytes($"MiG29Out/cockpit{(migInterior ? "MiG" : "")}_{name}.png", img.EncodeToPNG());
+                    RenderTexture.active = null;
+                }
+                Debug.Log("[MiG29] cockpit views rendered");
+                EditorApplication.Exit(0);
+            }
+            catch (Exception e) { Debug.LogException(e); EditorApplication.Exit(1); }
+        }
+
         public static void RenderAll()
         {
             try

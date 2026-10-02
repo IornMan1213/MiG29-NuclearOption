@@ -130,4 +130,12 @@ missile prefabs cloned in the builder (R-73 from AAM1, R-27R from AAM2 with SARH
 - Livery 3 "Fulcrum Digital Grey" (`tools/livery_digital.py`): 3-tone 16-texel block camo on exterior paint texels; shading is
   brightness relative to a blurred copy so panel lines stay but the old two-tone shapes don't ghost through. The build now
   regenerates the desert and digital textures.
+- MiG cockpit interior (`MiG29Polish.SetupMiGCockpit`): the Sketchfab `MiG-29-cockpit` object is a full interior (gauges, HUD
+  frame, windscreen arch, mirrors, seat). It no longer goes in `exteriorRenderers`, so it shows in the cockpit view too; KR-67
+  canopy_*_int, canopyFrame_*_int, cockpit_int(+_simple), joystick and throttle meshes are nulled. The KR-67 `tacScreen` (the
+  Cockpit component's tacScreenRender; main display + 3 sub-displays in one game mesh, can't be split) is scaled to 0.33 m and
+  placed on the lower-centre panel at (0.02, 0.255, 4.25), in front of the gauge panel (face at z 4.30-4.45; the 4.50-4.55
+  faces are the HUD housing), with a dark atlas-grey console box behind it and the warning-light strip along its top.
+  Checked with `MiG29Preview.RenderCockpit` (pilot's-eye renders from cockpitViewPoint with exterior + pilot renderers off).
+  Needs an in-game look: lighting, tac-screen readability, head movement clipping.
 - Not done: in-game spawn check. Windows input idle stayed under 2 minutes (someone at the PC), so the game was not driven.

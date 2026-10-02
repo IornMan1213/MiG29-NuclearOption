@@ -63,7 +63,7 @@ namespace MiG29Tools
             var visual = new GameObject("MiG29_visual").transform;
             visual.SetParent(root, false);
             visual.localPosition = ModelOffset;
-            // canopy + exterior cockpit ride on the KR-67 cockpit part (hidden in cockpit view)
+            // canopy + MiG cockpit ride on the KR-67 cockpit part (shown in the cockpit view too: MiG29Polish.SetupMiGCockpit)
             var exterior = new List<Renderer>();
             var cockpitPart = Find(root, "cockpit");
             Renderer migCanopy = null;
@@ -93,6 +93,9 @@ namespace MiG29Tools
 
             MoveCockpit(root);
             MiG29Polish.SetupCanopy(go, ModelOffset, migCanopy, (m, path) => CreateOrReplace(m, path), exterior);
+            MiG29Polish.SetupMiGCockpit(go, exterior,
+                size => CreateOrReplace(AtlasBox("MiG29_mfd_console", size, 0.625f, 0.875f), ModDir + "/meshes/MiG29_mfd_console.asset"),
+                AssetDatabase.LoadAssetAtPath<Material>(ModDir + "/weapons/MiG29_missiles.mat"));
             AppendExteriorRenderers(go, exterior);
             TuneToMiG(root);
             bayIndices = BayIndices(go);
@@ -414,6 +417,28 @@ namespace MiG29Tools
             arr.arraySize++;
             arr.GetArrayElementAtIndex(arr.arraySize - 1).objectReferenceValue = r;
             so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        // Box mesh centred on the origin, every vertex mapped to one flat-colour cell of the missile atlas (0.625, 0.875 = dgrey).
+        static Mesh AtlasBox(string name, Vector3 size, float u, float v)
+        {
+            var e = size / 2;
+            var faces = new[] { (Vector3.forward, Vector3.up), (Vector3.back, Vector3.up), (Vector3.left, Vector3.up), (Vector3.right, Vector3.up), (Vector3.up, Vector3.forward), (Vector3.down, Vector3.forward) };
+            var verts = new List<Vector3>(); var norms = new List<Vector3>(); var tris = new List<int>();
+            foreach (var (n, up) in faces)
+            {
+                var side = Vector3.Cross(up, n);
+                int b0 = verts.Count;
+                foreach (var (a, c) in new[] { (-1, -1), (1, -1), (1, 1), (-1, 1) })
+                {
+                    verts.Add(Vector3.Scale(n + side * a + up * c, e)); norms.Add(n);
+                }
+                tris.AddRange(new[] { b0, b0 + 1, b0 + 2, b0, b0 + 2, b0 + 3 }); // cross(b-a, c-a) along n: Unity front face (see missile_gen.py)
+            }
+            var m = new Mesh { name = name };
+            m.SetVertices(verts); m.SetNormals(norms); m.SetUVs(0, Enumerable.Repeat(new Vector2(u, v), verts.Count).ToList()); m.SetTriangles(tris, 0);
+            m.RecalculateBounds(); m.RecalculateTangents();
+            return m;
         }
 
         static void AppendExteriorRenderers(GameObject go, List<Renderer> renderers)

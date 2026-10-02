@@ -172,6 +172,51 @@ namespace MiG29Tools
             Debug.Log($"[MiG29] gear doors: {string.Join(", ", groups.Select(g => $"{g.Key} {g.Value.Count / 3} tris"))}");
         }
 
+        // ---------------- cockpit interior ----------------
+
+        // The Sketchfab model has a full MiG-29 cockpit (gauge panel, HUD frame, windscreen arch, sills, seat). It is shown in the
+        // cockpit view too, and the KR-67 interior pieces it would clash with are hidden. The KR-67's working tactical screen and
+        // warning-light strip move onto the MiG panel (KR-67 frame, prefab coordinates; panel face measured at z 4.50-4.55,
+        // y 0.21-0.69, x +-0.33 with blender analysis of MiG-29-cockpit).
+        static readonly string[] KrInteriorHidden = { "canopy_F_int", "canopy_R_int", "canopyFrame_F_int", "canopyFrame_R_int",
+                                                      "cockpit_int", "cockpit_int_simple", "joystick", "throttle" };
+        // gauge panel face is at z ~4.30-4.45 (the 4.50-4.55 faces are the HUD housing); the screen cluster (main tactical display +
+        // three small sub-displays, one game mesh) covers the lower-centre gauges and keeps the upper row (ADI, airspeed, altitude)
+        static readonly Vector3 TacScreenCenter = new Vector3(0.02f, 0.255f, 4.25f);
+        const float TacScreenWidth = 0.33f;  // was 0.47 m on the KR-67 panel
+
+        public static void SetupMiGCockpit(GameObject go, List<Renderer> exterior, Func<Vector3, Mesh> consoleMesh, Material consoleMat)
+        {
+            var root = go.transform;
+            int shown = exterior.RemoveAll(r => r != null && (r.name == "MiG29_cockpit" || r.name.StartsWith("MiG29_canopy") || r.name.Contains("windscreen")));
+            int hidden = 0;
+            foreach (var t in root.GetComponentsInChildren<Transform>(true).Where(t => KrInteriorHidden.Contains(t.name)))
+                if (t.TryGetComponent<MeshFilter>(out var mf) && mf.sharedMesh != null) { mf.sharedMesh = null; hidden++; }
+
+            Bounds MoveRendererTo(string name, Vector3 center, float width)
+            {
+                var t = Find(root, name);
+                var r = t.GetComponent<Renderer>();
+                if (width > 0) t.localScale *= width / r.bounds.size.x;
+                t.position += center - r.bounds.center;
+                return r.bounds;
+            }
+            var tb = MoveRendererTo("tacScreen", TacScreenCenter, TacScreenWidth);
+
+            // retrofit console behind the screen cluster (entirely behind its bounds: the display is tilted back), so the
+            // sub-displays sit on a panel instead of floating; the warning-light strip runs along its top edge
+            var size = new Vector3(tb.size.x + 0.016f, tb.size.y + 0.05f, 0.04f);  // tall enough for the light strip on top
+            var plateCenter = new Vector3(tb.center.x, tb.center.y + 0.017f, tb.max.z + 0.004f + size.z / 2);
+            MoveRendererTo("warningLights", new Vector3(tb.center.x, tb.max.y + 0.022f, tb.center.z), size.x);
+            var plate = new GameObject("MiG29_mfd_console").transform;
+            plate.SetParent(Find(root, "tacScreen").parent, false);
+            plate.position = plateCenter;
+            plate.rotation = Quaternion.identity;
+            plate.gameObject.AddComponent<MeshFilter>().sharedMesh = consoleMesh(size);
+            plate.gameObject.AddComponent<MeshRenderer>().sharedMaterial = consoleMat;
+            Debug.Log($"[MiG29] MiG cockpit interior: {shown} MiG renderers kept in cockpit view, {hidden} KR-67 interior meshes hidden, tac screen + warning lights moved onto the MiG panel");
+        }
+
         // ---------------- damage display + map icon ----------------
 
         class Raster
