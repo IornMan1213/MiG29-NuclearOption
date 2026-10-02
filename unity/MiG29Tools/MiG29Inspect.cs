@@ -45,7 +45,7 @@ namespace MiG29Tools
             var go = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
             var sb = new StringBuilder();
             sb.AppendLine("PREFAB " + prefabPath);
-            foreach (var typeName in new[] { "WeaponManager", "Gun", "Hardpoint" })
+            foreach (var typeName in new[] { "WeaponManager", "Gun", "Hardpoint", "ControlsFilter" })
             {
                 var t = T(typeName);
                 if (t == null || !typeof(Component).IsAssignableFrom(t)) continue;

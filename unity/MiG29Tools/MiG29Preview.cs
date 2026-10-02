@@ -58,6 +58,7 @@ namespace MiG29Tools
                     tt.localScale *= v[3] / (tr.bounds.size.x / 0.4725f);
                     tt.position += new Vector3(v[0], v[1], v[2]) - tr.bounds.center;
                 }
+                bool pretty = Environment.GetEnvironmentVariable("MIG29_PRETTY") == "1";   // screen-like colours for the project page
                 var lit = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
                 var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(BaseTex);
                 foreach (var r in go.GetComponentsInChildren<Renderer>(true))
@@ -70,8 +71,8 @@ namespace MiG29Tools
                     if (glass) { m.SetColor("_BaseColor", new Color(0.3f, 0.4f, 0.5f, 0.25f)); m.SetFloat("_Surface", 1); m.renderQueue = 3000; m.SetOverrideTag("RenderType", "Transparent"); m.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha); m.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha); m.SetInt("_ZWrite", 0); m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT"); }
                     else if (r.name == "MiG29_mfd_console") m.SetColor("_BaseColor", new Color(0.24f, 0.25f, 0.26f));   // atlas dgrey in game
                     else if (mig) { m.SetTexture("_BaseMap", tex); m.SetColor("_BaseColor", Color.white); }
-                    else if (r.name == "tacScreen") m.SetColor("_BaseColor", new Color(1f, 0.1f, 0.9f));
-                    else if (r.name == "warningLights") m.SetColor("_BaseColor", new Color(0.1f, 1f, 0.2f));
+                    else if (r.name == "tacScreen") { m.SetColor("_BaseColor", pretty ? new Color(0.03f, 0.16f, 0.13f) : new Color(1f, 0.1f, 0.9f)); if (pretty) { m.EnableKeyword("_EMISSION"); m.SetColor("_EmissionColor", new Color(0.02f, 0.22f, 0.16f)); } }
+                    else if (r.name == "warningLights") m.SetColor("_BaseColor", pretty ? new Color(0.9f, 0.6f, 0.1f) : new Color(0.1f, 1f, 0.2f));
                     else m.SetColor("_BaseColor", new Color(1f, 0.45f, 0.15f));
                     if (r.name == "tacScreen" || r.name == "warningLights") Debug.Log($"[MiG29] {r.name} bounds c={r.bounds.center:F3} s={r.bounds.size:F3}");
                     r.sharedMaterials = Enumerable.Repeat(m, r.sharedMaterials.Length).ToArray();
@@ -92,7 +93,7 @@ namespace MiG29Tools
                 cam.nearClipPlane = 0.02f; cam.farClipPlane = 100f; cam.fieldOfView = 75;
                 var rt = new RenderTexture(1600, 1000, 24) { antiAliasing = 4 }; cam.targetTexture = rt;
                 var eye = vp ? vp.position : new Vector3(0, 1.0f, 4.5f);
-                foreach (var (name, euler) in new[] { ("fwd", new Vector3(8, 0, 0)), ("left", new Vector3(10, -70, 0)), ("right", new Vector3(10, 70, 0)), ("up_back", new Vector3(-45, 160, 0)), ("down", new Vector3(35, 0, 0)) })
+                foreach (var (name, euler) in new[] { ("fwd", new Vector3(8, 0, 0)), ("left", new Vector3(10, -70, 0)), ("right", new Vector3(10, 70, 0)), ("up_back", new Vector3(-45, 160, 0)), ("down", new Vector3(35, 0, 0)), ("page", new Vector3(22, -12, 0)) })
                 {
                     camGo.transform.SetPositionAndRotation(eye, Quaternion.Euler(euler));
                     cam.Render();
