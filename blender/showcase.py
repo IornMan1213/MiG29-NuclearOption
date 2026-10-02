@@ -75,7 +75,7 @@ for o in bpy.data.objects:
 engines = [e.identifier for e in bpy.types.RenderSettings.bl_rna.properties["engine"].enum_items]
 sc.render.engine = "BLENDER_EEVEE" if "BLENDER_EEVEE" in engines else "BLENDER_EEVEE_NEXT"
 sc.render.film_transparent = False
-sc.render.resolution_x, sc.render.resolution_y = 1920, 1080
+sc.render.resolution_x, sc.render.resolution_y = (2048, 1024) if os.environ.get("MIG29_LOADING") else (1920, 1080)
 vts = [i.identifier for i in sc.view_settings.bl_rna.properties["view_transform"].enum_items]
 sc.view_settings.view_transform = "AgX" if "AgX" in vts else "Filmic"
 
@@ -116,6 +116,7 @@ shots = [
     ("desert_side", "mig29_basecolor_desert.png", (math.radians(8), math.radians(-3), 0), (-20, -330, 20), (math.radians(50), 0, math.radians(-70)), 50),
     ("digital_bank", "mig29_basecolor_digital.png", (math.radians(-55), math.radians(-6), 0), (220, 260, 160), (math.radians(40), 0, math.radians(120)), 50),
     ("digital_quarter", "mig29_basecolor_digital.png", (math.radians(-12), math.radians(-6), 0), (250, 200, -60), (math.radians(35), 0, math.radians(140)), 50),
+    ("loading_digital", "mig29_basecolor_digital.png", (math.radians(-28), math.radians(-14), math.radians(4)), (185, 290, -50), (math.radians(30), 0, math.radians(150)), 42),
 ]
 only = [a for a in argv[2:]]
 if only:

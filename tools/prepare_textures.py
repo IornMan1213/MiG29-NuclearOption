@@ -39,6 +39,6 @@ s = s * (1 - chip) + np.array([0.48, 0.48, 0.5]) * chip
 Image.fromarray((np.clip(s, 0, 1) * 255).astype(np.uint8)).save(os.path.join(dst, "mig29_basecolor_dmg.png"))
 
 here = os.path.dirname(os.path.abspath(__file__))
-for f in ("loading_mig29_bank.png", "loading_mig29_climb.png"):
+for f in ("loading_mig29_bank.png", "loading_mig29_climb.png", "loading_mig29_digital.png"):
     shutil.copy(os.path.join(here, "..", "assets", "loading", f), dst)
 print("textures written to", dst)

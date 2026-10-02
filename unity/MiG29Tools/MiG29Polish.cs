@@ -471,7 +471,7 @@ namespace MiG29Tools
         {
             EnsureUiDir();
             var sprites = new List<Sprite>();
-            foreach (var file in new[] { "loading_mig29_bank.png", "loading_mig29_climb.png" })
+            foreach (var file in new[] { "loading_mig29_bank.png", "loading_mig29_climb.png", "loading_mig29_digital.png" })
             {
                 var dst = $"{UiDir}/{file}";
                 File.Copy(Path.Combine("MiG29Source", file), dst, true);
