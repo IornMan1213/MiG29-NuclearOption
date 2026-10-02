@@ -103,7 +103,8 @@ namespace MiG29Tools
                     needle.gameObject.AddComponent<MeshFilter>().sharedMesh = mesh;
                     needle.gameObject.AddComponent<MeshRenderer>().sharedMaterial = mat;
                     var id = p.name.Substring(4);
-                    needle.localRotation = id == "adi_ball" ? MiG29InstrumentMath.Ball(rest)
+                    if (MiG29InstrumentMath.Pose(id, rest, out var lp, out var lr)) { needle.localPosition = lp; needle.localRotation = lr; }
+                    else needle.localRotation = id == "adi_ball" ? MiG29InstrumentMath.Ball(rest)
                         : MiG29InstrumentMath.Needles.TryGetValue(id, out var f) ? Quaternion.Euler(0f, 0f, -f(rest)) : Quaternion.identity;
                     ins++;
                 }

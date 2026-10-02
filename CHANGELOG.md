@@ -10,7 +10,9 @@
   guards, afterburner, master caution).
 - SPO-15 radar warning receiver: sector lamps toward each radar painting you, signal-strength bar, threat type; flashing for
   missiles. Gear lights: green down and locked, red in transit.
-- Night lighting for the panel and consoles.
+- Rudder pedals slide with your rudder input; the landing-gear lever (left of the radar altimeter) swings down and up with the
+  gear.
+- Night lighting for the panel and consoles (BepInEx config `Cockpit / Night panel lighting`, 0-4, default 1).
 - Fixes found testing in game: the cockpit is on the game's Cockpit layer (parts of it were clipped away in the cockpit view),
   with an exterior copy for the outside view; it no longer takes the airframe's damage shading (holes and livery tint); the
   side-panel instruments sat tilted into the panel; the radar screen sat behind the side panel; a gap above the side panels

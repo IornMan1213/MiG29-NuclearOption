@@ -15,10 +15,13 @@ namespace MiG29Instruments
     public class MiG29InstrumentsPlugin : BaseUnityPlugin
     {
         internal static ManualLogSource Log;
+        internal static BepInEx.Configuration.ConfigEntry<float> PanelLighting;
 
         void Awake()
         {
             Log = Logger;
+            PanelLighting = Config.Bind("Cockpit", "Night panel lighting", 1f,
+                new BepInEx.Configuration.ConfigDescription("Brightness of the cockpit flood lights at night (0 = off)", new BepInEx.Configuration.AcceptableValueRange<float>(0f, 4f)));
             // some games destroy BepInEx's manager object on scene loads: scan from an object of our own
             var go = new GameObject("MiG29InstrumentsScanner");
             DontDestroyOnLoad(go);
@@ -88,6 +91,7 @@ namespace MiG29Instruments
         Aircraft ac;
         readonly List<Needle> needles = new List<Needle>();
         Transform ball;
+        readonly List<(string id, Transform t)> posed = new List<(string, Transform)>();
         readonly Dictionary<string, Renderer> lamps = new Dictionary<string, Renderer>();
         readonly HashSet<string> litNow = new HashSet<string>();
         readonly FlightState st = new FlightState();
@@ -96,6 +100,9 @@ namespace MiG29Instruments
         readonly List<(Unit emitter, float time, float power, bool target)> radar = new List<(Unit, float, float, bool)>();
         Canopy[] canopies;
         Light panelLight, consoleLight;
+        Material litMat;
+
+        float lastNight = -1f;
         static readonly FieldInfo CanopiesField = typeof(Aircraft).GetField("canopies", BindingFlags.Instance | BindingFlags.NonPublic);
         static readonly FieldInfo OpenAmountField = typeof(Canopy).GetField("openAmount", BindingFlags.Instance | BindingFlags.NonPublic);
         float oxygen = 150f, hydraulic, egtL = 15f, egtR = 15f;
@@ -122,6 +129,7 @@ namespace MiG29Instruments
                     var n = t.Find("needle");
                     if (n == null) continue;
                     if (id == "adi_ball") { ball = n; continue; }
+                    if (MiG29InstrumentMath.Pose(id, st, out _, out _)) { posed.Add((id, n)); continue; }
                     if (!MiG29InstrumentMath.Needles.TryGetValue(id, out var f)) continue;
                     needles.Add(new Needle { id = id, t = n, f = f, wraps = id.StartsWith("alt_") || id == "hsi_card" || id.StartsWith("clock"), k = MiG29InstrumentMath.Damping(id) });
                 }
@@ -142,8 +150,9 @@ namespace MiG29Instruments
             var adi = root.Find("MiG29_ins_adi_ball");
             if (adi != null)
             {
-                panelLight = MakeLight("MiG29_panel_light", adi.position - adi.forward * 0.20f + adi.up * 0.12f, adi, 0.9f, new Color(1f, 0.78f, 0.62f));
-                consoleLight = MakeLight("MiG29_console_light", adi.position - adi.forward * 0.62f + adi.up * 0.02f, adi, 1.1f, new Color(1f, 0.7f, 0.55f));
+                // under the glareshield lip, aimed down the panel; low intensity: the game's exposure adapts to the dark
+                panelLight = MakeLight("MiG29_panel_light", adi.position - adi.forward * 0.10f + adi.up * 0.07f, adi, 0.55f, new Color(1f, 0.55f, 0.42f));
+                consoleLight = MakeLight("MiG29_console_light", adi.position - adi.forward * 0.55f - adi.up * 0.05f, adi, 0.8f, new Color(1f, 0.5f, 0.4f));
             }
             MiG29InstrumentsPlugin.Log.LogInfo($"MiG-29 instruments on {ac.name}: {needles.Count} needles, ball {(ball != null)}, {lamps.Count} lamps, {engines.Count} engines");
         }
@@ -207,6 +216,7 @@ namespace MiG29Instruments
                 lit.SetTexture("_BaseMap", atlas);
             }
             foreach (var r in lamps.Values) { r.sharedMaterial = lit; r.enabled = false; }
+            litMat = lit;
         }
 
         static float Wrap(float a) => a > 180f ? a - 360f : a;
@@ -234,7 +244,7 @@ namespace MiG29Instruments
             st.pitchDeg = -Wrap(e.x); st.rollDeg = -Wrap(e.z); st.headingDeg = e.y;
             st.radAltM = ac.radarAlt;
             var inputs = ac.GetInputs();
-            st.throttle = inputs != null ? inputs.throttle : 0f; st.brake = inputs != null ? inputs.brake : 0f;
+            st.throttle = inputs != null ? inputs.throttle : 0f; st.brake = inputs != null ? inputs.brake : 0f; st.yaw = inputs != null ? inputs.yaw : 0f;
 
             // engines: RPM from the game; exhaust temperature follows RPM with thermal lag (fire pegs it)
             float rl = engines.Count > 0 ? RpmPercent(engines[0].GetRPMRatio()) : 0f;
@@ -323,12 +333,28 @@ namespace MiG29Instruments
                 }
                 n.t.localRotation = Quaternion.Euler(0f, 0f, -n.cur);
             }
+            float pk = 1f - Mathf.Exp(-10f * dt);
+            foreach (var (id, t) in posed)
+                if (MiG29InstrumentMath.Pose(id, st, out var lp, out var lr))
+                {
+                    t.localPosition = Vector3.Lerp(t.localPosition, lp, pk);
+                    t.localRotation = Quaternion.Slerp(t.localRotation, lr, id == "gear_lever" ? 1f - Mathf.Exp(-4f * dt) : pk);
+                }
             if (ball != null) ball.localRotation = first ? MiG29InstrumentMath.Ball(st) : Quaternion.Slerp(ball.localRotation, MiG29InstrumentMath.Ball(st), 1f - Mathf.Exp(-12f * dt));
             first = false;
 
             float night = Night(st.hours + st.minutes / 60f);
             foreach (var l in new[] { panelLight, consoleLight })
-                if (l != null) { l.enabled = night > 0.02f; l.intensity = night * (l == panelLight ? 0.55f : 0.35f); }
+                if (l != null)
+                {
+                    float k = night * MiG29InstrumentsPlugin.PanelLighting.Value;
+                    l.enabled = k > 0.01f; l.intensity = k * (l == panelLight ? 0.018f : 0.014f);
+                }
+            if (litMat != null && Mathf.Abs(night - lastNight) > 0.02f)
+            {
+                litMat.SetColor("_EmissionColor", Color.white * Mathf.Lerp(1.6f, 0.45f, night));
+                lastNight = night;
+            }
 
             var on = MiG29InstrumentMath.Lamps(st);
             if (Dev && Time.time > nextLog)

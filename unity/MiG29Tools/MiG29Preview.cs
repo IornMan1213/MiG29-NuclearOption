@@ -70,7 +70,8 @@ namespace MiG29Tools
                     foreach (var t in go.GetComponentsInChildren<Transform>(true).Where(t => t.name.StartsWith("MiG29_ins_")))
                     {
                         var id = t.name.Substring("MiG29_ins_".Length); var nd = t.Find("needle");
-                        nd.localRotation = id == "adi_ball" ? MiG29InstrumentMath.Ball(st) : Quaternion.Euler(0f, 0f, -MiG29InstrumentMath.Needles[id](st));
+                        if (MiG29InstrumentMath.Pose(id, st, out var lp, out var lr)) { nd.localPosition = lp; nd.localRotation = lr; }
+                        else nd.localRotation = id == "adi_ball" ? MiG29InstrumentMath.Ball(st) : Quaternion.Euler(0f, 0f, -MiG29InstrumentMath.Needles[id](st));
                     }
                     litLamps = MiG29InstrumentMath.Lamps(st);
                     Debug.Log("[MiG29] pose sample, lit: " + string.Join(" ", litLamps));
@@ -120,7 +121,7 @@ namespace MiG29Tools
                 cam.nearClipPlane = 0.02f; cam.farClipPlane = 100f; cam.fieldOfView = 75;
                 var rt = new RenderTexture(1600, 1000, 24) { antiAliasing = 4 }; cam.targetTexture = rt;
                 var eye = vp ? vp.position : new Vector3(0, 1.0f, 4.5f);
-                foreach (var (name, euler) in new[] { ("fwd", new Vector3(8, 0, 0)), ("left", new Vector3(10, -70, 0)), ("right", new Vector3(10, 70, 0)), ("up_back", new Vector3(-10, 165, 0)), ("down", new Vector3(35, 0, 0)), ("page", new Vector3(22, -12, 0)), ("panel", new Vector3(17, 0, 0)), ("panel_l", new Vector3(22, -24, 0)), ("panel_r", new Vector3(22, 24, 0)), ("adi", new Vector3(20.3f, 0, 0)) })
+                foreach (var (name, euler) in new[] { ("fwd", new Vector3(8, 0, 0)), ("left", new Vector3(10, -70, 0)), ("right", new Vector3(10, 70, 0)), ("up_back", new Vector3(-10, 165, 0)), ("down", new Vector3(35, 0, 0)), ("page", new Vector3(22, -12, 0)), ("panel", new Vector3(17, 0, 0)), ("panel_l", new Vector3(22, -24, 0)), ("panel_r", new Vector3(22, 24, 0)), ("adi", new Vector3(20.3f, 0, 0)), ("pedals", new Vector3(48, 0, 0)) })
                 {
                     camGo.transform.SetPositionAndRotation(eye, Quaternion.Euler(euler)); cam.fieldOfView = name == "panel" ? 40 : name == "adi" ? 12 : name.StartsWith("panel_") ? 26 : 75;
                     cam.Render();

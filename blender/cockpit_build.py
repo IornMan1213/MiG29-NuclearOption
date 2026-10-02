@@ -523,6 +523,16 @@ f = gauge(0.125, 0.165, 0.080, "g_vsi"); needle("vsi", f, 0.88, 0.09)
 f = gauge(-0.13, 0.065, 0.058, "g_radalt"); needle("radalt", f, 0.84, 0.10)
 f = gauge(0.13, 0.065, 0.058, "g_clock"); needle("clock_h", f, 0.50, 0.14); needle("clock_m", f, 0.82, 0.08, z=0.0120); needle("clock_s", f, 0.88, 0.035, "red", z=0.0126)
 plate(0.0, PH - 0.018, 0.16, 0.026, "placard")
+GL_U, GL_V = -0.178, 0.040
+c, n, right, up = panel_frame(GL_U, GL_V, 0.0)
+flat("tub", c + n * 0.003, right, up, 0.03, 0.06, "black")                       # lever plate
+flat("tub", c + n * 0.0035, right, up, 0.006, 0.045, "rubber")                    # slot
+pid = part("ins_gear_lever")
+piv = c + n * 0.008
+tube(pid, [tuple(piv), tuple(piv + up * 0.03 + n * 0.012)], 0.0035, "metal", 8)
+cylinder(pid, tuple(piv + up * 0.034 + n * 0.014), tuple(right), 0.009, 0.010, "white", 14)   # wheel-shaped knob
+cylinder(pid, tuple(piv + up * 0.034 + n * 0.014), tuple(right), 0.0095, 0.004, "red", 14)
+INS[pid] = (piv, n, up)
 
 # left wing: SPO-15 radar warning receiver (square display, lit sector / power / type lamps), gear lights, small gauges
 SPO_U, SPO_V, SPO_S = -0.29, 0.255, 0.086
@@ -642,10 +652,13 @@ for s, cells in ((-1, (LAMP_A, LAMP_B)), (1, (LAMP_A, LAMP_B))):
 
 # ------------------------------------------------------------------------------------------------ rudder pedals
 for s in (-1, 1):
-    box("tub", (s * 0.13, 0.42, 7.62), (0.10, 0.16, 0.025), "dgrey", 0.006, rot=("x", -18))
-    box("tub", (s * 0.13, 0.36, 7.66), (0.03, 0.06, 0.12), "black", 0.004)
+    pid = part("ins_pedal_" + ("l" if s < 0 else "r"))
+    box(pid, (s * 0.13, 0.42, 7.62), (0.10, 0.16, 0.025), "dgrey", 0.006, rot=("x", -18))
+    box(pid, (s * 0.13, 0.36, 7.66), (0.03, 0.06, 0.12), "black", 0.004)
     for k in range(3):
-        box("tub", (s * 0.13, 0.38 + k * 0.035, 7.605 - k * 0.011), (0.09, 0.006, 0.008), "rubber", 0.002, rot=("x", -18))
+        box(pid, (s * 0.13, 0.38 + k * 0.035, 7.605 - k * 0.011), (0.09, 0.006, 0.008), "rubber", 0.002, rot=("x", -18))
+    INS[pid] = (Vector((s * 0.13, 0.40, 7.63)), Vector((0.0, 0.0, -1.0)), Vector((0.0, 1.0, 0.0)))
+    box("tub", (s * 0.13, FLOOR + 0.015, 7.66), (0.05, 0.03, 0.20), "black", 0.004)   # rail the pedal slides on
 
 # ------------------------------------------------------------------------------------------------ ejection seat (K-36 style)
 SEAT_O = (0.0, 0.30, 6.40)    # pivot (seat origin on the floor rails)

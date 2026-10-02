@@ -65,7 +65,8 @@ over 24 deg, ПЕРЕГРУЗ over-g, РАКЕТА missile inbound, ОСТАТО
 below 40 %), ГИДРО low hydraulics, ЗАХВАТ radar lock on you, НАСОС fuel pump (an engine off), МАСЛО / ВИБРАЦ engine damage,
 ФОНАРЬ canopy open, ШАССИ gear moving or still up when low and slow, СКОРОСТЬ overspeed, АККУМ on battery (both engines off),
 ЩИТКИ flaps down, ТОРМОЗ brakes on, ПЗУ intake guards closed (on the ground), ФОРСАЖ afterburner, ПРОВЕРЬ master caution.
-At night the panel and consoles are lit.
+The rudder pedals move with your rudder input and the gear lever with the gear. At night the panel and consoles are lit
+(brightness: `BepInEx/config/iornman.mig29.instruments.cfg`, `Night panel lighting`, 0 = off).
 
 ## Troubleshooting
 - **The MiG-29 isn't in the aircraft list.** It spawns from medium hangars, shelters and revetments on land bases (not carriers).

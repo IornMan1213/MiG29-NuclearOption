@@ -12,7 +12,7 @@ namespace MiG29Tools
         public float iasKmh, mach, altM, vsMs, aoaDeg, g = 1f, pitchDeg, rollDeg, headingDeg, radAltM;
         public float rpmL, rpmR, egtL, egtR;          // % and deg C
         public float fuelKg, fuelFrac = 1f;
-        public float oxygen = 150f, hydraulic, cabinKm, volts, brake, throttle;
+        public float oxygen = 150f, hydraulic, cabinKm, volts, brake, throttle, yaw;
         public float hours, minutes, seconds;
         public bool gearDown = true, gearMoving, onGround = true, canopyOpen, airborne;
         public bool fireL, fireR, damagedL, damagedR, missileIncoming, lockedOn;
@@ -59,6 +59,20 @@ namespace MiG29Tools
 
         // Attitude ball rotation in its instrument frame (z into the panel, y up): roll about the view axis, then pitch.
         public static Quaternion Ball(FlightState s) => Quaternion.Euler(0f, 0f, s.rollDeg) * Quaternion.Euler(-s.pitchDeg, 0f, 0f);
+
+        // Parts that move other than turning about the dial axis: pedals slide fore/aft with the rudder input, the gear lever swings
+        // down (gear down) or up. Returns false for ordinary needles.
+        public static bool Pose(string id, FlightState s, out Vector3 localPos, out Quaternion localRot)
+        {
+            localPos = Vector3.zero; localRot = Quaternion.identity;
+            switch (id)
+            {
+                case "pedal_l": localPos = new Vector3(0f, 0f, -s.yaw * 0.035f); return true;   // mount z points forward (away from the pilot)
+                case "pedal_r": localPos = new Vector3(0f, 0f, s.yaw * 0.035f); return true;
+                case "gear_lever": localRot = Quaternion.Euler(s.gearDown || (s.gearMoving && s.onGround) ? -145f : -35f, 0f, 0f); return true;   // negative: swings out toward the pilot, never into the panel
+            }
+            return false;
+        }
 
         // How fast each needle follows its value (1/s): damped like real instruments.
         public static float Damping(string id) => id == "clock_s" ? 1000f : id.StartsWith("vsi") ? 3f : id.StartsWith("egt") ? 1.5f : id.StartsWith("hyd") || id.StartsWith("oxy") ? 2f : 8f;
@@ -123,7 +137,7 @@ namespace MiG29Tools
             {
                 iasKmh = 650, mach = 0.62f, altM = 3200, vsMs = 25, aoaDeg = 6, g = 2.5f, pitchDeg = 10, rollDeg = 30, headingDeg = 60, radAltM = 900,
                 rpmL = 92, rpmR = 88, egtL = 720, egtR = 700, fuelKg = 2600, fuelFrac = 0.55f, oxygen = 130, hydraulic = 210, cabinKm = 2.5f,
-                volts = 28, throttle = 0.85f, hours = 10, minutes = 9, seconds = 30, gearDown = false, onGround = false, airborne = true, blink = true,
+                volts = 28, throttle = 0.85f, yaw = 0.6f, hours = 10, minutes = 9, seconds = 30, gearDown = false, onGround = false, airborne = true, blink = true,
                 lockedOn = true, rwrPower = 0.6f,
             };
             s.rwr.Add((40f, 0));
