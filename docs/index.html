@@ -70,6 +70,7 @@ ul.feat li b { color: #fff; }
 .card dt { color: var(--muted); }
 .card dd { margin: 0; }
 
+.turntable { width: 100%; border-radius: 6px; border: 1px solid var(--line); margin-bottom: 14px; display: block; background: #c3c7cc; }
 .gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
 .gallery img { border-radius: 6px; border: 1px solid var(--line); aspect-ratio: 16/10; object-fit: cover; width: 100%; }
 @media (max-width: 640px) { .gallery { grid-template-columns: 1fr; } }
@@ -195,6 +196,7 @@ footer p { margin: 6px 0; }
   <div class="wrap">
     <h2>Gallery</h2>
     <p class="sub">Renders of the mod's model and liveries. In-game screenshots are welcome; open an issue on GitHub to share yours.</p>
+    <video class="turntable" src="img/turntable.mp4" poster="img/turntable_poster.jpg" autoplay muted loop playsinline aria-label="MiG-29 in Digital Grey with R-27R and R-73 missiles, rotating"></video>
     <div class="gallery">
       <img src="img/armed_quarter.jpg" alt="Grey MiG-29 armed, front three-quarter view" loading="lazy">
       <img src="img/desert_bank.jpg" alt="Desert-tan MiG-29 banking" loading="lazy">
