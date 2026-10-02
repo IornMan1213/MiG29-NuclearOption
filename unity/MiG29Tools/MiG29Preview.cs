@@ -34,8 +34,8 @@ namespace MiG29Tools
                 var ext = aso.FindProperty("exteriorRenderers");
                 var hidden = new System.Collections.Generic.HashSet<Renderer>();
                 for (int i = 0; i < ext.arraySize; i++) if (ext.GetArrayElementAtIndex(i).objectReferenceValue is Renderer r) hidden.Add(r);
-                foreach (var pilot in go.GetComponentsInChildren(T("Pilot"), true))   // CameraCockpitState hides the pilots
-                    foreach (var r in pilot.GetComponentsInChildren<Renderer>(true)) hidden.Add(r);
+                foreach (var pilot in go.GetComponentsInChildren(T("Pilot"), true))   // CameraCockpitState hides the pilot bodies
+                    foreach (var r in pilot.GetComponentsInChildren<SkinnedMeshRenderer>(true)) hidden.Add(r);
                 if (migInterior)
                 {
                     // candidate: the MiG's own cockpit + canopy stay visible inside, the KR-67 canopy glass/frame interiors go
@@ -61,9 +61,15 @@ namespace MiG29Tools
                 bool pretty = Environment.GetEnvironmentVariable("MIG29_PRETTY") == "1";   // screen-like colours for the project page
                 var lit = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
                 var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(BaseTex);
+                var ckTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Blueprinter/Mods/mig29/textures/cockpit_atlas.png");
                 foreach (var r in go.GetComponentsInChildren<Renderer>(true))
                 {
                     if (hidden.Contains(r)) { r.enabled = false; continue; }
+                    if (r.sharedMaterial != null && r.sharedMaterial.name == "MiG29_cockpit")   // from-scratch cockpit: its own atlas
+                    {
+                        var cm = new Material(lit); cm.SetTexture("_BaseMap", ckTex); cm.SetFloat("_Smoothness", 0.25f);
+                        r.sharedMaterials = Enumerable.Repeat(cm, r.sharedMaterials.Length).ToArray(); r.enabled = true; continue;
+                    }
                     if (!(r is SkinnedMeshRenderer) && (!r.TryGetComponent<MeshFilter>(out var mf) || mf.sharedMesh == null)) continue;
                     bool mig = r.name.StartsWith("MiG29_");
                     bool glass = r.name.ToLower().Contains("glass") || r.name.Contains("windscreen") || r.name == "MiG29_canopy";
@@ -90,13 +96,15 @@ namespace MiG29Tools
                     }
                 var lightGo = new GameObject("light"); var light = lightGo.AddComponent<Light>();
                 light.type = LightType.Directional; light.intensity = 1.3f; lightGo.transform.rotation = Quaternion.Euler(50, 30, 0);
+                var fillGo = new GameObject("fill"); var fill = fillGo.AddComponent<Light>();   // batchmode drops ambient: light the far side too
+                fill.type = LightType.Directional; fill.intensity = 0.55f; fillGo.transform.rotation = Quaternion.Euler(35, -140, 0);
                 RenderSettings.ambientLight = new Color(0.5f, 0.52f, 0.56f);
                 var camGo = new GameObject("cam"); var cam = camGo.AddComponent<Camera>();
                 cam.clearFlags = CameraClearFlags.SolidColor; cam.backgroundColor = new Color(0.55f, 0.65f, 0.78f);
                 cam.nearClipPlane = 0.02f; cam.farClipPlane = 100f; cam.fieldOfView = 75;
                 var rt = new RenderTexture(1600, 1000, 24) { antiAliasing = 4 }; cam.targetTexture = rt;
                 var eye = vp ? vp.position : new Vector3(0, 1.0f, 4.5f);
-                foreach (var (name, euler) in new[] { ("fwd", new Vector3(8, 0, 0)), ("left", new Vector3(10, -70, 0)), ("right", new Vector3(10, 70, 0)), ("up_back", new Vector3(-45, 160, 0)), ("down", new Vector3(35, 0, 0)), ("page", new Vector3(22, -12, 0)) })
+                foreach (var (name, euler) in new[] { ("fwd", new Vector3(8, 0, 0)), ("left", new Vector3(10, -70, 0)), ("right", new Vector3(10, 70, 0)), ("up_back", new Vector3(-10, 165, 0)), ("down", new Vector3(35, 0, 0)), ("page", new Vector3(22, -12, 0)) })
                 {
                     camGo.transform.SetPositionAndRotation(eye, Quaternion.Euler(euler));
                     cam.Render();

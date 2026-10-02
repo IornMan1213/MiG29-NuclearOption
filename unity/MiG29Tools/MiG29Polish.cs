@@ -172,29 +172,6 @@ namespace MiG29Tools
             Debug.Log($"[MiG29] gear doors: {string.Join(", ", groups.Select(g => $"{g.Key} {g.Value.Count / 3} tris"))}");
         }
 
-        // ---------------- cockpit interior ----------------
-
-        // Outside, the full MiG cockpit shows through the canopy (exterior renderer). In the cockpit view the pilot sits in the KR-67's
-        // glass cockpit (instrument panel, tactical screen, MFDs, side-stick, throttle, all in their own mounts), framed by the MiG's
-        // canopy arch, sills, mirrors and seat (MiG29_cockpit_shell, a cockpit renderer built by MiG29Builder.TrimmedCockpit).
-        // Only the KR-67 canopy frames are hidden; the MiG canopy and windscreen glass show in both views.
-        static readonly string[] KrInteriorHidden = { "canopy_F_int", "canopy_R_int", "canopyFrame_F_int", "canopyFrame_R_int",
-                                                      "canopyFrame_F_int_simple", "canopyFrame_R_int_simple", "cockpit_int_simple" };
-        // KR-67 K-seat headbox (top y 0.95) pokes through the lower MiG canopy (0.91); the seat is visual only, so drop it.
-        // The pilot stays put: cockpitViewPoint is the pilot's helmetCamPoint.
-        const float SeatDrop = 0.09f;
-
-        public static void SetupMiGCockpit(GameObject go, List<Renderer> exterior, List<Renderer> interior)
-        {
-            var root = go.transform;
-            int glass = exterior.RemoveAll(r => r != null && (r.name.StartsWith("MiG29_canopy") || r.name.Contains("windscreen")));
-            int hidden = 0;
-            foreach (var t in root.GetComponentsInChildren<Transform>(true).Where(t => KrInteriorHidden.Contains(t.name)))
-                if (t.TryGetComponent<MeshFilter>(out var mf) && mf.sharedMesh != null) { mf.sharedMesh = null; hidden++; }
-            Find(root, "EjectionSeat").position += Vector3.down * SeatDrop;
-            Debug.Log($"[MiG29] cockpit: KR-67 glass cockpit inside the MiG shell; {glass} MiG glass renderers in both views, {hidden} KR-67 canopy-frame meshes hidden");
-        }
-
         // ---------------- damage display + map icon ----------------
 
         class Raster

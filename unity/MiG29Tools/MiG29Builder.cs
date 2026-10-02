@@ -21,7 +21,7 @@ namespace MiG29Tools
 
         public const string JsonKey = "mig29_Fulcrum";
         public const string DisplayName = "MiG-29 Fulcrum";
-        public const string Version = "0.5.3";
+        public const string Version = "0.6.0";
 
         // MiG model frame -> aircraft root. Puts MiG main wheels on the KR-67 main gear and MiG wheels on KR-67 ground line.
         static readonly Vector3 ModelOffset = new Vector3(0f, -0.44f, -2.655f);
@@ -69,11 +69,11 @@ namespace MiG29Tools
             var visual = new GameObject("MiG29_visual").transform;
             visual.SetParent(root, false);
             visual.localPosition = ModelOffset;
-            // canopy + full MiG cockpit ride on the KR-67 cockpit part (the cockpit itself is exterior-only)
+            // canopy glass rides on the KR-67 cockpit part; the MiG model's own cockpit is replaced by MiG29Cockpit (from scratch)
             var exterior = new List<Renderer>();
             var cockpitPart = Find(root, "cockpit");
             Renderer migCanopy = null;
-            foreach (var part in data.parts.Where(p => p.name == "canopy" || p.name == "cockpit"))
+            foreach (var part in data.parts.Where(p => p.name == "canopy"))
             {
                 var r = AddMeshObject("MiG29_" + part.name, cockpitPart, meshes[part.name], part.material == "glass" ? materials.glass : materials.skin);
                 r.transform.SetPositionAndRotation(visual.position, Quaternion.identity);
@@ -81,24 +81,6 @@ namespace MiG29Tools
                 AddDamageRenderer(cockpitPart, r);
                 if (part.name == "canopy") migCanopy = r;
             }
-            // cockpit view: the MiG's canopy arch, sills, mirrors and seat around the KR-67 glass-cockpit panel (MiG29Polish.SetupMiGCockpit)
-            var interior = new List<Renderer>();
-            var cockpitShell = AddMeshObject("MiG29_cockpit_shell", cockpitPart,
-                CreateOrReplace(TrimmedCockpit(data.parts.First(p => p.name == "cockpit")), ModDir + "/meshes/MiG29_cockpit_shell.asset"), materials.skin);
-            cockpitShell.transform.SetPositionAndRotation(visual.position, Quaternion.identity);
-            interior.Add(cockpitShell);
-            // the MiG model has no continuous cockpit floor: a dark floor and a low bulkhead behind the panel close it
-            var tubMat = AssetDatabase.LoadAssetAtPath<Material>(ModDir + "/weapons/MiG29_missiles.mat");
-            foreach (var (name, centerMiG, size) in new[] {
-                ("floor", new Vector3(0f, 0.30f, 6.50f), new Vector3(0.92f, 0.02f, 2.00f)),
-                ("bulkhead", new Vector3(0f, 0.40f, 7.55f), new Vector3(0.80f, 0.22f, 0.02f)) })   // low, behind the KR-67 panel
-            {
-                var tub = AddMeshObject("MiG29_cockpit_tub_" + name, cockpitPart,
-                    CreateOrReplace(AtlasBox("MiG29_cockpit_tub_" + name, size, 0.625f, 0.875f), ModDir + $"/meshes/MiG29_cockpit_tub_{name}.asset"), tubMat);
-                tub.transform.SetPositionAndRotation(centerMiG + ModelOffset, Quaternion.identity);
-                interior.Add(tub);
-            }
-
             var surfaces = new List<(Component part, Renderer renderer)>();
             foreach (var part in data.parts.Where(p => p.pivot != null && p.pivot.Length == 3))
                 surfaces.Add(AddControlSurface(root, part, meshes[part.name], materials.skin));
@@ -117,9 +99,8 @@ namespace MiG29Tools
             MoveCockpit(root);
             MiG29Polish.SetupCanopy(go, ModelOffset, migCanopy, (m, path) => CreateOrReplace(m, path), exterior);
             AddIntakeBlockers(root);
-            MiG29Polish.SetupMiGCockpit(go, exterior, interior);
+            MiG29Cockpit.Build(go, cockpitPart, ModelOffset, materials.skin, materials.glass, exterior, (o, path) => CreateOrReplace(o, path), (t, r) => AddDamageRenderer(t, r));
             AppendExteriorRenderers(go, exterior);
-            AppendRenderers(go, "cockpitRenderers", interior);
             TuneToMiG(root);
             bayIndices = BayIndices(go);
             RemoveInternalBays(go);
@@ -395,6 +376,7 @@ namespace MiG29Tools
         {
             foreach (var n in new[] { "pilot", "cockpit_int", "tacScreen", "canopyFrame_F", "canopyHinge" })
                 MoveWorld(root, n, CockpitShift);
+            MoveWorld(root, "pilot", MiG29Cockpit.PilotShift);
         }
 
         // Parent part (UnitPart) each MiG control surface hangs from, and its visual-only ControlSurface ranges.
@@ -494,87 +476,6 @@ namespace MiG29Tools
             m.SetVertices(verts); m.SetNormals(norms); m.SetUVs(0, Enumerable.Repeat(new Vector2(u, v), verts.Count).ToList()); m.SetTriangles(tris, 0);
             m.RecalculateBounds(); m.RecalculateTangents();
             return m;
-        }
-
-        static void AppendRenderers(GameObject go, string field, List<Renderer> renderers)
-        {
-            var so = new SerializedObject(go.GetComponent(TypeByName("Aircraft")));
-            var arr = so.FindProperty(field);
-            foreach (var r in renderers)
-            {
-                arr.arraySize++;
-                arr.GetArrayElementAtIndex(arr.arraySize - 1).objectReferenceValue = r;
-            }
-            so.ApplyModifiedPropertiesWithoutUndo();
-        }
-
-        // The MiG cockpit without its instrument panel, HUD housing, centre stick, side consoles and floor (MiG frame: the panel and
-        // HUD sit at z > 6.8 inside |x| < 0.29 / 0.20; console tops at 0.40 < y < 0.82; the centre stick). What stays is the canopy arch, sills, mirrors and seat,
-        // which frame the KR-67 glass-cockpit panel in the cockpit view.
-        static Mesh TrimmedCockpit(PartDump p)
-        {
-            var v = p.vertices; var keep = new List<int>();
-            for (int i = 0; i < p.triangles.Length; i += 3)
-            {
-                Vector3 c = Vector3.zero;
-                for (int k = 0; k < 3; k++) { int t = p.triangles[i + k] * 3; c += new Vector3(v[t], v[t + 1], v[t + 2]); }
-                c /= 3f;
-                float ax = Mathf.Abs(c.x);
-                bool panel = c.z > 6.80f && ax < 0.29f && c.y < 1.05f;              // gauge panel + glareshield
-                panel |= c.z > 6.85f && ax < 0.20f && c.y < 1.19f;                   // HUD housing and posts (the windscreen arch stays)
-                bool seat = c.z < 6.50f && ax < 0.27f;
-                bool consoles = c.z > 5.60f && ax < 0.38f && c.y < 0.82f && !seat;  // consoles, floor scraps, centre stick (the MiG
-                                                                                     // model has no real floor; MiG29_cockpit_tub does)
-                if (!panel && !consoles) keep.AddRange(new[] { p.triangles[i], p.triangles[i + 1], p.triangles[i + 2] });
-            }
-            // second pass by connected piece: small leftovers of the old glareshield (the radar-scope box on the right)
-            // go whole; the canopy arch is one big piece and is never touched
-            var islands = Islands(p, keep);
-            var keep2 = new List<int>();
-            foreach (var isl in islands)
-            {
-                var b = isl.bounds; float acx = Mathf.Abs(b.center.x);
-                bool scrap = isl.tris.Count / 3 < 150 && b.max.y < 1.16f && b.center.z > 6.80f && acx < 0.33f;  // mirrors sit further out
-                if (!scrap) keep2.AddRange(isl.tris);
-            }
-            keep = keep2;
-            var m = UnityEngine.Object.Instantiate(BuildMesh(p));   // BuildMesh returns the saved full-cockpit asset: work on a copy
-            m.name = "MiG29_cockpit_shell";
-            m.triangles = keep.ToArray();
-            m.RecalculateBounds();
-            Debug.Log($"[MiG29] cockpit shell: {keep.Count / 3} of {p.triangles.Length / 3} tris kept");
-            return m;
-        }
-
-        class Island { public List<int> tris = new List<int>(); public Bounds bounds; }
-
-        // connected pieces of a triangle list (vertices welded by position, 0.1 mm)
-        static List<Island> Islands(PartDump p, List<int> tris)
-        {
-            var v = p.vertices;
-            var weld = new Dictionary<Vector3Int, int>(); var id = new int[v.Length / 3];
-            for (int i = 0; i < id.Length; i++)
-            {
-                var k = new Vector3Int(Mathf.RoundToInt(v[i * 3] * 1e4f), Mathf.RoundToInt(v[i * 3 + 1] * 1e4f), Mathf.RoundToInt(v[i * 3 + 2] * 1e4f));
-                if (!weld.TryGetValue(k, out var w)) { w = weld.Count; weld[k] = w; }
-                id[i] = w;
-            }
-            var parent = Enumerable.Range(0, weld.Count).ToArray();
-            int F(int a) { while (parent[a] != a) { parent[a] = parent[parent[a]]; a = parent[a]; } return a; }
-            for (int i = 0; i < tris.Count; i += 3) { int a = F(id[tris[i]]); parent[F(id[tris[i + 1]])] = a; parent[F(id[tris[i + 2]])] = a; }
-            var map = new Dictionary<int, Island>();
-            for (int i = 0; i < tris.Count; i += 3)
-            {
-                int r = F(id[tris[i]]);
-                if (!map.TryGetValue(r, out var isl)) { isl = new Island(); map[r] = isl; }
-                for (int k = 0; k < 3; k++)
-                {
-                    int t = tris[i + k]; var pt = new Vector3(v[t * 3], v[t * 3 + 1], v[t * 3 + 2]);
-                    if (isl.tris.Count == 0 && k == 0) isl.bounds = new Bounds(pt, Vector3.zero); else isl.bounds.Encapsulate(pt);
-                    isl.tris.Add(t);
-                }
-            }
-            return map.Values.ToList();
         }
 
         static void AppendExteriorRenderers(GameObject go, List<Renderer> renderers)

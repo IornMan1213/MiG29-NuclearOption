@@ -1,8 +1,8 @@
 # MiG-29 Fulcrum for Nuclear Option
 
 A flyable MiG-29 (9.12) mod for [Nuclear Option](https://store.steampowered.com/app/2168680/Nuclear_Option/). It has its own flight model
-tuned to real-world data, R-27R and R-73 missiles built from scratch, a working canopy and gear doors, a custom cockpit damage
-display, and two liveries.
+tuned to real-world data, a cockpit modelled from scratch, R-27R, R-27T, R-73 and R-60M missiles built from scratch, a GSh-30-1
+cannon, a working canopy and gear doors, a custom cockpit damage display, and four liveries.
 
 [![Latest release](https://img.shields.io/github/v/release/IornMan1213/MiG29-NuclearOption?include_prereleases&label=release)](https://github.com/IornMan1213/MiG29-NuclearOption/releases)
 [![Licence: code MIT, model CC BY-NC-SA 4.0](https://img.shields.io/badge/licence-MIT%20%2B%20CC%20BY--NC--SA%204.0-blue)](#licence)
@@ -27,8 +27,8 @@ See [mod/README.md](mod/README.md) for the full feature list and known limitatio
 | Path | What it is |
 |---|---|
 | `unity/MiG29Tools/` | Unity editor scripts that build the mod inside the [Blueprinter Editor](https://github.com/nikkorap) project: they clone the KR-67 Ifrit, swap in the MiG model, split it into the game's damage parts, and set up the flight model, weapons, canopy, gear doors, displays, liveries and loading screens |
-| `tools/` | The headless build (`build_mig29.ps1`), the offline flight-model simulator (`fm_sim.py` + `fm_config.json`), and the procedural missile and launcher generator (`missile_gen.py`) |
-| `blender/` | The model export (`export_mig29.py`), the loading-screen and showcase renders, and the measurement scripts used while fitting parts |
+| `tools/` | The headless build (`build_mig29.ps1`), the offline flight-model simulator (`fm_sim.py` + `fm_config.json`), the procedural missile and launcher generator (`missile_gen.py`), and the cockpit texture generator (`cockpit_atlas.py`: gauge faces, switch panels, caution lights) |
+| `blender/` | The model export (`export_mig29.py`), the procedural cockpit (`cockpit_build.py`, fitted to the airframe), the loading-screen and showcase renders, and the measurement scripts used while fitting parts |
 | `assets/loading/` | Loading screens (model renders over game terrain) |
 | `docs/` | The GitHub Pages project site |
 | `CHANGELOG.md` | What changed in each version |

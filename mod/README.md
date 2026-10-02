@@ -1,4 +1,4 @@
-# MiG-29 Fulcrum for Nuclear Option (v0.5.3)
+# MiG-29 Fulcrum for Nuclear Option (v0.6.0)
 
 A flyable MiG-29 (9.12) with its own flight model, R-27R / R-27T / R-73 / R-60M missiles, the GSh-30-1 cannon, working canopy
 and gear doors, its own damage display, four liveries and loading screens.
@@ -6,7 +6,7 @@ and gear doors, its own damage display, four liveries and loading screens.
 ## Install
 1. Install [BepInEx 5](https://github.com/BepInEx/BepInEx) into the Nuclear Option folder.
 2. Install [Blueprinter](https://github.com/nikkorap/NOBlueprinter-Releases) (2.0.1 or newer) into `BepInEx/plugins`.
-3. Put `MiG-29 Fulcrum_0.5.3.nobp` anywhere under `BepInEx/plugins` (e.g. `BepInEx/plugins/MiG-29_Fulcrum/`).
+3. Put `MiG-29 Fulcrum_0.6.0.nobp` anywhere under `BepInEx/plugins` (e.g. `BepInEx/plugins/MiG-29_Fulcrum/`).
    Remove older `MiG-29 Fulcrum_*.nobp` files.
 
 The MiG-29 appears in medium hangars, shelters and revetments on land bases, and in the Encyclopedia.
@@ -29,7 +29,8 @@ Multiplayer: everyone needs the same mod set (Blueprinter checks this).
     (R-27T / R-73 / R-60M), strike (FAB-500 / rockets / R-73).
 - **Airframe**: canopy opens from its rear hinge on the ground and ejects with the seat; nose and main gear doors open with
   the gear; parts break off and show scorch damage; hitboxes are the KR-67 part colliders scaled to the MiG.
-- **Cockpit**: glass-cockpit panel framed by the MiG-29's own canopy arch, mirrors and sills.
+- **Cockpit** modelled from scratch: turquoise MiG-29 instrument panel with Russian-marked gauges, HUD, side consoles, twin
+  throttles, centre stick and a K-36-style seat. The tactical display is built into the panel as the radar screen.
 - **Cockpit damage display** and map icon drawn from the MiG itself.
 - **Liveries**: Two-Tone Grey, Desert Tan, Digital Grey and Display Blue (both factions can pick any).
 - Four loading screens.
@@ -46,7 +47,6 @@ Multiplayer: everyone needs the same mod set (Blueprinter checks this).
   and the `Exception` lines from `%USERPROFILE%\AppData\LocalLow\Shockfront\NuclearOption\Player.log`.
 
 ## Known limitations
-- Cockpit: a modern glass panel (the KR-67's displays and controls) inside the MiG-29's canopy arch, sills and seat.
 - Flight model was tuned and verified offline; report handling issues with your controls and speed/altitude.
 - Nuclear Option has no supersonic drag rise, so drag is tuned to hit the real top speeds; as a result subsonic climb
   (~210 m/s at sea level) and acceleration are somewhat below the real MiG's.

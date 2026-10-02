@@ -115,6 +115,100 @@ namespace MiG29Tools
             catch (Exception e) { Debug.LogException(e); EditorApplication.Exit(1); }
         }
 
+        // Which components reference the cockpit-interior objects (to know what the game animates), plus the posed pilot mesh as OBJ (MiG frame).
+        public static void RunCockpitRefs()
+        {
+            try
+            {
+                var go = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Blueprinter/Mods/mig29/MiG29.prefab"));
+                go.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+                var sb = new StringBuilder();
+                var cockpit = go.GetComponentsInChildren<Transform>(true).First(t => t.name == "cockpit");
+                var targets = cockpit.GetComponentsInChildren<Transform>(true).ToDictionary(t => (UnityEngine.Object)t, t => Path(t, go.transform));
+                foreach (var t in cockpit.GetComponentsInChildren<Transform>(true))
+                {
+                    var r = t.GetComponent<Renderer>(); var mf = t.GetComponent<MeshFilter>();
+                    sb.AppendLine($"NODE {Path(t, go.transform)} pos={t.position:F3} rot={t.eulerAngles:F1} scale={t.lossyScale:F2} comps={string.Join(",", t.GetComponents<Component>().Select(c => c.GetType().Name))}"
+                        + (r ? $" bounds c={r.bounds.center:F3} s={r.bounds.size:F3} mats={string.Join(",", r.sharedMaterials.Select(m => m ? m.name + "/" + m.shader.name : "null"))}" : "")
+                        + (mf && mf.sharedMesh ? $" mesh={mf.sharedMesh.name} v={mf.sharedMesh.vertexCount}" : ""));
+                    foreach (var c in t.GetComponents<Component>())
+                    {
+                        if (c is Transform || c is Renderer || c is MeshFilter) continue;
+                        sb.AppendLine($"  COMPONENT {c.GetType().Name}"); DumpObject(sb, c, "    ");
+                    }
+                }
+                foreach (var c in go.GetComponentsInChildren<Component>(true))
+                {
+                    if (c == null || c is Transform) continue;
+                    var so = new SerializedObject(c); var it = so.GetIterator();
+                    while (it.Next(true))
+                        if (it.propertyType == SerializedPropertyType.ObjectReference && it.objectReferenceValue != null)
+                        {
+                            var o = it.objectReferenceValue; var key = o is Component oc ? oc.transform : o;
+                            if (key is Transform kt && targets.ContainsKey(kt) && !c.transform.IsChildOf(kt))
+                                sb.AppendLine($"REF {Path(c.transform, go.transform)}:{c.GetType().Name}.{it.propertyPath} -> {targets[kt]} ({o.GetType().Name})");
+                        }
+                }
+                File.WriteAllText("MiG29Out/cockpit_refs.txt", sb.ToString());
+                // posed pilot + KR-67 seat as OBJ in the MiG frame (prefab frame minus ModelOffset)
+                var off = new Vector3(0f, -0.44f, -2.655f);
+                var obj = new StringBuilder(); int baseIdx = 1;
+                foreach (var r in go.GetComponentsInChildren<Renderer>(true).Where(r => r.transform.IsChildOf(cockpit.Find("pilot"))))
+                {
+                    Mesh m; Matrix4x4 mat;
+                    if (r is SkinnedMeshRenderer smr) { m = new Mesh(); smr.BakeMesh(m, true); mat = Matrix4x4.TRS(smr.transform.position, smr.transform.rotation, Vector3.one); }
+                    else if (r.TryGetComponent<MeshFilter>(out var mf2) && mf2.sharedMesh) { m = mf2.sharedMesh; mat = r.transform.localToWorldMatrix; }
+                    else continue;
+                    obj.AppendLine($"o {r.name}");
+                    foreach (var v in m.vertices) { var w = mat.MultiplyPoint3x4(v) - off; obj.AppendLine($"v {w.x:F4} {w.y:F4} {w.z:F4}"); }
+                    var tr = m.triangles;
+                    for (int i = 0; i < tr.Length; i += 3) obj.AppendLine($"f {tr[i] + baseIdx} {tr[i + 1] + baseIdx} {tr[i + 2] + baseIdx}");
+                    baseIdx += m.vertexCount;
+                }
+                File.WriteAllText("MiG29Out/pilot_mig.obj", obj.ToString());
+                EditorApplication.Exit(0);
+            }
+            catch (Exception e) { Debug.LogException(e); EditorApplication.Exit(1); }
+        }
+
+        // Mesh + material details of the functional cockpit pieces (tac screen, warning lights) on the stock KR-67 prefab.
+        public static void RunCockpitMeshes()
+        {
+            try
+            {
+                var sb = new StringBuilder();
+                var go = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Blueprinter/Mods/mig29/MiG29.prefab");
+                foreach (var n in new[] { "tacScreen", "warningLights", "joystick", "throttle" })
+                {
+                    var t = go.GetComponentsInChildren<Transform>(true).First(x => x.name == n);
+                    var r = t.GetComponent<Renderer>(); var m = t.GetComponent<MeshFilter>().sharedMesh;
+                    sb.AppendLine($"== {n} local pos {t.localPosition:F3} mesh {m.name} v={m.vertexCount} subMeshes={m.subMeshCount}");
+                    foreach (var mat in r.sharedMaterials)
+                    {
+                        sb.AppendLine($"  mat {mat.name} shader {mat.shader.name} keywords {string.Join(" ", mat.shaderKeywords)}");
+                        var sh = mat.shader;
+                        for (int i = 0; i < sh.GetPropertyCount(); i++)
+                        {
+                            var pn = sh.GetPropertyName(i); var pt = sh.GetPropertyType(i);
+                            string v = pt == UnityEngine.Rendering.ShaderPropertyType.Texture ? (mat.GetTexture(pn) ? mat.GetTexture(pn).name + " " + mat.GetTexture(pn).width + "x" + mat.GetTexture(pn).height : "null")
+                                : pt == UnityEngine.Rendering.ShaderPropertyType.Color ? mat.GetColor(pn).ToString() : pt == UnityEngine.Rendering.ShaderPropertyType.Vector ? mat.GetVector(pn).ToString() : mat.GetFloat(pn).ToString();
+                            sb.AppendLine($"    {pn} ({pt}) = {v}");
+                        }
+                    }
+                    if (n == "tacScreen" || n == "warningLights")
+                    {
+                        var v = m.vertices; var uv = m.uv; var cols = m.colors;
+                        for (int i = 0; i < v.Length; i++) sb.AppendLine($"  v{i} {v[i]:F4} uv {(uv.Length > i ? uv[i].ToString("F3") : "-")} col {(cols.Length > i ? cols[i].ToString() : "-")} uv2 {(m.uv2.Length > i ? m.uv2[i].ToString("F3") : "-")}");
+                    }
+                }
+                foreach (var c in go.GetComponentsInChildren<Component>(true).Where(c => c != null && c.GetType().Name == "CockpitWarningLights"))
+                    DumpObject(sb, c, "  W ");
+                File.WriteAllText("MiG29Out/cockpit_meshes.txt", sb.ToString());
+                EditorApplication.Exit(0);
+            }
+            catch (Exception e) { Debug.LogException(e); EditorApplication.Exit(1); }
+        }
+
         public static void RunParams()
         {
             try

@@ -4,6 +4,7 @@
 param(
     [string]$Project = $env:BLUEPRINTER_PROJECT,
     [string]$Unity = "C:\Program Files\Unity\Hub\Editor\2022.3.62f2\Editor\Unity.exe",
+    [string]$Blender = "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe",
     [switch]$Release,          # back the build up to builds/ and the GitHub `builds` branch (tools/backup_build.py)
     [string]$Note = ""         # notes column for that version
 )
@@ -32,6 +33,11 @@ python "$tools\fm_export.py" "$src\fm_unity.json"; if ($LASTEXITCODE -ne 0) { th
 python "$tools\livery_desert.py" "$src\mig29_basecolor.png" "$src\mig29_mesh.json" "$src\mig29_basecolor_desert.png"; if ($LASTEXITCODE -ne 0) { throw "livery_desert failed" }
 python "$tools\livery_digital.py" "$src\mig29_basecolor.png" "$src\mig29_mesh.json" "$src\mig29_basecolor_digital.png"; if ($LASTEXITCODE -ne 0) { throw "livery_digital failed" }
 python "$tools\livery_display.py" "$src\mig29_basecolor.png" "$src\mig29_mesh.json" "$src\mig29_basecolor_display.png"; if ($LASTEXITCODE -ne 0) { throw "livery_display failed" }
+# cockpit: texture atlas, then the from-scratch interior modelled in Blender (fitted to mig29_mesh.json)
+python "$tools\cockpit_atlas.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "cockpit_atlas failed" }
+$ckOld = if (Test-Path "$src\cockpit_mesh.json") { (Get-Item "$src\cockpit_mesh.json").LastWriteTime } else { [datetime]::MinValue }
+& $Blender -b --python "$(Split-Path $tools)\blender\cockpit_build.py" -- "$src" | Select-String '\[cockpit\]|Error|Traceback' | ForEach-Object { $_.Line }
+if (-not (Test-Path "$src\cockpit_mesh.json") -or (Get-Item "$src\cockpit_mesh.json").LastWriteTime -le $ckOld) { throw "cockpit_build failed" }
 Pop-Location
 
 # 1. Compile pass. Blueprinter keeps the game's Assembly-CSharp in ScriptAssemblies read-only, which makes

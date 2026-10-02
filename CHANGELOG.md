@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.6.0
+**New cockpit, modelled from scratch for the MiG-29** (no parts from other aircraft):
+- Turquoise MiG-29 (9.12-style) instrument panel with a T layout: attitude indicator, HSI, airspeed/Mach, altimeter, AoA/G and
+  vertical speed, plus RWR, engine RPM and temperature, fuel, hydraulics, oxygen, cabin altitude, radar altimeter and clock. All
+  dial faces are drawn for the mod, with Russian markings.
+- Black glareshield, ILS-31-style HUD on the coaming, master warning lamps either side of it, caution-light panel.
+- Side consoles with switch panels, knobs and toggles; a throttle quadrant with twin throttle levers on the left; equipment boxes,
+  cable looms and the canopy handle on the walls.
+- Centre stick between the pilot's legs, rudder pedals, tread-plate floor, rear bulkhead and avionics deck behind the seat.
+- K-36-style ejection seat with headbox, harness and yellow/black ejection handle.
+- The game's tactical display now sits in the panel as the radar/IRST screen; the stick, throttle and warning lamps still move
+  and light as before (they keep the game's own animated parts, with new models).
+- The pilot sits 17 cm further back, against the new headrest (the view had been crammed up against the windscreen bow).
+- The cockpit fits the airframe exactly: walls, rails and glareshield are fitted to the fuselage and kept clear of the canopy
+  glass, and the interior is visible through the canopy from outside.
+- The 0.5.3 missile/rail clearance fix is confirmed: missiles no longer blow up the aircraft at launch.
+
 ## 0.5.3 (testing)
 - Missiles hang 1.5 cm below their rails and the rail colliders stop 3 cm short of them, so a launched missile no longer spawns
   touching the rail on the wing. Attempted fix for "the aircraft explodes when firing missiles"; needs confirming in game.

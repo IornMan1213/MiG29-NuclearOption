@@ -190,3 +190,25 @@ missile prefabs cloned in the builder (R-73 from AAM1, R-27R from AAM2 with SARH
   worked because the stabilators had authority at that q.
 - Fix: thrustTransform_L/R moved to y = ThrustLineY (0.0, CG height), their heat-haze children re-parented to the nozzle first.
   fm_sim.py has no thrust moment, so its trim results are unchanged. Lesson: re-check the thrust line whenever nozzles move.
+
+## 2026-10-02: cockpit from scratch (v0.6.0)
+The KR-67 glass panel inside the MiG's arch never looked right, and the player asked for a cockpit made for the MiG instead of
+parts from other aircraft. Now it is modelled procedurally in Blender (`blender/cockpit_build.py`) with its own texture atlas
+(`tools/cockpit_atlas.py`); both run in the headless build.
+- **Fitting.** Walls are ray-cast from the fuselage (`body`) part: half-width at each station and height, inset 1.2 cm. The wall top
+  is the highest point where a horizontal ray still hits the fuselage (the rim). It is raised to just under the canopy glass, so
+  the jagged rim never shows. Every piece near the canopy is clamped below the glass (`under_glass`). The build prints how far
+  anything pokes through the glass, and which vertices end up outside the fuselage. The windscreen comes down much lower than it
+  looks (glass at 1.11 m at z 7.4 on the centreline, 0.97 m at x 0.3), so the glareshield stops at z 7.33 and the coaming deck
+  follows the glass down.
+- **Pilot.** In the stock layout the eye was 0.4 m behind the windscreen bow. The pilot (and with it `cockpitViewPoint`) moves
+  back 17 cm (`MiG29Cockpit.PilotShift`), against the new headrest. The panel then sits about 0.7 m from the eye.
+- **Game-driven parts keep their objects.** `Cockpit` animates `joystick` (range 9 degrees) and `throttle` (rotation, 17 degrees).
+  `TargetCam` and `Cockpit` render the tactical screen into `tacScreen`'s material; its main area is UV u 0-0.75, v 0.25-1 (2.1:1).
+  `CockpitWarningLights` drives `warningLights`, whose stock UVs use the integer part of u per lamp side (0 left, 1 right).
+  The pivots move and new meshes are baked into each transform's local frame; materials stay where the game drives them.
+  `cockpit_int` keeps its components with its mesh removed.
+- **Kept from the MiG model:** only the windscreen bow and its mirrors (triangles within 4.5 cm of the glass at the bow station).
+- **Winding.** Blender to Unity is a reflection. The exporter takes the triangle winding convention from the airframe dump (stored
+  normal against triangle normal) and matches it.
+
