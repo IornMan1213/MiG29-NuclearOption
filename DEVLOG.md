@@ -244,5 +244,6 @@ Blueprinter bundles can only use components that already exist in the game, and 
 - **RWR tested live** (Free Flight with 16 AI aircraft): fighters lit the sector toward them with type П, a ship radar
   type О. `Aircraft.onRadarWarning` arrives once per sweep, so warnings are held 4 s. The strength ladder uses distance
   (1 bar at 50 km, 10 bars close), because the game's `power` (max range / distance, capped) saturates. `isTarget` is only set
-  for non-aircraft emitters, so ЗАХВАТ means a SAM or ship tracking you.
-
+  for non-aircraft emitters, so the plugin also lights ЗАХВАТ when an enemy aircraft painting us has us in its `WeaponManager` target list. Live: lock from
+  a fighter (ЗАХВАТ + ПРОВЕРЬ), then a hit on the right engine (ГЕН П, ГИДРО, НАСОС, МАСЛО, ВИБРАЦ), then both engines out
+  (ГЕН Л, АККУМ).

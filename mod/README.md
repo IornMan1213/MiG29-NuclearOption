@@ -62,7 +62,7 @@ Every dial and light works (with `MiG29Instruments.dll` installed) and reads the
 
 Caution panel (right, bottom): ПОЖАР Л/П engine fire, ОПАСН ВЫС low altitude with gear up and descending, ВЫХОД α angle of attack
 over 24 deg, ПЕРЕГРУЗ over-g, РАКЕТА missile inbound, ОСТАТОК fuel below 25 %, РЕЗЕРВ fuel below 10 %, ГЕН Л/П generator off (engine
-below 40 %), ГИДРО low hydraulics, ЗАХВАТ radar lock on you, НАСОС fuel pump (an engine off), МАСЛО / ВИБРАЦ engine damage,
+below 40 %), ГИДРО low hydraulics, ЗАХВАТ radar lock on you (a SAM, ship or enemy fighter targeting you), НАСОС fuel pump (an engine off), МАСЛО / ВИБРАЦ engine damage,
 ФОНАРЬ canopy open, ШАССИ gear moving or still up when low and slow, СКОРОСТЬ overspeed, АККУМ on battery (both engines off),
 ЩИТКИ flaps down, ТОРМОЗ brakes on, ПЗУ intake guards closed (on the ground), ФОРСАЖ afterburner, ПРОВЕРЬ master caution.
 The rudder pedals move with your rudder input and the gear lever with the gear. At night the panel and consoles are lit

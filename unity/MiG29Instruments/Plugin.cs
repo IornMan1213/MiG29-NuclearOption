@@ -319,7 +319,8 @@ namespace MiG29Instruments
                 float dist = Vector3.Distance(r.emitter.transform.position, cock.position);
                 st.rwrPower = Mathf.Max(st.rwrPower, Mathf.Clamp(1f - dist / 55000f, 0.1f, 1f));
                 rawPower = Mathf.Max(rawPower, r.power);
-                st.lockedOn |= r.target;
+                // the game only flags locks by ground/ship radars; an enemy fighter painting us counts when we are in its target list
+                st.lockedOn |= r.target || (r.emitter is Aircraft ea && ea.weaponManager != null && ea.weaponManager.CheckIsTarget(ac));
             }
             var mw = ac.GetMissileWarningSystem();
             st.missileIncoming = mw != null && mw.knownMissiles.Count > 0;
