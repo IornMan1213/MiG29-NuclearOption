@@ -61,6 +61,12 @@ $log = Join-Path $Project "MiG29Out_build.log"
 $code = Invoke-Unity @('-executeMethod', 'MiG29Tools.MiG29Builder.BuildAll') $log
 Select-String -Path $log -Pattern '\[MiG29\]|\[Blueprinter\]|error CS|Exception' | Where-Object { $_.Line -notmatch 'Licensing' } | ForEach-Object { $_.Line }
 Get-ChildItem $env:MIG29_OUT -Filter *.nobp | ForEach-Object { "OUTPUT $($_.FullName) $($_.Length)" }
+
+# 4. The instruments plugin (BepInEx, ships next to the .nobp): built against the installed game.
+$plugin = Join-Path (Split-Path $PSScriptRoot) "unity\MiG29Instruments"
+dotnet build "$plugin\MiG29Instruments.csproj" -c Release -o "$env:MIG29_OUT" -nologo -v q | Select-String "error|Warn" | ForEach-Object { $_.Line }
+if ($LASTEXITCODE -ne 0) { throw "instruments plugin build failed" }
+Get-ChildItem $env:MIG29_OUT -Filter MiG29Instruments.dll | ForEach-Object { "OUTPUT $($_.FullName) $($_.Length)" }
 if ($Release -and $code -eq 0) {
     Get-ChildItem $env:MIG29_OUT -Filter *.nobp | ForEach-Object { python (Join-Path $PSScriptRoot "backup_build.py") $_.FullName --note $Note }
 }

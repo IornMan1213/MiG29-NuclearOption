@@ -1,7 +1,7 @@
 # MiG-29 Fulcrum for Nuclear Option
 
 A flyable MiG-29 (9.12) mod for [Nuclear Option](https://store.steampowered.com/app/2168680/Nuclear_Option/). It has its own flight model
-tuned to real-world data, a cockpit modelled from scratch, R-27R, R-27T, R-73 and R-60M missiles built from scratch, a GSh-30-1
+tuned to real-world data, a cockpit modelled from scratch where every instrument works, R-27R, R-27T, R-73 and R-60M missiles built from scratch, a GSh-30-1
 cannon, a working canopy and gear doors, a custom cockpit damage display, and four liveries.
 
 [![Latest release](https://img.shields.io/github/v/release/IornMan1213/MiG29-NuclearOption?include_prereleases&label=release)](https://github.com/IornMan1213/MiG29-NuclearOption/releases)
@@ -15,9 +15,10 @@ cannon, a working canopy and gear doors, a custom cockpit damage display, and fo
 ## Install (players)
 1. Install [BepInEx 5](https://github.com/BepInEx/BepInEx) into the Nuclear Option folder.
 2. Install [Blueprinter](https://github.com/nikkorap/NOBlueprinter-Releases) 2.0.1 or newer into `BepInEx/plugins`.
-3. Download `MiG-29 Fulcrum_x.y.z.nobp` from the newest [release](https://github.com/IornMan1213/MiG29-NuclearOption/releases)
-   (every version is also on the [`builds` branch](https://github.com/IornMan1213/MiG29-NuclearOption/tree/builds))
-   and put it in `BepInEx/plugins/MiG-29_Fulcrum/`. Delete any older versions first.
+3. Download `MiG-29 Fulcrum_x.y.z.nobp` and `MiG29Instruments.dll` from the newest
+   [release](https://github.com/IornMan1213/MiG29-NuclearOption/releases) (every version is also on the
+   [`builds` branch](https://github.com/IornMan1213/MiG29-NuclearOption/tree/builds)) and put both in
+   `BepInEx/plugins/MiG-29_Fulcrum/`. Delete any older versions first. The DLL makes the cockpit instruments work.
 
 See [mod/README.md](mod/README.md) for the full feature list and known limitations.
 
@@ -27,6 +28,7 @@ See [mod/README.md](mod/README.md) for the full feature list and known limitatio
 | Path | What it is |
 |---|---|
 | `unity/MiG29Tools/` | Unity editor scripts that build the mod inside the [Blueprinter Editor](https://github.com/nikkorap) project: they clone the KR-67 Ifrit, swap in the MiG model, split it into the game's damage parts, and set up the flight model, weapons, canopy, gear doors, displays, liveries and loading screens |
+| `unity/MiG29Instruments/` | The BepInEx plugin that drives the cockpit instruments from the live aircraft (`dotnet build`, against the installed game; `MiG29Tools/MiG29InstrumentMath.cs` is shared with the editor preview) |
 | `tools/` | The headless build (`build_mig29.ps1`), the offline flight-model simulator (`fm_sim.py` + `fm_config.json`), the procedural missile and launcher generator (`missile_gen.py`), and the cockpit texture generator (`cockpit_atlas.py`: gauge faces, switch panels, caution lights) |
 | `blender/` | The model export (`export_mig29.py`), the procedural cockpit (`cockpit_build.py`, fitted to the airframe), the loading-screen and showcase renders, and the measurement scripts used while fitting parts |
 | `assets/loading/` | Loading screens (model renders over game terrain) |

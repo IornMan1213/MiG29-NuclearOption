@@ -211,6 +211,9 @@ namespace MiG29Instruments
 
         static float Wrap(float a) => a > 180f ? a - 360f : a;
 
+        // The game's spool ratio idles at ~0.33; an RD-33 idles near 70 % and runs 100 % at military power.
+        static float RpmPercent(float ratio) => ratio <= 0.33f ? ratio / 0.33f * 70f : 70f + (ratio - 0.33f) / 0.67f * 30f;
+
         void Sample(float dt)
         {
             float speed = ac.speed;
@@ -224,7 +227,9 @@ namespace MiG29Instruments
             var cock = ac.cockpit != null ? ((Component)ac.cockpit).transform : transform;
             var vl = cock.InverseTransformDirection(vel);
             st.aoaDeg = speed > 15f ? Mathf.Atan2(-vl.y, vl.z) * Mathf.Rad2Deg : 0f;
-            st.g = ac.gForce;
+            // accelerometer load factor: the pilot's acceleration along his up axis (the game leaves gravity out) plus 1 g of gravity
+            var pilot = ac.pilots != null && ac.pilots.Length > 0 ? ac.pilots[0] : null;
+            st.g = pilot != null ? pilot.gForce + Vector3.Dot(Vector3.up, ((Component)pilot).transform.up) : 1f;
             var e = cock.eulerAngles;
             st.pitchDeg = -Wrap(e.x); st.rollDeg = -Wrap(e.z); st.headingDeg = e.y;
             st.radAltM = ac.radarAlt;
@@ -232,12 +237,13 @@ namespace MiG29Instruments
             st.throttle = inputs != null ? inputs.throttle : 0f; st.brake = inputs != null ? inputs.brake : 0f;
 
             // engines: RPM from the game; exhaust temperature follows RPM with thermal lag (fire pegs it)
-            float rl = engines.Count > 0 ? engines[0].GetRPMRatio() * 100f : 0f;
-            float rr = engines.Count > 1 ? engines[1].GetRPMRatio() * 100f : rl;
+            float rl = engines.Count > 0 ? RpmPercent(engines[0].GetRPMRatio()) : 0f;
+            float rr = engines.Count > 1 ? RpmPercent(engines[1].GetRPMRatio()) : rl;
             st.rpmL = rl; st.rpmR = rr;
             bool fireL = engines.Count > 0 && engines[0] is Turbojet j0 && j0.engineFire;
             bool fireR = engines.Count > 1 ? engines[1] is Turbojet j1 && j1.engineFire : fireL;
-            float Egt(float rpm, bool fire) => fire ? 1050f : rpm < 5f ? 15f : 300f + 520f * Mathf.Pow(rpm / 100f, 2.2f) + (st.throttle > 0.9f ? 60f : 0f);
+            // exhaust temperature: ~380 C at idle (70 %), ~850 C at military power, +60 C in afterburner, pegged by a fire
+            float Egt(float rpm, bool fire) => fire ? 1050f : rpm < 70f ? 15f + rpm / 70f * 365f : 380f + 470f * Mathf.Pow(Mathf.Clamp01((rpm - 70f) / 30f), 1.5f) + (st.throttle > 0.9f ? 60f : 0f);
             float lag = 1f - Mathf.Exp(-0.8f * dt);
             egtL += (Egt(rl, fireL) - egtL) * lag; egtR += (Egt(rr, fireR) - egtR) * lag;
             st.egtL = egtL; st.egtR = egtR;
@@ -248,7 +254,7 @@ namespace MiG29Instruments
             float hydTarget = (Mathf.Max(rl, rr) > 30f && !(st.damagedL && st.damagedR)) ? 210f : 0f;
             hydraulic += (hydTarget - hydraulic) * (1f - Mathf.Exp(-(hydTarget > hydraulic ? 1.5f : 0.15f) * dt));
             st.hydraulic = hydraulic;
-            st.onGround = ac.IsLanded(); st.airborne = !st.onGround;
+            st.onGround = ac.radarAlt < 1.0f; st.airborne = !st.onGround;   // (IsLanded() means "stopped on the ground")
             if (st.airborne) oxygen = Mathf.Max(0f, oxygen - dt * 0.6f / 60f);
             st.oxygen = oxygen;
             st.cabinKm = Mathf.Clamp(st.altM < 2000f ? st.altM / 1000f : 2f + (st.altM - 2000f) * 0.00045f, 0f, 20f);
@@ -292,6 +298,8 @@ namespace MiG29Instruments
         }
 
         int errors;
+        float nextLog;
+        static readonly bool Dev = System.IO.File.Exists(System.IO.Path.Combine(BepInEx.Paths.BepInExRootPath, "mig29_dump.flag"));
 
         void LateUpdate()
         {
@@ -323,6 +331,13 @@ namespace MiG29Instruments
                 if (l != null) { l.enabled = night > 0.02f; l.intensity = night * (l == panelLight ? 0.55f : 0.35f); }
 
             var on = MiG29InstrumentMath.Lamps(st);
+            if (Dev && Time.time > nextLog)
+            {
+                nextLog = Time.time + 2f;
+                MiG29InstrumentsPlugin.Log.LogInfo($"IAS {st.iasKmh:F0} M{st.mach:F2} ALT {st.altM:F0} RA {st.radAltM:F0} VS {st.vsMs:F1} AoA {st.aoaDeg:F1} G {st.g:F1} P {st.pitchDeg:F1} R {st.rollDeg:F1} HDG {st.headingDeg:F0} " +
+                    $"RPM {st.rpmL:F0}/{st.rpmR:F0} EGT {st.egtL:F0}/{st.egtR:F0} FUEL {st.fuelKg:F0} ({st.fuelFrac:P0}) HYD {st.hydraulic:F0} THR {st.throttle:F2} BRK {st.brake:F2} GEAR {(st.gearDown ? "down" : st.gearMoving ? "moving" : "up")} " +
+                    $"GND {st.onGround} CANOPY {st.canopyOpen} TOD {st.hours:00}:{st.minutes:00} LIT [{string.Join(" ", on)}]");
+            }
             foreach (var kv in lamps)
             {
                 bool want = on.Contains(kv.Key);

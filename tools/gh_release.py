@@ -26,7 +26,9 @@ def main():
     m = re.search(rf"^## {re.escape(ver)}[^\n]*\n(.*?)(?=^## )", log, re.S | re.M)
     notes = m.group(1).strip() if m else ""
     nobp = os.path.join(ROOT, "builds", f"MiG-29 Fulcrum_{ver}.nobp")
-    notes += (f"\n\n**Install:** put `MiG-29 Fulcrum_{ver}.nobp` in `BepInEx/plugins/MiG-29_Fulcrum/` (delete older versions). "
+    dll = os.path.join(ROOT, "builds", f"MiG29Instruments_{ver}.dll")
+    extra = " and `MiG29Instruments.dll`" if os.path.exists(dll) else ""
+    notes += (f"\n\n**Install:** put `MiG-29 Fulcrum_{ver}.nobp`{extra} in `BepInEx/plugins/MiG-29_Fulcrum/` (delete older versions). "
               "Requires BepInEx 5 and Blueprinter 2.0.1+.\n\nThe mod contains a modified version of \"MiG-29 - Fighter Jet - Free\" by bohmerang "
               "(CC BY-NC-SA 4.0).")
     tok = token()
@@ -36,6 +38,9 @@ def main():
     up = rel["upload_url"].split("{")[0] + "?name=" + urllib.request.quote(os.path.basename(nobp))
     asset = api("POST", up, tok, open(nobp, "rb").read(), "application/octet-stream")
     print("release:", rel["html_url"]); print("asset:", asset["browser_download_url"], asset["size"])
+    if os.path.exists(dll):   # published under the name it needs in the game folder
+        a2 = api("POST", rel["upload_url"].split("{")[0] + "?name=MiG29Instruments.dll", tok, open(dll, "rb").read(), "application/octet-stream")
+        print("asset:", a2["browser_download_url"], a2["size"])
 
 
 if __name__ == "__main__":

@@ -21,7 +21,7 @@ namespace MiG29Tools
 
         public const string JsonKey = "mig29_Fulcrum";
         public const string DisplayName = "MiG-29 Fulcrum";
-        public const string Version = "0.6.0";
+        public const string Version = "0.7.0";
 
         // MiG model frame -> aircraft root. Puts MiG main wheels on the KR-67 main gear and MiG wheels on KR-67 ground line.
         static readonly Vector3 ModelOffset = new Vector3(0f, -0.44f, -2.655f);

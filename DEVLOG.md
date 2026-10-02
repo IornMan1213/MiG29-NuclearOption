@@ -212,3 +212,30 @@ parts from other aircraft. Now it is modelled procedurally in Blender (`blender/
 - **Winding.** Blender to Unity is a reflection. The exporter takes the triangle winding convention from the airframe dump (stored
   normal against triangle normal) and matches it.
 
+## 2026-10-02: working instruments (v0.7.0)
+Blueprinter bundles can only use components that already exist in the game, and the game has no needle gauges: its HUD
+"gauges" are text, and the only cockpit animation is `Cockpit` turning the stick and throttle. So a small BepInEx plugin
+(`unity/MiG29Instruments`) drives the instruments. Players already have BepInEx for Blueprinter.
+- **Parts.** `cockpit_build.py` exports each moving part (`ins_<id>`) with its pivot, dial normal and up vector. The builder
+  makes a fixed mount `MiG29_ins_<id>` (z into the panel, y up) with a child `needle`, and the plugin sets
+  `needle.localRotation = Euler(0, 0, -angle)`. The attitude ball is a 0.10 m sphere behind a black mask (equirectangular
+  texture, u 0.5 facing the pilot); its rotation is `Euler(0, 0, roll) * Euler(-pitch, 0, 0)`. Lamps (`MiG29_lamp_<id>`) are quads
+  over their unlit pictures. The plugin enables them and gives them an emissive copy of the tac-screen material (URP Lit).
+- **Shared math.** `MiG29Tools/MiG29InstrumentMath.cs` (value to angle, lamp logic) is compiled into both the plugin and the
+  editor tools. `MIG29_POSE=sample` renders the preview with a known flight state, so the render checks the same code that
+  flies.
+- **Game facts found in testing.**
+  - In flight, the aircraft's parts are their own physics roots, so the cockpit part is not a child of the `Aircraft`. Search
+    from `aircraft.cockpit`.
+  - The cockpit view draws layer 3 ("Cockpit") with its own camera (`cockpitRenderer`, near 0.01, mask `00004008`). The main
+    camera (mask `0002FE77`) never draws layer 3, and default-layer objects close to the eye vanished in the cockpit view.
+    Interior objects therefore go on layer 3, and the tub and frames get exterior copies (layer 0, in `exteriorRenderers`).
+  - Renderers in a part's `damageMaterial` list get the airframe's livery and damage maps in their own UV layout, which
+    punched holes in the atlas-mapped interior and tinted it. Only the frames (MiG skin UVs) stay in the list.
+  - `Aircraft.gForce` is the unsigned acceleration without gravity. The plugin uses `Pilot.gForce` (signed, along the pilot's up
+    axis) plus 1 g along that axis.
+  - The engine spool ratio idles at 0.33; the plugin maps it to 70 % idle and 100 % military.
+  - `IsLanded()` means stopped on the ground; on-ground uses radar altitude instead.
+- **Testing in game.** `BepInEx/mig29_dump.flag` turns on developer mode: a hierarchy and camera dump (`BepInEx/mig29_dump.txt`),
+  telemetry in the log every 2 s, and F10 / F11 for orbit and cockpit camera.
+

@@ -33,6 +33,12 @@ def main():
     local = os.path.join(REPO, "builds"); os.makedirs(local, exist_ok=True)
     if os.path.abspath(os.path.join(local, name)) != src:
         shutil.copy2(src, local)
+    # the instruments plugin built next to the .nobp is kept as MiG29Instruments_<ver>.dll
+    dll_name = f"MiG29Instruments_{ver}.dll"
+    dll_src = os.path.join(os.path.dirname(src), "MiG29Instruments.dll")
+    if os.path.exists(dll_src):
+        shutil.copy2(dll_src, os.path.join(local, dll_name))
+    dll_src = os.path.join(local, dll_name) if os.path.exists(os.path.join(local, dll_name)) else None
 
     wt = tempfile.mkdtemp(prefix="mig29_builds_")
     shutil.rmtree(wt)
@@ -40,6 +46,8 @@ def main():
     git("worktree", "add", "-q", wt, "builds")
     try:
         shutil.copy2(src, os.path.join(wt, name))
+        if dll_src:
+            shutil.copy2(dll_src, os.path.join(wt, dll_name))
         notes_path = os.path.join(wt, "notes.json")
         notes = json.load(open(notes_path)) if os.path.exists(notes_path) else {}
         if a.note:
@@ -51,11 +59,14 @@ def main():
         for f in files:
             data = open(os.path.join(wt, f), "rb").read()
             v = version(f)
-            rows.append(f"| {v} | [{f}]({URL}{f.replace(' ', '%20')}) | {len(data) / 1e6:.1f} MB | `{hashlib.sha256(data).hexdigest()}` | {notes.get(v, '')} |")
+            dll = f"MiG29Instruments_{v}.dll"
+            extra = f" + [{dll}]({URL}{dll})" if os.path.exists(os.path.join(wt, dll)) else ""
+            rows.append(f"| {v} | [{f}]({URL}{f.replace(' ', '%20')}){extra} | {len(data) / 1e6:.1f} MB | `{hashlib.sha256(data).hexdigest()}` | {notes.get(v, '')} |")
         open(os.path.join(wt, "README.md"), "w", encoding="utf-8").write(
             "# MiG-29 Fulcrum builds\n\n"
             "Every released build of the mod, kept here so nothing gets lost. Put **one** `.nobp` in "
-            "`BepInEx/plugins/MiG-29_Fulcrum/` (delete older ones). Requires BepInEx 5 and Blueprinter 2.0.1+.\n\n"
+            "`BepInEx/plugins/MiG-29_Fulcrum/` (delete older ones). Requires BepInEx 5 and Blueprinter 2.0.1+. From 0.7.0 also put "
+            "`MiG29Instruments_<version>.dll` there, renamed to `MiG29Instruments.dll`: it makes the cockpit instruments work.\n\n"
             "| Version | File | Size | SHA-256 | Notes |\n|---|---|---|---|---|\n" + "\n".join(rows) + "\n\n"
             "Builds before 0.4.1 predate the repository and were not kept; 0.4.2 was not kept either.\n\n"
             "The mod contains a modified version of \"MiG-29 - Fighter Jet - Free\" by bohmerang (CC BY-NC-SA 4.0); the builds are "

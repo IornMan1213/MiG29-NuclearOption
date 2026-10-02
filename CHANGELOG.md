@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.7.0
+**Every cockpit instrument works.** Install `MiG29Instruments.dll` (a small BepInEx plugin) next to the .nobp.
+- 20 needles: airspeed and Mach, altimeter (two hands), vertical speed, angle of attack, g meter, radar altimeter, both engine
+  tachometers and exhaust temperatures, fuel, hydraulics, oxygen, cabin altitude, and the clock (mission time of day).
+- A real attitude ball (pitch and bank) and a turning HSI compass card.
+- 24-light caution panel: every caption reacts to something (engine fire and damage, generators, hydraulics, fuel low and
+  reserve, low altitude, angle of attack, over-g, overspeed, missile inbound, radar lock, canopy, gear, flaps, brakes, intake
+  guards, afterburner, master caution).
+- SPO-15 radar warning receiver: sector lamps toward each radar painting you, signal-strength bar, threat type; flashing for
+  missiles. Gear lights: green down and locked, red in transit.
+- Night lighting for the panel and consoles.
+- Fixes found testing in game: the cockpit is on the game's Cockpit layer (parts of it were clipped away in the cockpit view),
+  with an exterior copy for the outside view; it no longer takes the airframe's damage shading (holes and livery tint); the
+  side-panel instruments sat tilted into the panel; the radar screen sat behind the side panel; a gap above the side panels
+  showed outside.
+
 ## 0.6.0
 **New cockpit, modelled from scratch for the MiG-29** (no parts from other aircraft):
 - Turquoise MiG-29 (9.12-style) instrument panel with a T layout: attitude indicator, HSI, airspeed/Mach, altimeter, AoA/G and

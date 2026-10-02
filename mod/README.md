@@ -1,4 +1,4 @@
-# MiG-29 Fulcrum for Nuclear Option (v0.6.0)
+# MiG-29 Fulcrum for Nuclear Option (v0.7.0)
 
 A flyable MiG-29 (9.12) with its own flight model, R-27R / R-27T / R-73 / R-60M missiles, the GSh-30-1 cannon, working canopy
 and gear doors, its own damage display, four liveries and loading screens.
@@ -6,8 +6,9 @@ and gear doors, its own damage display, four liveries and loading screens.
 ## Install
 1. Install [BepInEx 5](https://github.com/BepInEx/BepInEx) into the Nuclear Option folder.
 2. Install [Blueprinter](https://github.com/nikkorap/NOBlueprinter-Releases) (2.0.1 or newer) into `BepInEx/plugins`.
-3. Put `MiG-29 Fulcrum_0.6.0.nobp` anywhere under `BepInEx/plugins` (e.g. `BepInEx/plugins/MiG-29_Fulcrum/`).
-   Remove older `MiG-29 Fulcrum_*.nobp` files.
+3. Put `MiG-29 Fulcrum_0.7.0.nobp` and `MiG29Instruments.dll` in `BepInEx/plugins/MiG-29_Fulcrum/`.
+   Remove older `MiG-29 Fulcrum_*.nobp` files. The DLL makes the cockpit instruments work; without it the MiG still flies,
+   with the gauges parked.
 
 The MiG-29 appears in medium hangars, shelters and revetments on land bases, and in the Encyclopedia.
 Multiplayer: everyone needs the same mod set (Blueprinter checks this).
@@ -31,9 +32,40 @@ Multiplayer: everyone needs the same mod set (Blueprinter checks this).
   the gear; parts break off and show scorch damage; hitboxes are the KR-67 part colliders scaled to the MiG.
 - **Cockpit** modelled from scratch: turquoise MiG-29 instrument panel with Russian-marked gauges, HUD, side consoles, twin
   throttles, centre stick and a K-36-style seat. The tactical display is built into the panel as the radar screen.
+- **Every instrument works**: 20 needles, a rolling attitude ball, a turning compass card, a 24-light caution panel, the SPO-15
+  radar warning receiver and gear lights, all driven by the aircraft's real state (see below).
 - **Cockpit damage display** and map icon drawn from the MiG itself.
 - **Liveries**: Two-Tone Grey, Desert Tan, Digital Grey and Display Blue (both factions can pick any).
 - Four loading screens.
+
+## Cockpit instruments
+Every dial and light works (with `MiG29Instruments.dll` installed) and reads the aircraft's real state:
+
+| Instrument | Where | What it shows |
+|---|---|---|
+| Airspeed / Mach (КМ/Ч, M) | centre, top left | indicated airspeed, 0-1,600 km/h (white); Mach number on the inner yellow scale |
+| Attitude indicator (ball) | centre, top | pitch and bank on a real rolling ball; the orange symbol is your aircraft |
+| AoA / G (α, n) | centre, top right | angle of attack (yellow, red above 25 deg) and load factor in g (white) |
+| Altimeter (ВД-30) | centre, middle left | barometric altitude: long hand hundreds of metres, short hand thousands |
+| HSI compass | centre, bottom | heading on a turning compass card |
+| Vertical speed (М/С) | centre, middle right | climb / descent rate, up to 300 m/s |
+| Radar altimeter (РВ) | centre, bottom left | height above the ground, 0-1,500 m |
+| Clock (АЧС-1) | centre, bottom right | mission time of day |
+| RWR (SPO-15) | left panel, top | radar warning: sector lamps show where a radar is painting you from, the bar shows its strength, the letter its type (П fighter, З long-range SAM, Н short-range SAM, О ship); sectors flash for an incoming missile |
+| Gear lights (ШАССИ) | left panel | green = down and locked, red = moving |
+| Cabin altitude, oxygen | left panel, bottom | cabin pressure altitude; oxygen pressure, falling slowly in flight |
+| Tachometers (ОБ/МИН %) | right panel | left (white) and right (yellow) engine RPM, ~70 % at idle, 100 % at full power |
+| Exhaust temperature (t°C) | right panel | left / right engine EGT; rises with power, +60 deg C in afterburner, pegs in a fire |
+| Fuel (ТОПЛИВО) | right panel, bottom | fuel remaining, kg |
+| Hydraulics (ГИДРО) | right panel, bottom | hydraulic pressure from the engine pumps; bleeds down with both engines out |
+| Radar screen | right panel, top | the game's tactical display |
+
+Caution panel (right, bottom): ПОЖАР Л/П engine fire, ОПАСН ВЫС low altitude with gear up and descending, ВЫХОД α angle of attack
+over 24 deg, ПЕРЕГРУЗ over-g, РАКЕТА missile inbound, ОСТАТОК fuel below 25 %, РЕЗЕРВ fuel below 10 %, ГЕН Л/П generator off (engine
+below 40 %), ГИДРО low hydraulics, ЗАХВАТ radar lock on you, НАСОС fuel pump (an engine off), МАСЛО / ВИБРАЦ engine damage,
+ФОНАРЬ canopy open, ШАССИ gear moving or still up when low and slow, СКОРОСТЬ overspeed, АККУМ on battery (both engines off),
+ЩИТКИ flaps down, ТОРМОЗ brakes on, ПЗУ intake guards closed (on the ground), ФОРСАЖ afterburner, ПРОВЕРЬ master caution.
+At night the panel and consoles are lit.
 
 ## Troubleshooting
 - **The MiG-29 isn't in the aircraft list.** It spawns from medium hangars, shelters and revetments on land bases (not carriers).
@@ -43,6 +75,8 @@ Multiplayer: everyone needs the same mod set (Blueprinter checks this).
 - **R-27R misses.** It's semi-active: keep the target locked on your radar until impact. For fire-and-forget at medium range,
   use the R-27T (infrared; lock its seeker before launch).
 - **The gun runs dry fast.** The GSh-30-1 has 150 rounds, about five and a half seconds of fire. Short bursts.
+- **Gauges don't move.** `MiG29Instruments.dll` must be in `BepInEx/plugins` (next to the .nobp is fine);
+  `BepInEx/LogOutput.log` then shows `MiG-29 instruments on MiG29`.
 - **Something else.** [Open an issue](https://github.com/IornMan1213/MiG29-NuclearOption/issues/new/choose) with your mod version
   and the `Exception` lines from `%USERPROFILE%\AppData\LocalLow\Shockfront\NuclearOption\Player.log`.
 
