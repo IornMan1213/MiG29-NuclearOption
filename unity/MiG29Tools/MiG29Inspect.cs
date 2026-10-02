@@ -90,6 +90,31 @@ namespace MiG29Tools
             catch (Exception e) { Debug.LogException(e); EditorApplication.Exit(1); }
         }
 
+        // Do mounted missiles (and their rails) overlap the aircraft's own colliders?
+        public static void RunMissileOverlap()
+        {
+            try
+            {
+                var go = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Blueprinter/Mods/mig29/MiG29.prefab"));
+                var plane = go.GetComponentsInChildren<Collider>(true).Where(c => c.enabled).ToList();
+                var sb = new StringBuilder();
+                foreach (var (hp, mount) in new[] { ("hardpoint_pylon_L1", "mig29_R27R_AKU470"), ("hardpoint_pylon_L2", "mig29_R73_APU73"), ("hardpoint_pylon_L3", "mig29_R73_APU73"), ("hardpoint_pylon_L1", "mig29_R27T_AKU470"), ("hardpoint_pylon_L3", "mig29_R60M_APU60") })
+                {
+                    var t = go.GetComponentsInChildren<Transform>(true).First(x => x.name == hp);
+                    var m = (GameObject)UnityEngine.Object.Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>($"Assets/Blueprinter/Mods/mig29/weapons/{mount}.prefab"), t);
+                    m.transform.localPosition = Vector3.zero; m.transform.localRotation = Quaternion.identity;
+                    foreach (var mc in m.GetComponentsInChildren<Collider>(true))
+                        foreach (var pc in plane)
+                            if (Physics.ComputePenetration(mc, mc.transform.position, mc.transform.rotation, pc, pc.transform.position, pc.transform.rotation, out var dir, out var dist))
+                                sb.AppendLine($"{hp}/{mount}/{mc.name} ({mc.GetType().Name}) overlaps {Path(pc.transform, go.transform)} ({pc.GetType().Name}) by {dist:F3} m");
+                    sb.AppendLine($"checked {hp}/{mount}: missile at {m.GetComponentsInChildren<Collider>(true).Select(c => c.bounds.center.ToString("F2")).FirstOrDefault()}");
+                }
+                File.WriteAllText("MiG29Out/missile_overlap.txt", sb.ToString());
+                EditorApplication.Exit(0);
+            }
+            catch (Exception e) { Debug.LogException(e); EditorApplication.Exit(1); }
+        }
+
         public static void RunParams()
         {
             try

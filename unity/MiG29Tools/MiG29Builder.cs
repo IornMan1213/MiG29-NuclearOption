@@ -87,6 +87,17 @@ namespace MiG29Tools
                 CreateOrReplace(TrimmedCockpit(data.parts.First(p => p.name == "cockpit")), ModDir + "/meshes/MiG29_cockpit_shell.asset"), materials.skin);
             cockpitShell.transform.SetPositionAndRotation(visual.position, Quaternion.identity);
             interior.Add(cockpitShell);
+            // the MiG model has no continuous cockpit floor: a dark floor and a low bulkhead behind the panel close it
+            var tubMat = AssetDatabase.LoadAssetAtPath<Material>(ModDir + "/weapons/MiG29_missiles.mat");
+            foreach (var (name, centerMiG, size) in new[] {
+                ("floor", new Vector3(0f, 0.30f, 6.50f), new Vector3(0.92f, 0.02f, 2.00f)),
+                ("bulkhead", new Vector3(0f, 0.40f, 7.55f), new Vector3(0.80f, 0.22f, 0.02f)) })   // low, behind the KR-67 panel
+            {
+                var tub = AddMeshObject("MiG29_cockpit_tub_" + name, cockpitPart,
+                    CreateOrReplace(AtlasBox("MiG29_cockpit_tub_" + name, size, 0.625f, 0.875f), ModDir + $"/meshes/MiG29_cockpit_tub_{name}.asset"), tubMat);
+                tub.transform.SetPositionAndRotation(centerMiG + ModelOffset, Quaternion.identity);
+                interior.Add(tub);
+            }
 
             var surfaces = new List<(Component part, Renderer renderer)>();
             foreach (var part in data.parts.Where(p => p.pivot != null && p.pivot.Length == 3))
@@ -498,7 +509,7 @@ namespace MiG29Tools
         }
 
         // The MiG cockpit without its instrument panel, HUD housing, centre stick, side consoles and floor (MiG frame: the panel and
-        // HUD sit at z > 6.8 inside |x| < 0.33 / 0.20; the consoles below y 0.82). What stays is the canopy arch, sills, mirrors and seat,
+        // HUD sit at z > 6.8 inside |x| < 0.29 / 0.20; console tops at 0.40 < y < 0.82; the centre stick). What stays is the canopy arch, sills, mirrors and seat,
         // which frame the KR-67 glass-cockpit panel in the cockpit view.
         static Mesh TrimmedCockpit(PartDump p)
         {
@@ -512,7 +523,8 @@ namespace MiG29Tools
                 bool panel = c.z > 6.80f && ax < 0.29f && c.y < 1.05f;              // gauge panel + glareshield
                 panel |= c.z > 6.85f && ax < 0.20f && c.y < 1.19f;                   // HUD housing and posts (the windscreen arch stays)
                 bool seat = c.z < 6.50f && ax < 0.27f;
-                bool consoles = c.z > 5.60f && ax < 0.38f && c.y < 0.82f && !seat;
+                bool consoles = c.z > 5.60f && ax < 0.38f && c.y < 0.82f && !seat;  // consoles, floor scraps, centre stick (the MiG
+                                                                                     // model has no real floor; MiG29_cockpit_tub does)
                 if (!panel && !consoles) keep.AddRange(new[] { p.triangles[i], p.triangles[i + 1], p.triangles[i + 2] });
             }
             // second pass by connected piece: small leftovers of the old glareshield (the radar-scope box on the right)

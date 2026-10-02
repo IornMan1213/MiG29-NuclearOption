@@ -69,7 +69,7 @@ namespace MiG29Tools
                     bool glass = r.name.ToLower().Contains("glass") || r.name.Contains("windscreen") || r.name == "MiG29_canopy";
                     var m = new Material(lit);
                     if (glass) { m.SetColor("_BaseColor", new Color(0.3f, 0.4f, 0.5f, 0.25f)); m.SetFloat("_Surface", 1); m.renderQueue = 3000; m.SetOverrideTag("RenderType", "Transparent"); m.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha); m.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha); m.SetInt("_ZWrite", 0); m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT"); }
-                    else if (r.name == "MiG29_mfd_console") m.SetColor("_BaseColor", new Color(0.24f, 0.25f, 0.26f));   // atlas dgrey in game
+                    else if (r.name == "MiG29_mfd_console" || r.name.StartsWith("MiG29_cockpit_tub") || r.name.StartsWith("MiG29_intake_blocker")) m.SetColor("_BaseColor", new Color(0.24f, 0.25f, 0.26f));   // atlas dgrey in game
                     else if (mig) { m.SetTexture("_BaseMap", tex); m.SetColor("_BaseColor", r.name == "MiG29_cockpit_shell" && Environment.GetEnvironmentVariable("MIG29_TINTSHELL") == "1" ? new Color(1f, 0.5f, 0.5f) : Color.white); }
                     else if (r.name == "tacScreen") { m.SetColor("_BaseColor", pretty ? new Color(0.03f, 0.16f, 0.13f) : new Color(1f, 0.1f, 0.9f)); if (pretty) { m.EnableKeyword("_EMISSION"); m.SetColor("_EmissionColor", new Color(0.02f, 0.22f, 0.16f)); } }
                     else if (r.name == "warningLights") m.SetColor("_BaseColor", pretty ? new Color(0.9f, 0.6f, 0.1f) : new Color(0.1f, 1f, 0.2f));

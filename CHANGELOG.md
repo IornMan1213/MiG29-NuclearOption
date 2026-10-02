@@ -4,6 +4,7 @@
 - Fixed the jet flipping over backwards above ~70 % throttle and pitching up uncontrollably at low speed: the engine thrust acted
   0.73 m below the centre of mass (at the MiG's real nozzle height), so full afterburner out-muscled the weight on the main
   wheels and the tail. Thrust now acts at centre-of-mass height; the nozzles and exhaust effects are unchanged.
+- Cockpit: a dark floor and bulkhead close the gaps under the panel (the MiG model has no real cockpit floor).
 
 ## 0.5.1
 - Fixed R-27R and R-27T: their copied seekers lost the reference to their own missile, so every launch threw a
