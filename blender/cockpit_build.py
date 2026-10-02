@@ -359,7 +359,7 @@ def pp(u, v, off=0.0, yaw_side=0, u_hinge=0.2, yaw=math.radians(28)):
         du = abs(u) - u_hinge
         base = ORG + Vector((s * u_hinge, 0, 0)) + UP * v
         dirv = Vector((s * math.cos(yaw), 0, -math.sin(yaw)))
-        nrm = Vector((s * math.sin(yaw) * math.cos(TILT), math.sin(TILT), -math.cos(yaw) * math.cos(TILT))).normalized()
+        nrm = Vector((-s * math.sin(yaw) * math.cos(TILT), math.cos(yaw) * math.sin(TILT), -math.cos(yaw) * math.cos(TILT))).normalized()   # = dirv x UP, toward the pilot
         q = base + dirv * du + nrm * off
     else:
         q = ORG + Vector((u, 0, 0)) + UP * v + NRM * off
@@ -369,7 +369,7 @@ def pp(u, v, off=0.0, yaw_side=0, u_hinge=0.2, yaw=math.radians(28)):
 def panel_normal(u, yaw=math.radians(28), u_hinge=0.2):
     if abs(u) > u_hinge:
         s = 1 if u > 0 else -1
-        return Vector((s * math.sin(yaw) * math.cos(TILT), math.sin(TILT), -math.cos(yaw) * math.cos(TILT))).normalized()
+        return Vector((-s * math.sin(yaw) * math.cos(TILT), math.cos(yaw) * math.sin(TILT), -math.cos(yaw) * math.cos(TILT))).normalized()   # = dirv x UP, toward the pilot
     return NRM
 
 
@@ -393,8 +393,12 @@ prism("tub", [(x, y, z) for x, y, z in ped], (0, 0.0, 0.25), "turq")
 quad_uv("tub", [(-0.07, FLOOR + 0.10, 7.11), (0.07, FLOOR + 0.10, 7.11), (0.07, PB - 0.015, ped_top[2] - 0.004), (-0.07, PB - 0.015, ped_top[2] - 0.004)], rect_uv("sp_ped"))
 
 
-def gauge(u, v, d, cell, yaw_side=1):
-    """Round instrument: bezel ring standing proud of the panel, recessed dial face with the atlas cell."""
+INS = {}   # moving instrument parts: name -> pivot / axis (toward the pilot) / up, Unity MiG frame
+
+
+def gauge(u, v, d, cell, yaw_side=1, face_z=0.010, face_part="tub"):
+    """Round instrument: bezel ring standing proud of the panel, recessed dial face with the atlas cell.
+    Returns the dial frame (centre, normal toward the pilot, right, up, radius) for needles."""
     c = Vector(pp(u, v, 0.0, yaw_side)); n = panel_normal(u)
     r = d / 2
     cylinder("tub", tuple(c + n * 0.007), tuple(n), r * 1.16, 0.014, "black", 28, cap=False)
@@ -414,14 +418,62 @@ def gauge(u, v, d, cell, yaw_side=1):
     # dial face (fan) recessed 4 mm behind the bezel front
     u0, v0, u1, v1 = rect_uv(cell, 0.5)
     cu, cv, hu, hv = (u0 + u1) / 2, (v0 + v1) / 2, (u1 - u0) / 2, (v1 - v0) / 2
-    fc = c + n * 0.010
+    fc = c + n * face_z
     pts = [fc + (right * math.cos(t) + up * math.sin(t)) * r for t in [2 * math.pi * k / segs for k in range(segs)]]
     uvs = [(cu + math.cos(2 * math.pi * k / segs) * hu, cv + math.sin(2 * math.pi * k / segs) * hv) for k in range(segs)]
-    PARTS["tub"].face([P(*p) for p in pts], uvs)
+    PARTS[part(face_part)].face([P(*p) for p in pts], uvs)
+    if face_part != "tub":   # a rotating card: a plain black disk behind it keeps the panel closed
+        PARTS["tub"].face([P(*(p - n * 0.0015)) for p in pts], [((u0 + u1) / 2, (v0 + v1) / 2)] * segs)
     # inner wall of the bezel
+    wall = [c + n * min(face_z, 0.010) + (right * math.cos(t) + up * math.sin(t)) * r for t in [2 * math.pi * k / segs for k in range(segs)]]
     for k in range(segs):
-        q = [pts[k], pts[(k + 1) % segs], ring_i[(k + 1) % segs], ring_i[k]]
+        q = [wall[k], wall[(k + 1) % segs], ring_i[(k + 1) % segs], ring_i[k]]
         poly_paint("tub", q, "black")
+    return {"c": c, "n": n, "right": right, "up": up, "r": r}
+
+
+def part(name):
+    if name not in PARTS:
+        PARTS[name] = Part(name)
+    return name
+
+
+def flat(pid, center, right, up, w, h, paint, uvrect=None):
+    """Flat rectangle facing the pilot (corners bottom-left, bottom-right, top-right, top-left as seen from the seat)."""
+    q = [center - right * w / 2 - up * h / 2, center + right * w / 2 - up * h / 2, center + right * w / 2 + up * h / 2, center - right * w / 2 + up * h / 2]
+    if uvrect:
+        quad_uv(part(pid), [tuple(x) for x in q], uvrect)
+    else:
+        poly_paint(part(pid), [tuple(x) for x in q], paint)
+
+
+def needle(gid, f, length, width, paint="white", z=0.0115, tail=0.2):
+    """A needle on its own pivot, pointing at 12 o'clock (the plugin turns it clockwise)."""
+    c, n, right, up = f["c"], f["n"], f["right"], f["up"]
+    base = c + n * z; pid = part("ins_" + gid)
+    L = length * f["r"]; w = width * f["r"]
+    q = [base - up * L * tail - right * w / 2, base - up * L * tail + right * w / 2, base + up * L + right * w * 0.12, base + up * L - right * w * 0.12]
+    poly_paint(pid, [tuple(x) for x in q], paint)
+    cylinder(pid, tuple(base + n * 0.0008), tuple(n), max(w * 0.9, 0.0025), 0.0016, "black", 12)
+    INS["ins_" + gid] = (base, n, up)
+
+
+def lamp(lid, u, v, w, h, uvrect, off):
+    """Lit-state quad of a lamp on the panel at (u, v), just in front of its unlit picture (the plugin switches it on and off)."""
+    quad_uv(part("lamp_" + lid), [pp(u - w / 2, v - h / 2, off, 1), pp(u + w / 2, v - h / 2, off, 1), pp(u + w / 2, v + h / 2, off, 1), pp(u - w / 2, v + h / 2, off, 1)], uvrect)
+
+
+def sub_uv(cell, x0, y0, x1, y1):
+    u0, v0, u1, v1 = rect_uv(cell, 0.5)
+    return (u0 + x0 * (u1 - u0), v1 - y1 * (v1 - v0), u0 + x1 * (u1 - u0), v1 - y0 * (v1 - v0))
+
+
+def panel_frame(u, v, off):
+    c = Vector(pp(u, v, off, 1)); n = panel_normal(u)
+    right = (Vector(pp(u + 0.01, v, 0, 1)) - Vector(pp(u, v, 0, 1))).normalized()
+    up = right.cross(n).normalized() * -1
+    if up.y < 0: up = -up
+    return c, n, right, up
 
 
 def plate(u, v, w, h, cell, off=0.003, yaw_side=1):
@@ -432,23 +484,78 @@ def plate(u, v, w, h, cell, off=0.003, yaw_side=1):
 
 
 # centre section (MiG-29 9.12 style T layout)
-gauge(0.0, 0.245, 0.112, "g_adi")
-gauge(0.0, 0.110, 0.104, "g_hsi")
-gauge(-0.125, 0.268, 0.080, "g_asi")
-gauge(-0.125, 0.165, 0.080, "g_alt")
-gauge(0.125, 0.268, 0.080, "g_aoa")
-gauge(0.125, 0.165, 0.080, "g_vsi")
-gauge(-0.13, 0.065, 0.058, "g_radalt")
-gauge(0.13, 0.065, 0.058, "g_clock")
+# attitude indicator: a real ball behind a black mask with the bank scale, fixed orange aircraft symbol in front
+f = gauge(0.0, 0.245, 0.112, "g_adi", face_z=0.0012)
+BALL_R, BALL_BACK = 0.10, 0.087
+ball_c = f["c"] - f["n"] * BALL_BACK
+bu0, bv0, bu1, bv1 = rect_uv("adi_ball", 1.0)
+pid = part("ins_adi_ball"); NLON, NLAT = 36, 30
+def ball_pt(i, j):
+    lon = -math.pi + 2 * math.pi * i / NLON; lat = -math.pi / 2 + math.pi * j / NLAT
+    dvec = f["up"] * math.sin(lat) + (f["n"] * math.cos(lon) + f["right"] * math.sin(lon)) * math.cos(lat)
+    return ball_c + dvec * BALL_R, (bu0 + (i / NLON) * (bu1 - bu0), bv0 + (j / NLAT) * (bv1 - bv0))
+for i in range(NLON):
+    for j in range(NLAT):
+        q = [ball_pt(i, j), ball_pt(i + 1, j), ball_pt(i + 1, j + 1), ball_pt(i, j + 1)]
+        PARTS[pid].face([P(*x[0]) for x in q], [x[1] for x in q])
+INS["ins_adi_ball"] = (ball_c, f["n"], f["up"])
+sym = f["c"] + f["n"] * 0.0138
+for sx in (-1, 1):
+    flat("tub", sym + f["right"] * sx * 0.026, f["right"], f["up"], 0.026, 0.0032, "amber")
+flat("tub", sym, f["right"], f["up"], 0.006, 0.006, "amber")
+flat("tub", sym - f["up"] * 0.006, f["right"], f["up"], 0.0025, 0.009, "amber")
+
+# HSI: the compass card turns with the heading; lubber line and aircraft symbol are fixed
+f = gauge(0.0, 0.110, 0.104, "g_hsi", face_part=part("ins_hsi_card"))
+INS["ins_hsi_card"] = (f["c"] + f["n"] * 0.010, f["n"], f["up"])
+top = f["c"] + f["n"] * 0.0125 + f["up"] * f["r"] * 0.97
+PARTS["tub"].face([P(*top), P(*(top + f["up"] * 0.0001 - f["right"] * 0.004 + f["up"] * 0.006)), P(*(top + f["right"] * 0.004 + f["up"] * 0.006))][::-1],
+                  [((rect_uv("paint_white")[0] + rect_uv("paint_white")[2]) / 2, (rect_uv("paint_white")[1] + rect_uv("paint_white")[3]) / 2)] * 3)
+hs = f["c"] + f["n"] * 0.0125
+flat("tub", hs, f["right"], f["up"], 0.022, 0.0025, "white")
+flat("tub", hs - f["up"] * 0.003, f["right"], f["up"], 0.0025, 0.020, "white")
+flat("tub", hs - f["up"] * 0.012, f["right"], f["up"], 0.010, 0.0022, "white")
+
+f = gauge(-0.125, 0.268, 0.080, "g_asi"); needle("asi_kmh", f, 0.86, 0.09); needle("asi_mach", f, 0.40, 0.08, "yellow", z=0.0122)
+f = gauge(-0.125, 0.165, 0.080, "g_alt"); needle("alt_km", f, 0.52, 0.15); needle("alt_m", f, 0.88, 0.08, z=0.0122)
+f = gauge(0.125, 0.268, 0.080, "g_aoa"); needle("aoa", f, 0.86, 0.08, "yellow"); needle("g", f, 0.86, 0.08, z=0.0122)
+f = gauge(0.125, 0.165, 0.080, "g_vsi"); needle("vsi", f, 0.88, 0.09)
+f = gauge(-0.13, 0.065, 0.058, "g_radalt"); needle("radalt", f, 0.84, 0.10)
+f = gauge(0.13, 0.065, 0.058, "g_clock"); needle("clock_h", f, 0.50, 0.14); needle("clock_m", f, 0.82, 0.08, z=0.0120); needle("clock_s", f, 0.88, 0.035, "red", z=0.0126)
 plate(0.0, PH - 0.018, 0.16, 0.026, "placard")
-# left wing: RWR, switch plate, small gauges
-gauge(-0.29, 0.255, 0.076, "g_spo")
-plate(-0.29, 0.155, 0.12, 0.08, "sp_pl")
-gauge(-0.255, 0.075, 0.05, "g_oxy"); gauge(-0.325, 0.075, 0.05, "g_cabin")
+
+# left wing: SPO-15 radar warning receiver (square display, lit sector / power / type lamps), gear lights, small gauges
+SPO_U, SPO_V, SPO_S = -0.29, 0.255, 0.086
+plate(SPO_U, SPO_V, SPO_S + 0.008, SPO_S + 0.008, "paint_black", off=0.0035)
+plate(SPO_U, SPO_V, SPO_S, SPO_S, "g_spo", off=0.0042)
+spo = ATLAS["layout"]["spo"]
+for k, (brg, x, y, sz) in enumerate(spo["sectors"]):
+    lamp(f"spo_s{k}", SPO_U + (x - 0.5) * SPO_S, SPO_V + (0.5 - y) * SPO_S, sz * SPO_S, sz * SPO_S, rect_uv("lamp_lit_red", 6), 0.0050)
+for k, (x, y, w, h) in enumerate(spo["power"]):
+    lamp(f"spo_p{k}", SPO_U + (x - 0.5) * SPO_S, SPO_V + (0.5 - y) * SPO_S, w * SPO_S, h * SPO_S, rect_uv("lamp_lit_amber", 6), 0.0050)
+for k, (t, x, y, w, h) in enumerate(spo["types"]):
+    lamp(f"spo_t{k}", SPO_U + (x - 0.5) * SPO_S, SPO_V + (0.5 - y) * SPO_S, w * SPO_S * 0.8, h * SPO_S * 0.8, rect_uv("lamp_lit_amber", 6), 0.0050)
+GEAR_U, GEAR_V, GW, GH = -0.29, 0.163, 0.11, 0.055
+plate(GEAR_U, GEAR_V, GW, GH, "gear_plate")
+for gid, x, y, sz in ATLAS["layout"]["gear"]:
+    gu, gv = GEAR_U + (x - 0.5) * GW, GEAR_V + (0.5 - y) * GH
+    lamp(f"gear_{gid}_g", gu, gv, sz * GW * 0.95, sz * GW * 0.95, rect_uv("lamp_lit_green", 6), 0.0040)
+    lamp(f"gear_{gid}_r", gu, gv, sz * GW * 0.95, sz * GW * 0.95, rect_uv("lamp_lit_red", 6), 0.0042)
+f = gauge(-0.255, 0.075, 0.05, "g_oxy"); needle("oxy", f, 0.84, 0.11)
+f = gauge(-0.325, 0.075, 0.05, "g_cabin"); needle("cabin", f, 0.84, 0.11)
 # right wing: radar / tactical display, engine instruments, caution panel
-gauge(0.255, 0.165, 0.062, "g_rpm"); gauge(0.33, 0.165, 0.062, "g_egt")
-gauge(0.255, 0.085, 0.05, "g_fuel"); gauge(0.325, 0.085, 0.05, "g_hyd")
-plate(0.29, 0.03 + 0.012, 0.15, 0.045, "caution")
+f = gauge(0.255, 0.165, 0.062, "g_rpm"); needle("rpm_l", f, 0.86, 0.09); needle("rpm_r", f, 0.72, 0.09, "yellow", z=0.0122)
+f = gauge(0.33, 0.165, 0.062, "g_egt"); needle("egt_l", f, 0.86, 0.09); needle("egt_r", f, 0.72, 0.09, "yellow", z=0.0122)
+f = gauge(0.255, 0.091, 0.05, "g_fuel"); needle("fuel", f, 0.84, 0.11)
+f = gauge(0.325, 0.091, 0.05, "g_hyd"); needle("hyd", f, 0.84, 0.11)
+CAU_U, CAU_V, CAU_W, CAU_H = 0.29, 0.034, 0.15, 0.040
+plate(CAU_U, CAU_V, CAU_W, CAU_H, "caution")
+cl = ATLAS["layout"]["caution"]
+for k, cid in enumerate(cl["ids"]):
+    i, j = k % cl["cols"], k // cl["cols"]
+    x0, x1 = i / cl["cols"], (i + 1) / cl["cols"]; y0, y1 = j / cl["rows"], (j + 1) / cl["rows"]
+    lamp(f"cau_{cid}", CAU_U + ((x0 + x1) / 2 - 0.5) * CAU_W, CAU_V + (0.5 - (y0 + y1) / 2) * CAU_H, CAU_W / cl["cols"], CAU_H / cl["rows"],
+         sub_uv("caution_lit", x0, y0, x1, y1), 0.0040)
 
 # panel trim: black edge strips around the centre section, screws, setting knobs
 def strip(u0, v0, u1, v1, w=0.008, off=0.004):
@@ -468,7 +575,7 @@ for (u, v) in ((-0.078, 0.14), (0.078, 0.14), (-0.172, 0.20), (0.172, 0.20), (-0
 SW, SH = 0.165, 0.079
 sc = plate(0.29, 0.262, SW + 0.026, SH + 0.034, "radar_frame", off=0.004)
 cu, cvv = 0.29, 0.262
-corners = [pp(cu - SW / 2, cvv - SH / 2, 0.006), pp(cu + SW / 2, cvv - SH / 2, 0.006), pp(cu + SW / 2, cvv + SH / 2, 0.006), pp(cu - SW / 2, cvv + SH / 2, 0.006)]
+corners = [pp(cu - SW / 2, cvv - SH / 2, 0.006, 1), pp(cu + SW / 2, cvv - SH / 2, 0.006, 1), pp(cu + SW / 2, cvv + SH / 2, 0.006, 1), pp(cu - SW / 2, cvv + SH / 2, 0.006, 1)]
 quad_uv("screen", corners, (0.0, 0.25, 0.75, 1.0))
 # hood around the screen
 c = Vector(pp(cu, cvv, 0)); n = panel_normal(cu)
@@ -501,6 +608,14 @@ def deck_pt(f, z):
 for z0, z1 in zip(deck, deck[1:]):
     for f0, f1 in zip(dxs, dxs[1:]):
         poly_paint("tub", [deck_pt(f0, z0), deck_pt(f1, z0), deck_pt(f1, z1), deck_pt(f0, z1)], "black")
+# dark back wall behind the whole panel: closes the gaps around the folded side panels (the fuselage skin is hidden in the cockpit
+# view, so any gap there looks straight outside)
+Z_BW = 7.37
+bw_ys = [PB - 0.06 + (GS_Y - (PB - 0.06)) * k / 6 for k in range(7)]
+for y0, y1 in zip(bw_ys, bw_ys[1:]):
+    w0, w1 = min(0.38, wall_x(y0, Z_BW) - 0.004), min(0.38, wall_x(y1, Z_BW) - 0.004)
+    def bwp(x, y): return (x, under_glass(x, y, Z_BW, 0.02), Z_BW)
+    poly_paint("tub", [bwp(-w0, y0), bwp(w0, y0), bwp(w1, y1), bwp(-w1, y1)], "black")
 # HUD (ILS-31 style): housing on the hood, two posts, combiner glass
 HZ = gs_back + 0.06
 box("tub", (0, GS_Y + 0.055, HZ + 0.07), (0.15, 0.06, 0.16), "black", 0.008)
@@ -671,6 +786,12 @@ parts_out, meshes = [], {}
 for name, mat, pivot in (("tub", "cockpit", None), ("glass", "glass", None), ("seat", "cockpit", SEAT_O), ("stick", "cockpit", STICK_O),
                          ("throttle", "cockpit", THR_O), ("screen", "screen", None), ("lamps", "lamps", None)):
     o, me = export_part(PARTS[name], sign, mat, pivot)
+    parts_out.append(o); meshes[name] = me
+for name in sorted(k for k in PARTS if k.startswith("ins_") or k.startswith("lamp_")):
+    o, me = export_part(PARTS[name], sign, "cockpit", None)
+    if name in INS:
+        piv, ax, upv = INS[name]
+        o["pivot"] = list(piv); o["axis"] = list(ax); o["up"] = list(upv)
     parts_out.append(o); meshes[name] = me
 parts_out.append(frames_part())
 json.dump({"parts": parts_out, "eye": list(EYE)}, open(os.path.join(SRC, "cockpit_mesh.json"), "w"))

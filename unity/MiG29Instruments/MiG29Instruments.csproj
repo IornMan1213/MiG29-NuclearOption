@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- BepInEx 5 plugin that makes the MiG-29's cockpit instruments work. Builds against the installed game (GameDir);
+       no game files are committed. dotnet build -c Release -->
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <AssemblyName>MiG29Instruments</AssemblyName>
+    <RootNamespace>MiG29Instruments</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <Version>1.0.0</Version>
+    <GameDir Condition="'$(GameDir)' == ''">C:\Program Files (x86)\Steam\steamapps\common\Nuclear Option</GameDir>
+    <Managed>$(GameDir)\NuclearOption_Data\Managed</Managed>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\MiG29Tools\MiG29InstrumentMath.cs" Link="MiG29InstrumentMath.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="BepInEx"><HintPath>$(GameDir)\BepInEx\core\BepInEx.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Assembly-CSharp"><HintPath>$(Managed)\Assembly-CSharp.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Assembly-CSharp-firstpass"><HintPath>$(Managed)\Assembly-CSharp-firstpass.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine"><HintPath>$(Managed)\UnityEngine.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.CoreModule"><HintPath>$(Managed)\UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.PhysicsModule"><HintPath>$(Managed)\UnityEngine.PhysicsModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.InputLegacyModule"><HintPath>$(Managed)\UnityEngine.InputLegacyModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Mirage"><HintPath>$(Managed)\Mirage.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="netstandard"><HintPath>$(Managed)\netstandard.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

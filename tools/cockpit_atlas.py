@@ -145,7 +145,13 @@ def numbers(d, c, s, a0, a1, labels, r, size):
         label(d, (c + math.sin(a) * r, c - math.cos(a) * r), t, size, path=FONT_N)
 
 
+DRAW_NEEDLES = False   # needles, cards and the attitude ball are real moving parts (MiG29Instruments plugin)
+LAYOUT = {}            # lamp / instrument layout shared with blender/cockpit_build.py (written to cockpit_atlas.json)
+
+
 def needle(d, c, s, ang, length, width, col=(240, 240, 235), tail=0.15):
+    if not DRAW_NEEDLES:
+        return
     a = math.radians(ang)
     tip = (c + math.sin(a) * length, c - math.cos(a) * length)
     bk = (c - math.sin(a) * length * tail, c + math.cos(a) * length * tail)
@@ -158,9 +164,12 @@ def g_asi(d, c, s, img):  # KUS: km/h 0-1600 outer, Mach inner
     ticks(d, c, s, -150, 150, 32, s * 0.40, s * 0.45, s * 0.008)
     ticks(d, c, s, -150, 150, 8, s * 0.37, s * 0.45, s * 0.016)
     numbers(d, c, s, -150, 150, ["0", "2", "4", "6", "8", "10", "12", "14", "16"], s * 0.31, s * 0.075)
-    d.ellipse((c - s * 0.2, c - s * 0.2, c + s * 0.2, c + s * 0.2), outline=(200, 200, 195), width=int(s * 0.006))
-    label(d, (c, c + s * 0.12), "КМ/Ч ×100", s * 0.05, path=FONT_R)
-    label(d, (c, c - s * 0.1), "M", s * 0.06)
+    d.ellipse((c - s * 0.21, c - s * 0.21, c + s * 0.21, c + s * 0.21), outline=(200, 200, 195), width=int(s * 0.006))
+    ticks(d, c, s, -150, 150, 10, s * 0.17, s * 0.205, s * 0.006, (240, 200, 70))
+    for i, t in enumerate(["0.4", "0.8", "1.2", "1.6", "2.0", "2.4"]):
+        a = math.radians(-150 + 60 * i); label(d, (c + math.sin(a) * s * 0.125, c - math.cos(a) * s * 0.125), t, s * 0.038, (240, 200, 70), FONT_N)
+    label(d, (c, c + s * 0.27), "КМ/Ч ×100", s * 0.045, path=FONT_R)
+    label(d, (c, c + s * 0.05), "M", s * 0.05, (240, 200, 70))
     needle(d, c, s, -40, s * 0.43, s * 0.03)
     needle(d, c, s, 60, s * 0.2, s * 0.025, col=(230, 180, 40))
 
@@ -169,8 +178,7 @@ def g_alt(d, c, s, img):  # VDI: 0-10 (x1000 m) small hand, 0-1000 m big hand
     ticks(d, c, s, 0, 360, 50, s * 0.41, s * 0.45, s * 0.008)
     ticks(d, c, s, 0, 360, 10, s * 0.37, s * 0.45, s * 0.018)
     numbers(d, c, s, 0, 324, [str(i) for i in range(10)], s * 0.31, s * 0.08)
-    d.rectangle((c - s * 0.12, c + s * 0.1, c + s * 0.12, c + s * 0.19), fill=(5, 5, 5), outline=(150, 150, 150), width=int(s * 0.005))
-    label(d, (c, c + s * 0.145), "0 7 6 0", s * 0.05, path=FONT_N)
+    label(d, (c, c + s * 0.15), "ВД-30", s * 0.04, path=FONT_R)
     label(d, (c, c - s * 0.13), "М ×1000", s * 0.045, path=FONT_R)
     needle(d, c, s, 110, s * 0.25, s * 0.045)
     needle(d, c, s, 205, s * 0.43, s * 0.025)
@@ -242,25 +250,37 @@ def g_small(title, lo, hi, unit, ang=40):
     return f
 
 
-def g_adi(d, c, s, img):  # KPP attitude: blue-grey sky over brown ground, pitch ladder, fixed aircraft symbol
-    sky, gnd = (92, 140, 190), (120, 82, 50)
-    d.rectangle((0, 0, s, c), fill=sky); d.rectangle((0, c, s, s), fill=gnd)
-    d.line((0, c, s, c), fill=(240, 240, 235), width=int(s * 0.01))
-    for k in (-3, -2, -1, 1, 2, 3):
-        y = c - k * s * 0.075; w = s * (0.12 if k % 2 else 0.2)
-        d.line((c - w, y, c + w, y), fill=(240, 240, 235), width=int(s * 0.006))
-        label(d, (c - w - s * 0.05, y), str(abs(k) * 10), s * 0.04, path=FONT_N)
-    # bank scale
-    ticks(d, c, s, -60, 60, 4, s * 0.42, s * 0.47, s * 0.01)
-    d.polygon([(c, s * 0.08), (c - s * 0.025, s * 0.03), (c + s * 0.025, s * 0.03)], fill=(240, 240, 235))
-    # aircraft symbol (orange)
-    o = (240, 130, 30)
-    d.rectangle((c - s * 0.28, c - s * 0.012, c - s * 0.08, c + s * 0.012), fill=o)
-    d.rectangle((c + s * 0.08, c - s * 0.012, c + s * 0.28, c + s * 0.012), fill=o)
-    d.ellipse((c - s * 0.03, c - s * 0.03, c + s * 0.03, c + s * 0.03), fill=o)
-    # slip ball window
-    d.rounded_rectangle((c - s * 0.14, s * 0.84, c + s * 0.14, s * 0.9), radius=s * 0.03, fill=(10, 10, 10), outline=(200, 200, 200), width=int(s * 0.004))
-    d.ellipse((c - s * 0.025, s * 0.845, c + s * 0.025, s * 0.895), fill=(20, 20, 20), outline=(220, 220, 220), width=int(s * 0.004))
+def g_adi(d, c, s, img):  # KPP mask: black surround with the bank scale; the attitude ball shows through the middle
+    d.rectangle((0, 0, s, s), fill=(14, 14, 15))
+    for ang in (-60, -45, -30, -20, -10, 10, 20, 30, 45, 60):
+        a = math.radians(ang); r0 = s * (0.42 if abs(ang) in (30, 60) else 0.445)
+        d.line((c + math.sin(a) * r0, c - math.cos(a) * r0, c + math.sin(a) * s * 0.49, c - math.cos(a) * s * 0.49), fill=(240, 240, 235), width=int(s * 0.012))
+    d.polygon([(c, s * 0.085), (c - s * 0.025, s * 0.02), (c + s * 0.025, s * 0.02)], fill=(240, 240, 235))
+
+
+def adi_ball(w=512, h=256):
+    """Equirectangular attitude ball: u = azimuth (u 0.5 faces the pilot), v = pitch -90..90. Sky over ground, ladder every 10 deg."""
+    img = Image.new("RGB", (w * SS, h * SS)); d = ImageDraw.Draw(img); W_, H_ = w * SS, h * SS
+    sky, gnd = (88, 136, 186), (122, 82, 48)
+    d.rectangle((0, 0, W_, H_ / 2), fill=sky); d.rectangle((0, H_ / 2, W_, H_), fill=gnd)
+    d.line((0, H_ / 2, W_, H_ / 2), fill=(245, 245, 240), width=int(SS * 3))
+
+    def y_of(p):
+        return H_ / 2 - p / 90 * H_ / 2
+    for p in range(-80, 90, 5):
+        if p == 0:
+            continue
+        stretch = 1 / max(0.35, math.cos(math.radians(p)))
+        half = (16 if p % 10 == 0 else 8) / 360 * W_ * stretch
+        col = (245, 245, 240) if p > 0 else (240, 230, 210)
+        d.line((W_ / 2 - half, y_of(p), W_ / 2 + half, y_of(p)), fill=col, width=int(SS * (2 if p % 10 == 0 else 1.2)))
+        if p % 10 == 0:
+            for sx in (-1, 1):
+                label(d, (W_ / 2 + sx * (half + 9 / 360 * W_ * stretch), y_of(p)), str(abs(p)), SS * 9, col, FONT_N)
+    for az in range(0, 360, 30):  # azimuth marks on the horizon
+        x = (az / 360 + 0.5) % 1 * W_
+        d.line((x, H_ / 2 - SS * 5, x, H_ / 2 + SS * 5), fill=(245, 245, 240), width=SS * 2)
+    return down(img, w, h)
 
 
 def g_hsi(d, c, s, img):  # PNP: compass card, course arrow
@@ -269,31 +289,30 @@ def g_hsi(d, c, s, img):  # PNP: compass card, course arrow
     for i in range(12):
         a = i * 30; t = {0: "С", 9: "З", 18: "Ю", 27: "В"}.get(i * 3, str(i * 3)) if i % 3 == 0 else str(i * 3)
         label(d, (c + math.sin(math.radians(a)) * s * 0.33, c - math.cos(math.radians(a)) * s * 0.33), t, s * 0.06, path=FONT_N)
-    y = (230, 180, 40)
-    d.polygon([(c, s * 0.2), (c - s * 0.04, s * 0.28), (c + s * 0.04, s * 0.28)], fill=y)
-    d.line((c, s * 0.28, c, s * 0.72), fill=y, width=int(s * 0.015))
-    d.line((c - s * 0.15, c, c + s * 0.15, c), fill=(240, 240, 235), width=int(s * 0.008))
-    d.polygon([(c, s * 0.04), (c - s * 0.025, s * 0.0), (c + s * 0.025, s * 0.0)], fill=(240, 240, 235))
-    # aircraft symbol
-    w = (240, 240, 235)
-    d.line((c, c - s * 0.06, c, c + s * 0.08), fill=w, width=int(s * 0.012)); d.line((c - s * 0.07, c, c + s * 0.07, c), fill=w, width=int(s * 0.012))
+    for a in range(0, 360, 45):   # inner ring marks
+        ra = math.radians(a)
+        d.line((c + math.sin(ra) * s * 0.2, c - math.cos(ra) * s * 0.2, c + math.sin(ra) * s * 0.24, c - math.cos(ra) * s * 0.24), fill=(160, 160, 155), width=int(s * 0.008))
 
 
 def g_spo(d, c, s, img):  # SPO-15 RWR: aircraft plan with sector lamps, power bar
     d.rectangle((0, 0, s, s), fill=(18, 18, 20))
+    lay = LAYOUT["spo"] = {"sectors": [], "power": [], "types": []}
     for i in range(10):  # power ladder
         d.rectangle((s * 0.1 + i * s * 0.08, s * 0.08, s * 0.16 + i * s * 0.08, s * 0.14), fill=(70, 50, 20))
+        lay["power"].append([0.13 + i * 0.08, 0.11, 0.06, 0.06])
     # aircraft outline
     w = (190, 190, 180)
     d.polygon([(c, s * 0.3), (c + s * 0.03, s * 0.42), (c + s * 0.25, s * 0.55), (c + s * 0.25, s * 0.6), (c + s * 0.04, s * 0.56), (c + s * 0.03, s * 0.7),
                (c + s * 0.1, s * 0.76), (c - s * 0.1, s * 0.76), (c - s * 0.03, s * 0.7), (c - s * 0.04, s * 0.56), (c - s * 0.25, s * 0.6), (c - s * 0.25, s * 0.55), (c - s * 0.03, s * 0.42)], outline=w, width=int(s * 0.008))
-    for a in (-60, -30, 30, 60, -120, 120, -150, 150):  # sector lamps
+    for a in (-150, -120, -60, -30, 30, 60, 120, 150):  # sector lamps (bearing from the nose, degrees)
         x, y = c + math.sin(math.radians(a)) * s * 0.33, c + s * 0.05 - math.cos(math.radians(a)) * s * 0.33
         d.ellipse((x - s * 0.03, y - s * 0.03, x + s * 0.03, y + s * 0.03), fill=(80, 40, 20), outline=(140, 140, 130), width=int(s * 0.004))
+        lay["sectors"].append([a, x / s, y / s, 0.06])
     for i, t in enumerate(["П", "З", "Н", "Х", "F", "О"]):  # threat type lamps
         x = s * 0.15 + i * s * 0.14
         d.rectangle((x, s * 0.86, x + s * 0.1, s * 0.94), fill=(40, 38, 20), outline=(120, 120, 110), width=int(s * 0.004))
         label(d, (x + s * 0.05, s * 0.9), t, s * 0.05, (150, 140, 90))
+        lay["types"].append([t, x / s + 0.05, 0.9, 0.1, 0.08])
 
 
 def g_radar_frame(d, c, s, img):  # bezel graphics around the tac screen (the screen itself is the game's render texture)
@@ -310,7 +329,22 @@ GAUGES = [("adi", 384, g_adi), ("hsi", 384, g_hsi), ("asi", 256, g_asi), ("alt",
           ("cabin", 192, g_small("ВЫСОТА КАБ", 0, 20, "КМ", -60)), ("volt", 192, g_small("V", 0, 30, "", 35)),
           ("radalt", 192, g_small("РВ", 0, 1500, "М", -80)), ("brake", 192, g_small("ТОРМ", 0, 100, "%", -100))]
 for name, size, fn in GAUGES:
-    put("g_" + name, dial(size, fn, bezel=name != "spo", round_=name != "spo"), (0, 200))   # glossy glass over the faces
+    put("g_" + name, dial(size, fn, bezel=name not in ("spo", "adi"), round_=name != "spo"), (0, 200))   # glossy glass over the faces
+put("adi_ball", adi_ball(), (0, 160))
+
+
+def glow(col, size=64):
+    """Lit lamp lens: bright centre, coloured rim (emissive at runtime)."""
+    S_ = size * SS
+    img = Image.new("RGB", (S_, S_), tuple(int(c * 0.8) for c in col)); d = ImageDraw.Draw(img)
+    for k in range(12, 0, -1):
+        f = k / 12; cc = tuple(min(255, int(c + (255 - c) * (1 - f) * 0.7)) for c in col)
+        d.ellipse((S_ / 2 - S_ * f / 2, S_ / 2 - S_ * f / 2, S_ / 2 + S_ * f / 2, S_ / 2 + S_ * f / 2), fill=cc)
+    return down(img, size, size)
+
+
+for nm, col in (("red", (255, 40, 25)), ("amber", (255, 160, 20)), ("green", (60, 255, 90))):
+    put("lamp_lit_" + nm, glow(col), (0, 200))
 
 # ---------------------------------------------------------------- switch panels (black plates, white legends)
 WORDS = ["ВКЛ", "ОТКЛ", "РЛС", "САУ", "ОСВЕЩ", "ПОДСВ", "АККУМ", "ГЕН", "ТОПЛ", "НАСОС", "ЗАПУСК", "ФОРС", "ОБОГР", "ПВД", "СТЕКЛО",
@@ -375,23 +409,44 @@ for i, (name, w, h) in enumerate([("sp_lc1", 384, 256), ("sp_lc2", 256, 256), ("
                                    ("sp_wr", 128, 256), ("sp_aft", 256, 128)]):
     put(name, switch_panel(w, h, 100 + i), (0, 90))
 
-# caution / warning panel (unlit lamp captions behind tinted glass)
-def caution(w, h, cols, rows, seed):
-    rnd = random.Random(seed)
+# caution / warning panel: every caption has a job (MiG29Instruments plugin). (id, caption, colour)
+RED, AMB, GRN = (190, 40, 28), (220, 140, 20), (50, 170, 70)
+CAUTION = [("fire_l", "ПОЖАР Л", RED), ("fire_r", "ПОЖАР П", RED), ("lowalt", "ОПАСН ВЫС", RED), ("aoa", "ВЫХОД α", RED),
+           ("overg", "ПЕРЕГРУЗ", RED), ("missile", "РАКЕТА", RED),
+           ("fuel_low", "ОСТАТОК", AMB), ("fuel_res", "РЕЗЕРВ", RED), ("gen_l", "ГЕН Л", AMB), ("gen_r", "ГЕН П", AMB),
+           ("hyd", "ГИДРО", AMB), ("lock", "ЗАХВАТ", RED),
+           ("pump", "НАСОС", AMB), ("oil", "МАСЛО", AMB), ("vib", "ВИБРАЦ", AMB), ("canopy", "ФОНАРЬ", AMB),
+           ("gear", "ШАССИ", AMB), ("speed", "СКОРОСТЬ", RED),
+           ("batt", "АККУМ", AMB), ("flaps", "ЩИТКИ", GRN), ("brake", "ТОРМОЗ", GRN), ("fod", "ПЗУ", GRN),
+           ("ab", "ФОРСАЖ", GRN), ("master", "ПРОВЕРЬ", AMB)]
+LAYOUT["caution"] = {"cols": 6, "rows": 4, "ids": [c[0] for c in CAUTION]}
+
+
+def caution(w, h, cols, rows, lit):
     img = canvas(w, h, (20, 20, 22)); d = ImageDraw.Draw(img); s = SS
     tw, th = w * s / cols, h * s / rows
-    caps = ["ПОЖАР", "ОПАСН ВЫС", "ОСТАТОК", "ГЕН ОТКЛ", "ГИДРО", "МАСЛО", "ФОНАРЬ", "ШАССИ", "ПРОВЕРЬ", "КИСЛОРОД", "ОБЛЕД", "ПЗУ",
-            "ВЫХОД α", "ПОМПАЖ", "САУ", "РЕЗЕРВ", "ТОРМОЗ", "ЩИТКИ", "НАСОС", "АККУМ", "СРЫВ", "ВИБРАЦ", "ДЕМПФ", "ПРЕОБР"]
-    for j in range(rows):
-        for i in range(cols):
-            x0, y0 = i * tw, j * th
-            col = rnd.choice([(150, 40, 30), (170, 120, 20), (170, 120, 20), (40, 120, 60)])
-            d.rectangle((x0 + 2 * s, y0 + 2 * s, x0 + tw - 2 * s, y0 + th - 2 * s), fill=tuple(int(c * 0.35) for c in col), outline=(60, 60, 60), width=s)
-            label(d, (x0 + tw / 2, y0 + th / 2), caps[(j * cols + i) % len(caps)], th * 0.32, tuple(int(c * 0.9) for c in col), FONT)
+    for k, (cid, cap, col) in enumerate(CAUTION):
+        i, j = k % cols, k // cols
+        x0, y0 = i * tw, j * th
+        bg = tuple(min(255, int(c * 1.05)) for c in col) if lit else tuple(int(c * 0.3) for c in col)
+        fg = (255, 250, 235) if lit else tuple(int(c * 0.85) for c in col)
+        d.rectangle((x0 + 2 * s, y0 + 2 * s, x0 + tw - 2 * s, y0 + th - 2 * s), fill=bg, outline=(60, 60, 60), width=s)
+        label(d, (x0 + tw / 2, y0 + th / 2), cap, th * 0.32, fg, FONT)
     return down(img, w, h)
 
 
-put("caution", caution(512, 160, 6, 4, 7), (0, 220))
+put("caution", caution(512, 160, 6, 4, False), (0, 220))
+put("caution_lit", caution(512, 160, 6, 4, True), (0, 220))
+
+# landing gear indicator plate: three lamps (nose, left, right)
+img = canvas(256, 128, PAINT["black"]); d = ImageDraw.Draw(img)
+label(d, (128 * SS, 18 * SS), "ШАССИ", 14 * SS, (225, 225, 218), FONT_R)
+LAYOUT["gear"] = []
+for gid, (x, y) in (("nose", (128, 52)), ("left", (70, 92)), ("right", (186, 92))):
+    d.ellipse(((x - 16) * SS, (y - 16) * SS, (x + 16) * SS, (y + 16) * SS), fill=(30, 45, 30), outline=(110, 110, 110), width=2 * SS)
+    LAYOUT["gear"].append([gid, x / 256, y / 128, 32 / 256])
+put("gear_plate", down(img, 256, 128))
+
 put("radar_frame", dial(256, g_radar_frame, bezel=False, round_=False), (0, 120))
 
 # placards / stencils
@@ -404,5 +459,5 @@ put("eject_label", down(img, 256, 64))
 
 atlas.save(os.path.join(OUT, "cockpit_atlas.png"))
 metal.save(os.path.join(OUT, "cockpit_metallic.png"))
-json.dump({"size": W, "rects": rects}, open(os.path.join(OUT, "cockpit_atlas.json"), "w"), indent=1)
+json.dump({"size": W, "rects": rects, "layout": LAYOUT}, open(os.path.join(OUT, "cockpit_atlas.json"), "w"), indent=1)
 print(f"cockpit atlas: {len(rects)} cells, packed to y={pk.y + pk.row}")

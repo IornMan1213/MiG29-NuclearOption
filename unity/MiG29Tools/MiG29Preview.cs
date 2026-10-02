@@ -62,13 +62,29 @@ namespace MiG29Tools
                 var lit = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
                 var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(BaseTex);
                 var ckTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Blueprinter/Mods/mig29/textures/cockpit_atlas.png");
+                // MIG29_POSE=sample: instruments posed from MiG29InstrumentMath.Sample(), lamps lit as the plugin would light them
+                var litLamps = new System.Collections.Generic.HashSet<string>();
+                if (Environment.GetEnvironmentVariable("MIG29_POSE") == "sample")
+                {
+                    var st = MiG29InstrumentMath.Sample();
+                    foreach (var t in go.GetComponentsInChildren<Transform>(true).Where(t => t.name.StartsWith("MiG29_ins_")))
+                    {
+                        var id = t.name.Substring("MiG29_ins_".Length); var nd = t.Find("needle");
+                        nd.localRotation = id == "adi_ball" ? MiG29InstrumentMath.Ball(st) : Quaternion.Euler(0f, 0f, -MiG29InstrumentMath.Needles[id](st));
+                    }
+                    litLamps = MiG29InstrumentMath.Lamps(st);
+                    Debug.Log("[MiG29] pose sample, lit: " + string.Join(" ", litLamps));
+                }
                 foreach (var r in go.GetComponentsInChildren<Renderer>(true))
                 {
                     if (hidden.Contains(r)) { r.enabled = false; continue; }
                     if (r.sharedMaterial != null && r.sharedMaterial.name == "MiG29_cockpit")   // from-scratch cockpit: its own atlas
                     {
                         var cm = new Material(lit); cm.SetTexture("_BaseMap", ckTex); cm.SetFloat("_Smoothness", 0.25f);
-                        r.sharedMaterials = Enumerable.Repeat(cm, r.sharedMaterials.Length).ToArray(); r.enabled = true; continue;
+                        bool isLamp = r.name.StartsWith("MiG29_lamp_");
+                        if (isLamp) { cm.EnableKeyword("_EMISSION"); cm.SetTexture("_EmissionMap", ckTex); cm.SetColor("_EmissionColor", Color.white * 1.2f); }
+                        r.sharedMaterials = Enumerable.Repeat(cm, r.sharedMaterials.Length).ToArray();
+                        r.enabled = !isLamp || litLamps.Contains(r.name.Substring("MiG29_lamp_".Length)); continue;
                     }
                     if (!(r is SkinnedMeshRenderer) && (!r.TryGetComponent<MeshFilter>(out var mf) || mf.sharedMesh == null)) continue;
                     bool mig = r.name.StartsWith("MiG29_");
@@ -104,9 +120,9 @@ namespace MiG29Tools
                 cam.nearClipPlane = 0.02f; cam.farClipPlane = 100f; cam.fieldOfView = 75;
                 var rt = new RenderTexture(1600, 1000, 24) { antiAliasing = 4 }; cam.targetTexture = rt;
                 var eye = vp ? vp.position : new Vector3(0, 1.0f, 4.5f);
-                foreach (var (name, euler) in new[] { ("fwd", new Vector3(8, 0, 0)), ("left", new Vector3(10, -70, 0)), ("right", new Vector3(10, 70, 0)), ("up_back", new Vector3(-10, 165, 0)), ("down", new Vector3(35, 0, 0)), ("page", new Vector3(22, -12, 0)) })
+                foreach (var (name, euler) in new[] { ("fwd", new Vector3(8, 0, 0)), ("left", new Vector3(10, -70, 0)), ("right", new Vector3(10, 70, 0)), ("up_back", new Vector3(-10, 165, 0)), ("down", new Vector3(35, 0, 0)), ("page", new Vector3(22, -12, 0)), ("panel", new Vector3(17, 0, 0)), ("panel_l", new Vector3(22, -24, 0)), ("panel_r", new Vector3(22, 24, 0)), ("adi", new Vector3(20.3f, 0, 0)) })
                 {
-                    camGo.transform.SetPositionAndRotation(eye, Quaternion.Euler(euler));
+                    camGo.transform.SetPositionAndRotation(eye, Quaternion.Euler(euler)); cam.fieldOfView = name == "panel" ? 40 : name == "adi" ? 12 : name.StartsWith("panel_") ? 26 : 75;
                     cam.Render();
                     RenderTexture.active = rt;
                     var img = new Texture2D(rt.width, rt.height, TextureFormat.RGB24, false);

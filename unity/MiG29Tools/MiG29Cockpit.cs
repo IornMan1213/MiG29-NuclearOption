@@ -25,7 +25,7 @@ namespace MiG29Tools
                                               "canopyFrame_F_int_simple", "canopyFrame_R_int_simple" };
 
         [Serializable] class Dump { public Part[] parts; }
-        [Serializable] class Part { public string name, material; public float[] vertices, normals, uvs, pivot; public int[] triangles; }
+        [Serializable] class Part { public string name, material; public float[] vertices, normals, uvs, pivot, axis, up; public int[] triangles; }
 
         public static void Build(GameObject go, Transform cockpitPart, Vector3 modelOffset, Material skin, Material glass, List<Renderer> exterior,
                                  Func<UnityEngine.Object, string, UnityEngine.Object> save, Action<Transform, Renderer> addDamage)
@@ -50,7 +50,9 @@ namespace MiG29Tools
                 o.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
                 o.AddComponent<MeshFilter>().sharedMesh = mesh;
                 var r = o.AddComponent<MeshRenderer>(); r.sharedMaterial = m;
-                if (name != "glass") addDamage(cockpitPart, r);
+                // only the MiG frames (MiG skin UVs) take part damage: the damage shader samples the livery/damage maps in the airframe
+                // UV layout, which punches holes in, and tints, anything mapped to the cockpit atlas
+                if (name == "frames") addDamage(cockpitPart, r);
             }
 
             // game-driven pieces: move the pivots, bake the meshes into their local frames
@@ -59,7 +61,65 @@ namespace MiG29Tools
             Attach(root, "EjectionSeat", parts["seat"], modelOffset, mat, save, movePivot: false);
             Attach(root, "tacScreen", parts["screen"], modelOffset, null, save, movePivot: false);
             Attach(root, "warningLights", parts["lamps"], modelOffset, null, save, movePivot: false);
+            BuildInstruments(cockpitPart, parts.Values, modelOffset, mat, save);
+            // The cockpit view draws the interior on the stock interior's layer with its own near-clip camera; anything on the default
+            // layer closer than ~1 m to the eye is clipped away. Everything new in the cockpit goes on that layer.
+            int layer = root.GetComponentsInChildren<Transform>(true).First(t => t.name == "cockpit_int").gameObject.layer;
+            int moved = 0;
+            foreach (var t in cockpitPart.GetComponentsInChildren<Transform>(true).Where(t => t.name.StartsWith("MiG29_ck_") || t.name.StartsWith("MiG29_ins_") || t.name.StartsWith("MiG29_lamp_") || t.name == "needle"))
+            { t.gameObject.layer = layer; moved++; }
+            // The main (outside) camera does not draw that layer: an exterior copy of the interior on the default layer, which the
+            // game hides in the cockpit view (exterior renderer), keeps the cockpit visible through the canopy from outside.
+            foreach (var n in new[] { "MiG29_ck_tub", "MiG29_ck_frames" })
+            {
+                var src = cockpitPart.Find(n);
+                var ext = UnityEngine.Object.Instantiate(src.gameObject, src.parent);
+                ext.name = n + "_ext"; ext.layer = 0;
+                exterior.Add(ext.GetComponent<Renderer>());
+            }
+            Debug.Log($"[MiG29] cockpit: {moved} objects on the interior layer {layer} ({LayerMask.LayerToName(layer)})");
             Debug.Log($"[MiG29] cockpit: from-scratch interior ({parts["tub"].triangles.Length / 3} tris), {glassCount} MiG glass renderers in both views, {hidden} KR-67 interior meshes hidden");
+        }
+
+        // Moving instrument parts (ins_*): a fixed mount "MiG29_ins_<id>" (z into the panel, y up) with a child "needle" that the
+        // MiG29Instruments plugin turns; posed here at the engine-off reading. Lamps (lamp_*): "MiG29_lamp_<id>", off until the plugin
+        // lights them.
+        static void BuildInstruments(Transform cockpitPart, IEnumerable<Part> parts, Vector3 modelOffset, Material mat, Func<UnityEngine.Object, string, UnityEngine.Object> save)
+        {
+            var rest = new FlightState { hydraulic = 0, oxygen = 150 };
+            int ins = 0, lamps = 0;
+            foreach (var p in parts)
+            {
+                if (p.name.StartsWith("ins_"))
+                {
+                    var mount = new GameObject("MiG29_" + p.name).transform;
+                    mount.SetParent(cockpitPart, false);
+                    var axis = new Vector3(p.axis[0], p.axis[1], p.axis[2]); var up = new Vector3(p.up[0], p.up[1], p.up[2]);
+                    mount.SetPositionAndRotation(new Vector3(p.pivot[0], p.pivot[1], p.pivot[2]) + modelOffset, Quaternion.LookRotation(-axis, up));
+                    var needle = new GameObject("needle").transform;
+                    needle.SetParent(mount, false);
+                    var mesh = (Mesh)save(MakeMesh(p, v => needle.InverseTransformPoint(v + modelOffset), n => needle.InverseTransformDirection(n), "MiG29_ck_" + p.name),
+                                          $"{ModDir}/meshes/MiG29_ck_{p.name}.asset");
+                    needle.gameObject.AddComponent<MeshFilter>().sharedMesh = mesh;
+                    needle.gameObject.AddComponent<MeshRenderer>().sharedMaterial = mat;
+                    var id = p.name.Substring(4);
+                    needle.localRotation = id == "adi_ball" ? MiG29InstrumentMath.Ball(rest)
+                        : MiG29InstrumentMath.Needles.TryGetValue(id, out var f) ? Quaternion.Euler(0f, 0f, -f(rest)) : Quaternion.identity;
+                    ins++;
+                }
+                else if (p.name.StartsWith("lamp_"))
+                {
+                    var o = new GameObject("MiG29_" + p.name);
+                    o.transform.SetParent(cockpitPart, false);
+                    o.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+                    var mesh = (Mesh)save(MakeMesh(p, v => v + modelOffset, n => n, "MiG29_ck_" + p.name), $"{ModDir}/meshes/MiG29_ck_{p.name}.asset");
+                    o.AddComponent<MeshFilter>().sharedMesh = mesh;
+                    var r = o.AddComponent<MeshRenderer>(); r.sharedMaterial = mat; r.enabled = false;
+                    r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    lamps++;
+                }
+            }
+            Debug.Log($"[MiG29] instruments: {ins} moving parts, {lamps} lamps");
         }
 
         static void Attach(Transform root, string node, Part p, Vector3 modelOffset, Material mat, Func<UnityEngine.Object, string, UnityEngine.Object> save, bool movePivot)

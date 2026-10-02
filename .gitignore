@@ -20,3 +20,6 @@ __pycache__/
 *.blend1
 *.nobp
 *.dll
+# plugin build output
+unity/MiG29Instruments/bin/
+unity/MiG29Instruments/obj/
