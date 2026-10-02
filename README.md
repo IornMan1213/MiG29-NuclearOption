@@ -4,14 +4,14 @@ A flyable MiG-29 (9.12) mod for [Nuclear Option](https://store.steampowered.com/
 tuned to real-world data, R-27R and R-73 missiles built from scratch, a working canopy and gear doors, a custom cockpit damage
 display, and two liveries.
 
-**[Project page](https://iornman1213.github.io/MiG29-NuclearOption/) · [Download](https://github.com/IornMan1213/MiG29-NuclearOption/releases/latest) · [Report an issue](https://github.com/IornMan1213/MiG29-NuclearOption/issues)**
+**[Project page](https://iornman1213.github.io/MiG29-NuclearOption/) · [Download](https://github.com/IornMan1213/MiG29-NuclearOption/releases) · [Report an issue](https://github.com/IornMan1213/MiG29-NuclearOption/issues)**
 
 ![MiG-29 banking](docs/img/hero_bank.jpg)
 
 ## Install (players)
 1. Install [BepInEx 5](https://github.com/BepInEx/BepInEx) into the Nuclear Option folder.
 2. Install [Blueprinter](https://github.com/nikkorap/NOBlueprinter-Releases) 2.0.1 or newer into `BepInEx/plugins`.
-3. Download `MiG-29 Fulcrum_x.y.z.nobp` from [Releases](https://github.com/IornMan1213/MiG29-NuclearOption/releases/latest)
+3. Download `MiG-29 Fulcrum_x.y.z.nobp` from [Releases](https://github.com/IornMan1213/MiG29-NuclearOption/releases)
    and put it in `BepInEx/plugins/MiG-29_Fulcrum/`. Delete any older versions first.
 
 See [mod/README.md](mod/README.md) for the full feature list and known limitations.
