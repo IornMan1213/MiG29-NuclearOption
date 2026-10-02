@@ -181,3 +181,12 @@ missile prefabs cloned in the builder (R-73 from AAM1, R-27R from AAM2 with SARH
   consoles/floor y<0.82 except the seat, plus small leftover islands near the panel) is appended to Aircraft.cockpitRenderers.
   The KR-67 cockpit_int, tacScreen, warning lights, joystick and throttle stay in place; only KR-67 canopy frames and
   cockpit_int_simple are hidden. The retrofit console is gone.
+
+## v0.5.2 (2026-10-02): thrust line
+- User: "the plane just flips backwards, it won't fly at all; same over 70 % throttle". Aero dump identical to v0.5.0 (the only
+  diff was my dump's renderer-based side/top area). Cause: JetNozzle applies thrust at thrustTransform; at the MiG nozzle height
+  (y -0.73 prefab) vs dry CG y 0.00 that is 170 kN x 0.73 m = 124 kNm nose-up at full AB, against 16 t x 0.67 m (CG to main
+  wheels) = 105 kNm on the ground. Dry thrust (99 kN, 72 kNm) holds, AB (>~70 % throttle) flips it. The v0.5.0 flight at 705 kt
+  worked because the stabilators had authority at that q.
+- Fix: thrustTransform_L/R moved to y = ThrustLineY (0.0, CG height), their heat-haze children re-parented to the nozzle first.
+  fm_sim.py has no thrust moment, so its trim results are unchanged. Lesson: re-check the thrust line whenever nozzles move.

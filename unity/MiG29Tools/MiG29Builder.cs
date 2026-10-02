@@ -21,11 +21,12 @@ namespace MiG29Tools
 
         public const string JsonKey = "mig29_Fulcrum";
         public const string DisplayName = "MiG-29 Fulcrum";
-        public const string Version = "0.5.1";
+        public const string Version = "0.5.2";
 
         // MiG model frame -> aircraft root. Puts MiG main wheels on the KR-67 main gear and MiG wheels on KR-67 ground line.
         static readonly Vector3 ModelOffset = new Vector3(0f, -0.44f, -2.655f);
         // KR-67 cockpit interior / pilot shifted to sit under the MiG canopy.
+        const float ThrustLineY = 0.0f;   // prefab frame: the aircraft's centre-of-mass height
         static readonly Vector3 CockpitShift = new Vector3(0f, -0.44f, -2.23f);
 
         // KR-67 renderers that stay visible (moving gear, effects, cockpit interior, pilot).
@@ -324,6 +325,16 @@ namespace MiG29Tools
             // nozzles (thrust + afterburner effects) to the MiG nozzles
             SetWorld(root, "nozzle_L", new Vector3(-0.866f, -0.292f, -3.768f) + ModelOffset);
             SetWorld(root, "nozzle_R", new Vector3(0.866f, -0.292f, -3.768f) + ModelOffset);
+            // Thrust acts at thrustTransform (JetNozzle: AddForceAtPosition). At the MiG nozzles it sat 0.73 m below the centre of
+            // mass, so full afterburner (~170 kN) pitched the nose up harder than the weight on the main wheels could hold: the jet
+            // flipped over backwards on the runway above ~70 % throttle and pitched up uncontrollably at low speed (v0.5.1 report).
+            // The thrust point goes to CG height (dry CG y ~0.00, MiG29AeroDump); the heat haze stays at the visible nozzle.
+            foreach (var side in new[] { "L", "R" })
+            {
+                var tt = Find(root, "thrustTransform_" + side);
+                foreach (var fx in tt.Cast<Transform>().ToList()) fx.SetParent(tt.parent, true);
+                tt.position = new Vector3(tt.position.x, ThrustLineY, tt.position.z);
+            }
 
             // wing pylons to the MiG rails: inner/outer
             SetWorld(root, "hardpoint_pylon_L1", new Vector3(-2.40f, -0.27f, 0.90f) + ModelOffset);

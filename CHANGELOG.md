@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.2
+- Fixed the jet flipping over backwards above ~70 % throttle and pitching up uncontrollably at low speed: the engine thrust acted
+  0.73 m below the centre of mass (at the MiG's real nozzle height), so full afterburner out-muscled the weight on the main
+  wheels and the tail. Thrust now acts at centre-of-mass height; the nozzles and exhaust effects are unchanged.
+
 ## 0.5.1
 - Fixed R-27R and R-27T: their copied seekers lost the reference to their own missile, so every launch threw a
   NullReferenceException at launch and on every physics tick (tens of thousands of errors, frame-rate drops) and the missiles
