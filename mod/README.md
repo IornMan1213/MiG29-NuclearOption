@@ -1,4 +1,4 @@
-# MiG-29 Fulcrum for Nuclear Option (v0.4.1)
+# MiG-29 Fulcrum for Nuclear Option (v0.4.2)
 
 A flyable MiG-29 (9.12) with its own flight model, R-27R and R-73 missiles, working canopy and gear doors,
 its own damage display, two liveries and loading screens.
@@ -6,7 +6,7 @@ its own damage display, two liveries and loading screens.
 ## Install
 1. Install [BepInEx 5](https://github.com/BepInEx/BepInEx) into the Nuclear Option folder.
 2. Install [Blueprinter](https://github.com/nikkorap/NOBlueprinter-Releases) (2.0.1 or newer) into `BepInEx/plugins`.
-3. Put `MiG-29 Fulcrum_0.4.1.nobp` anywhere under `BepInEx/plugins` (e.g. `BepInEx/plugins/MiG-29_Fulcrum/`).
+3. Put `MiG-29 Fulcrum_0.4.2.nobp` anywhere under `BepInEx/plugins` (e.g. `BepInEx/plugins/MiG-29_Fulcrum/`).
    Remove older `MiG-29 Fulcrum_*.nobp` files.
 
 The MiG-29 appears in medium hangars, shelters and revetments on land bases, and in the Encyclopedia.

@@ -102,3 +102,16 @@ missile prefabs cloned in the builder (R-73 from AAM1, R-27R from AAM2 with SARH
 - Missiles: stock mount children carry localScale for stock meshes (aam1 1.49/1.11/1.25, pylon 0.67/0.9/0.8) → reset to 1.
   missile_gen.py: taper normal hint sign flipped (noses/boattails culled); rail wedge-nose hint on wrong side of the face.
   Armed preview (MiG29Preview "armed") confirms shoe → rail → missile contact on all pylons.
+
+## v0.4.2 (2026-10-01)
+- Project moved to a git repo (GitHub: IornMan1213/MiG29-NuclearOption) with a GitHub Pages site in `docs/`. The repo is now the
+  source of truth: `tools/build_mig29.ps1` copies `unity/MiG29Tools/*.cs` into the Blueprinter project before building. Paths come
+  from `-Project` / `BLUEPRINTER_PROJECT`. `tools/prepare_textures.py` scripts the texture packing that was done by hand.
+- Model licence confirmed: "MiG-29 - Fighter Jet - Free" by bohmerang, CC BY-NC-SA 4.0 (credits filled in everywhere).
+- v0.4.1 in-game check (user session): the MiG spawned and sat for 48 s with no errors or explosion. The "Invalid hardpoint index 5
+  on cockpit" warning in the log comes from the DelamereAerospace weapons pack, not this mod.
+- Damage display: the top-down raster now interpolates height per pixel (was the per-triangle mean), and part borders are smoothed by
+  a box vote (integral image per part, radius 9 then 5) instead of a 5x5 majority filter. The wing-root zigzags were the airframe
+  split following the model's fan triangulation, not depth noise. Per-part images are downsampled from the same id map with
+  coverage as alpha, so they line up with the outline exactly.
+- `blender/showcase.py`: armed renders (missiles from missiles.json on the real pylon positions) in both liveries for the site.

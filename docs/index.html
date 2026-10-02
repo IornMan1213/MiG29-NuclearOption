@@ -29,8 +29,8 @@ nav a.l { color: var(--muted); text-decoration: none; font-size: 14px; }
 nav a.l:hover { color: var(--text); }
 @media (max-width: 640px) { nav a.l.opt { display: none; } }
 
-.hero { position: relative; min-height: 78vh; display: flex; align-items: flex-end; background: #0b0d10 url(img/hero_bank.jpg) center/cover no-repeat; }
-.hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(15,18,22,0) 35%, rgba(15,18,22,.92) 90%, var(--bg)); }
+.hero { position: relative; min-height: 78vh; display: flex; align-items: flex-end; background: #0b0d10 url(img/hero_bank.jpg) 65% center/cover no-repeat; }
+.hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(15,18,22,.75) 0%, rgba(15,18,22,.25) 55%, rgba(15,18,22,0) 75%), linear-gradient(180deg, rgba(15,18,22,0) 35%, rgba(15,18,22,.92) 90%, var(--bg)); }
 .hero .wrap { position: relative; z-index: 1; padding-bottom: 56px; }
 .tag { display: inline-block; font: 600 12px Inter; letter-spacing: .14em; text-transform: uppercase; color: var(--accent2); border: 1px solid rgba(201,166,72,.45); padding: 3px 10px; border-radius: 3px; }
 h1 { font: 700 clamp(44px, 8vw, 96px)/0.95 "Barlow Condensed", sans-serif; margin: 14px 0 10px; letter-spacing: .01em; }
@@ -96,7 +96,7 @@ footer p { margin: 6px 0; }
 
 <header class="hero">
   <div class="wrap">
-    <span class="tag">Nuclear Option mod &middot; v0.4.1</span>
+    <span class="tag">Nuclear Option mod &middot; v0.4.2</span>
     <h1>MiG-29 <em>Fulcrum</em></h1>
     <p class="lead">A flyable MiG-29 (9.12) for Nuclear Option, with its own flight model tuned to real-world data, R-27R and R-73 missiles built from scratch, working canopy and gear doors, and two liveries.</p>
     <div class="btns">
@@ -171,7 +171,7 @@ footer p { margin: 6px 0; }
           <li><b>Two loading screens</b> rendered from the model.</li>
         </ul>
       </div>
-      <div class="media"><img src="img/damage_display.jpg" alt="Cockpit damage display outline, part map and map icon" loading="lazy"></div>
+      <div class="media"><img src="img/damage_display.jpg" alt="Cockpit damage display outline and per-part damage map" loading="lazy"></div>
     </div>
   </div>
 </section>

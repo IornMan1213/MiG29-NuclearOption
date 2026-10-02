@@ -187,7 +187,6 @@ namespace MiG29Tools
                 int y0 = Mathf.Max(0, (int)Mathf.Floor(Mathf.Min(pa.y, pb.y, pc.y))), y1 = Mathf.Min(N - 1, (int)Mathf.Ceil(Mathf.Max(pa.y, pb.y, pc.y)));
                 float area = (pb.x - pa.x) * (pc.y - pa.y) - (pb.y - pa.y) * (pc.x - pa.x);
                 if (Mathf.Abs(area) < 1e-6f) return;
-                float h = (a.y + b.y + c.y) / 3f;
                 for (int y = y0; y <= y1; y++)
                     for (int x = x0; x <= x1; x++)
                     {
@@ -197,6 +196,7 @@ namespace MiG29Tools
                         float w2 = 1 - w0 - w1;
                         if (w0 < 0 || w1 < 0 || w2 < 0) continue;
                         int k = y * N + x;
+                        float h = w0 * a.y + w1 * b.y + w2 * c.y; // per-pixel height: part borders follow the real surface intersections
                         if (h > depth[k]) { depth[k] = h; id[k] = part; }
                     }
             }
@@ -216,6 +216,37 @@ namespace MiG29Tools
             imp.textureCompression = TextureImporterCompression.Uncompressed;
             imp.SaveAndReimport();
             return AssetDatabase.LoadAssetAtPath<Sprite>(path);
+        }
+
+        static void SmoothParts(int[] id, int n, int partCount, int radius)
+        {
+            var best = new int[n * n]; var bestScore = new int[n * n];
+            for (int k = 0; k < best.Length; k++) { best[k] = id[k]; bestScore[k] = -1; }
+            var sat = new int[(n + 1) * (n + 1)];
+            for (int pi = 0; pi < partCount; pi++)
+            {
+                bool any = false;
+                for (int y = 0; y < n; y++)
+                {
+                    int row = 0;
+                    for (int x = 0; x < n; x++)
+                    {
+                        if (id[y * n + x] == pi) { row++; any = true; }
+                        sat[(y + 1) * (n + 1) + x + 1] = sat[y * (n + 1) + x + 1] + row;
+                    }
+                }
+                if (!any) continue;
+                for (int y = 0; y < n; y++)
+                    for (int x = 0; x < n; x++)
+                    {
+                        int k = y * n + x;
+                        if (id[k] < 0) continue;
+                        int x0 = Mathf.Max(0, x - radius), x1 = Mathf.Min(n, x + radius + 1), y0 = Mathf.Max(0, y - radius), y1 = Mathf.Min(n, y + radius + 1);
+                        int c = sat[y1 * (n + 1) + x1] - sat[y0 * (n + 1) + x1] - sat[y1 * (n + 1) + x0] + sat[y0 * (n + 1) + x0];
+                        if (c > bestScore[k]) { bestScore[k] = c; best[k] = pi; }
+                    }
+            }
+            Array.Copy(best, id, id.Length);
         }
 
         public class Displays { public Sprite mapIcon; public GameObject statusDisplay; }
@@ -244,28 +275,11 @@ namespace MiG29Tools
             const int big = 1024, small = 256;
             var ids = new Raster(big, center, half);
             foreach (var q in tris) ids.Tri(q.a, q.b, q.c, q.part);
-            // majority filter: removes sawtooth borders where overlapping parts alternate in the top-down depth test
-            for (int pass = 0; pass < 2; pass++)
-            {
-                var src = (int[])ids.id.Clone();
-                var counts = new Dictionary<int, int>();
-                for (int y = 2; y < big - 2; y++)
-                    for (int x = 2; x < big - 2; x++)
-                    {
-                        if (src[y * big + x] < 0) continue;
-                        counts.Clear();
-                        for (int dy = -2; dy <= 2; dy++)
-                            for (int dx = -2; dx <= 2; dx++)
-                            {
-                                int v = src[(y + dy) * big + x + dx];
-                                if (v < 0) continue;
-                                counts.TryGetValue(v, out var c); counts[v] = c + 1;
-                            }
-                        int best = src[y * big + x], bc = -1;
-                        foreach (var kv in counts) if (kv.Value > bc) { bc = kv.Value; best = kv.Key; }
-                        ids.id[y * big + x] = best;
-                    }
-            }
+            // smooth part borders: the airframe split follows the model's triangulation, which zigzags along the wing roots.
+            // Each inside pixel takes the part that covers most of a (2R+1)^2 box around it (integral images, one per part);
+            // the silhouette itself is unchanged.
+            SmoothParts(ids.id, big, parts.Count, radius: 9);
+            SmoothParts(ids.id, big, parts.Count, radius: 5);
             var outline = new Color32[big * big];
             for (int y = 0; y < big; y++)
                 for (int x = 0; x < big; x++)
@@ -283,14 +297,23 @@ namespace MiG29Tools
                 }
             var outlineSprite = SaveSprite(outline, big, "MiG29_status_outline");
 
+            // per-part images: downsampled from the filtered id map (same borders as the outline), coverage as alpha
             var partSprites = new Dictionary<string, Sprite>();
-            var masks = new Raster(small, center, half);
-            foreach (var q in tris) masks.Tri(q.a, q.b, q.c, q.part);
+            const int f = big / small;
             for (int pi = 0; pi < parts.Count; pi++)
             {
                 var px = new Color32[small * small]; int count = 0;
-                for (int k = 0; k < px.Length; k++)
-                    if (masks.id[k] == pi) { px[k] = new Color32(220, 220, 220, 255); count++; }
+                for (int y = 0; y < small; y++)
+                    for (int x = 0; x < small; x++)
+                    {
+                        int hits = 0;
+                        for (int dy = 0; dy < f; dy++)
+                            for (int dx = 0; dx < f; dx++)
+                                if (ids.id[(y * f + dy) * big + x * f + dx] == pi) hits++;
+                        if (hits == 0) continue;
+                        px[y * small + x] = new Color32(220, 220, 220, (byte)(255 * hits / (f * f)));
+                        count++;
+                    }
                 if (count > 0) partSprites[parts[pi].name] = SaveSprite(px, small, "MiG29_status_" + parts[pi].name);
             }
 
