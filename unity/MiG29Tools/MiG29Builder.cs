@@ -93,6 +93,7 @@ namespace MiG29Tools
 
             MoveCockpit(root);
             MiG29Polish.SetupCanopy(go, ModelOffset, migCanopy, (m, path) => CreateOrReplace(m, path), exterior);
+            AddIntakeBlockers(root);
             MiG29Polish.SetupMiGCockpit(go, exterior,
                 size => CreateOrReplace(AtlasBox("MiG29_mfd_console", size, 0.625f, 0.875f), ModDir + "/meshes/MiG29_mfd_console.asset"),
                 AssetDatabase.LoadAssetAtPath<Material>(ModDir + "/weapons/MiG29_missiles.mat"));
@@ -306,8 +307,8 @@ namespace MiG29Tools
             // stowed wheels: KR-67 gear folds into KR-67 bays and pokes out of the MiG skin. LandingGear lerps
             // gearHinge.localPosition by hingeFoldMotion while folding, so translate each gear to a spot inside
             // the MiG body (found by blender/gearbay.py; MiG frame).
-            StowGear(root, "wheel_L", new Vector3(-0.23f, -0.08f, 2.9f) + ModelOffset); // wheel mesh sits 0.27 m outboard of wheel_L
-            StowGear(root, "wheel_R", new Vector3(0.23f, -0.08f, 2.9f) + ModelOffset);
+            StowGear(root, "wheel_L", new Vector3(-0.23f, -0.08f, 2.9f) + ModelOffset, MainGearExtraFold); // wheel mesh sits 0.27 m outboard of wheel_L
+            StowGear(root, "wheel_R", new Vector3(0.23f, -0.08f, 2.9f) + ModelOffset, MainGearExtraFold);
             StowGear(root, "wheel_F", new Vector3(0f, 0.30f, 3.5f) + ModelOffset); // KR-67 nose wheel (0.66 m) fits the thin centre fuselage here: top 0.63 vs skin 0.66 at x 0.32 (blender ray scan)
 
             // nozzles (thrust + afterburner effects) to the MiG nozzles
@@ -330,7 +331,10 @@ namespace MiG29Tools
             }
         }
 
-        static void StowGear(Transform root, string wheelName, Vector3 stowedWorld)
+        // extra fold on the main legs so the KR-67 strut tips (stowed angled inboard) stay inside the belly tunnel
+        static readonly float MainGearExtraFold = float.TryParse(Environment.GetEnvironmentVariable("MIG29_MAINFOLD") ?? "12", System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var f) ? f : 12f;
+
+        static void StowGear(Transform root, string wheelName, Vector3 stowedWorld, float extraFold = 0f)
         {
             var wheel = Find(root, wheelName);
             var lgType = TypeByName("LandingGear");
@@ -340,7 +344,8 @@ namespace MiG29Tools
                 var hinge = so.FindProperty("gearHinge").objectReferenceValue as Transform;
                 if (hinge == null || !wheel.IsChildOf(hinge))
                     continue;
-                var fold = so.FindProperty("foldDegrees").floatValue;
+                var fold = so.FindProperty("foldDegrees").floatValue + extraFold;
+                so.FindProperty("foldDegrees").floatValue = fold;
                 var baseRot = hinge.localEulerAngles;
                 hinge.localEulerAngles = baseRot + new Vector3(fold, 0f, 0f);
                 var folded = wheel.position;
@@ -348,7 +353,7 @@ namespace MiG29Tools
                 var motion = hinge.parent.InverseTransformVector(stowedWorld - folded);
                 so.FindProperty("hingeFoldMotion").vector3Value = motion;
                 so.ApplyModifiedPropertiesWithoutUndo();
-                Debug.Log($"[MiG29] {wheelName}: folded at {folded}, fold motion {motion}");
+                Debug.Log($"[MiG29] {wheelName}: fold {fold:F1} deg, folded at {folded}, fold motion {motion}");
                 return;
             }
             throw new Exception("[MiG29] no LandingGear drives " + wheelName);
@@ -417,6 +422,24 @@ namespace MiG29Tools
             arr.arraySize++;
             arr.GetArrayElementAtIndex(arr.arraySize - 1).objectReferenceValue = r;
             so.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        // The KR-67 main wheels (0.85 m) only fit inside the MiG intake ducts, where they show from dead ahead. A black panel 0.5 m
+        // behind each intake lip reads as the dark duct. Intake mouth (MiG frame, blender ray scan): x 0.45..0.95, y -0.85..-0.32,
+        // lip z ~4.1; the stowed wheels sit at z 2.45..3.4. Not a damage renderer: liveries retexture those (atlas UVs would pick up camo).
+        static void AddIntakeBlockers(Transform root)
+        {
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(ModDir + "/weapons/MiG29_missiles.mat");
+            var mesh = CreateOrReplace(AtlasBox("MiG29_intake_blocker", new Vector3(0.56f, 0.58f, 0.02f), 0.625f, 0.375f), ModDir + "/meshes/MiG29_intake_blocker.asset"); // atlas black
+            foreach (var side in new[] { -1f, 1f })
+            {
+                var part = Find(root, side < 0 ? "intake_L" : "intake_R");
+                var t = new GameObject(side < 0 ? "MiG29_intake_blocker_L" : "MiG29_intake_blocker_R").transform;
+                t.SetParent(part, false);
+                t.SetPositionAndRotation(new Vector3(side * 0.70f, -0.59f, 3.6f) + ModelOffset, Quaternion.identity);
+                t.gameObject.AddComponent<MeshFilter>().sharedMesh = mesh;
+                t.gameObject.AddComponent<MeshRenderer>().sharedMaterial = mat;
+            }
         }
 
         // Box mesh centred on the origin, every vertex mapped to one flat-colour cell of the missile atlas (0.625, 0.875 = dgrey).

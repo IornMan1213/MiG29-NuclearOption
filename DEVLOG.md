@@ -153,8 +153,11 @@ missile prefabs cloned in the builder (R-73 from AAM1, R-27R from AAM2 with SARH
   lower MiG canopy (0.91): seat dropped 0.09 m (visual only; the pilot and the cockpitViewPoint = helmetCamPoint stay).
 - Nose wheel (KR-67, 0.66 m) stowed at MiG (0, 0.45, 3.2) stuck out of the thin centre fuselage. Ray scan of the skin -> stowed at
   (0, 0.30, 3.5): wheel top 0.63 vs skin 0.66 at x 0.32; strut now ~5-15 cm below the belly between the nose-gear doors.
-- Known: main-gear strut tips (KR-67 struts stow angled inboard) show in the centre tunnel from directly below; the main wheels
-  (0.85 m) already touch the nacelle top skin, so no vertical room to raise them. Some KR-67 gear is visible deep inside the
-  intake mouths from dead ahead.
+- Main gear: foldDegrees -100 -> -88 (MainGearExtraFold 12, env MIG29_MAINFOLD to try others) lifts the KR-67 strut tips from
+  y -1.21 to -0.90 (prefab); only thin slivers show in the centre tunnel from directly below. The main wheels (0.85 m) already
+  touch the nacelle top skin, so they can't go higher.
+- The main wheels live inside the intake ducts (the only volume big enough) and showed from dead ahead: black atlas panels
+  0.5 m behind each intake lip (`AddIntakeBlockers`; mouth x 0.45..0.95, y -0.85..-0.32, lip z 4.1 by ray scan) read as the
+  dark duct. Not damage renderers (liveries retexture those).
 - Dev: `MIG29_IDCOLORS=1` with MiG29Preview.RenderAll colours each leftover KR-67 renderer uniquely (legend in the log);
   `MiG29Inspect.RunVisible` lists every KR-67 renderer that still draws.
