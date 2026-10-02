@@ -13,6 +13,7 @@
 !/mod/
 !/assets/
 !/.github/
+!/nomnom/
 __pycache__/
 *.pyc
 # never commit the source model, game files or built mods
