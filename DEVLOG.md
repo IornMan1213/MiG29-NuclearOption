@@ -168,3 +168,6 @@ missile prefabs cloned in the builder (R-73 from AAM1, R-27R from AAM2 with SARH
   along the sides), red/white chevron a fixed distance behind the planform leading edge (two straight lines, LERX and wing,
   fitted to the forward-most vertex per 5 cm span bin), white/red bands on the fins by height, white radome tip. Only paint
   texels change; shading relative to a blurred copy. Islands grown 4 texels for mip seams. ~10 s.
+- Landing light: `gearLight_F` (+ its spotlight/particle child) hung on the KR-67 front gear door, 3.6 m ahead of the moved nose
+  gear. Re-parented to `gear_F_sprung`, 0.72 m above / 0.42 m ahead of the nose wheel; hidden when stowed (checked with
+  MIG29_IDCOLORS renders). Nav lights, wingtip vortices, wing vapour and heat haze were already at MiG positions.

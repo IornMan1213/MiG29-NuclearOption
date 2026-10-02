@@ -73,6 +73,10 @@ namespace MiG29Tools
                     if (r is SkinnedMeshRenderer smr && smr.sharedMesh == null) continue;
                     sb.AppendLine($"{Path(r.transform, go.transform)} c={r.bounds.center:F2} s={r.bounds.size:F2} {r.GetType().Name} active={r.gameObject.activeInHierarchy}");
                 }
+                foreach (var l in go.GetComponentsInChildren<Light>(true)) sb.AppendLine($"LIGHT {Path(l.transform, go.transform)} pos={l.transform.position:F2} type={l.type} range={l.range:F1}");
+                foreach (var ps in go.GetComponentsInChildren<ParticleSystem>(true)) sb.AppendLine($"PS {Path(ps.transform, go.transform)} pos={ps.transform.position:F2}");
+                foreach (var t in go.GetComponentsInChildren<Transform>(true).Where(t => { var n = t.name.ToLower(); return n.Contains("light") || n.Contains("strobe") || n.Contains("nav") || n.Contains("beacon") || n.Contains("lamp") || n.Contains("vortex") || n.Contains("contrail") || n.Contains("trail"); }))
+                    sb.AppendLine($"NAMED {Path(t, go.transform)} pos={t.position:F2} comps={string.Join(",", t.GetComponents<Component>().Select(c => c.GetType().Name))}");
                 var vp = new SerializedObject(go.GetComponent(T("Unit"))).FindProperty("cockpitViewPoint").objectReferenceValue as Transform;
                 sb.AppendLine($"cockpitViewPoint: {(vp ? Path(vp, go.transform) + " " + vp.position.ToString("F3") : "null")}");
                 foreach (var n in new[] { "pilot", "EjectionSeat", "canopyHinge" })

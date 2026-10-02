@@ -59,6 +59,11 @@ namespace MiG29Tools
 
             HideBaseExterior(root);
             MoveGearAndEffects(root, data.info);
+            // landing light: the KR-67 hangs it on its front gear door, 3.6 m ahead of the MiG's nose gear. On the MiG it sits on the
+            // nose-gear strut, so it rides on the strut (retracting with it), just ahead of and above the wheel.
+            var landingLight = Find(root, "gearLight_F");
+            landingLight.SetParent(Find(root, "gear_F_sprung"), true);
+            landingLight.position = Find(root, "wheel_F").position + new Vector3(0f, 0.72f, 0.42f);
 
             var visual = new GameObject("MiG29_visual").transform;
             visual.SetParent(root, false);

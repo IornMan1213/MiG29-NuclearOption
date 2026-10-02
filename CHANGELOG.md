@@ -16,7 +16,8 @@
 - New liveries: Fulcrum Digital Grey (pixel camouflage) and Fulcrum Display Blue (display-team scheme).
 - Two new loading screens (Digital Grey, and a Display Blue pair).
 - Exterior clean-up: no KR-67 canopy frames or seat headbox poking through the canopy, nose wheel stowed inside the fuselage,
-  main-gear struts folded further in, dark intake ducts hide the stowed main wheels.
+  main-gear struts folded further in, dark intake ducts hide the stowed main wheels, landing light moved onto the nose-gear
+  strut.
 
 ## 0.4.2
 - Cockpit damage display: smooth part borders (per-pixel height raster and a box-vote smoothing pass) instead of jagged wing-root
