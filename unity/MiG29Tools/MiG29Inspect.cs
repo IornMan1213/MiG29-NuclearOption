@@ -60,6 +60,32 @@ namespace MiG29Tools
             Debug.Log("[MiG29] inspect written " + outFile);
         }
 
+        public static void RunVisible()
+        {
+            try
+            {
+                var go = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Blueprinter/Mods/mig29/MiG29.prefab"));
+                var sb = new StringBuilder();
+                foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+                {
+                    if (r.name.StartsWith("MiG29_")) continue;
+                    if (!(r is SkinnedMeshRenderer) && (!r.TryGetComponent<MeshFilter>(out var mf) || mf.sharedMesh == null)) continue;
+                    if (r is SkinnedMeshRenderer smr && smr.sharedMesh == null) continue;
+                    sb.AppendLine($"{Path(r.transform, go.transform)} c={r.bounds.center:F2} s={r.bounds.size:F2} {r.GetType().Name} active={r.gameObject.activeInHierarchy}");
+                }
+                var vp = new SerializedObject(go.GetComponent(T("Unit"))).FindProperty("cockpitViewPoint").objectReferenceValue as Transform;
+                sb.AppendLine($"cockpitViewPoint: {(vp ? Path(vp, go.transform) + " " + vp.position.ToString("F3") : "null")}");
+                foreach (var n in new[] { "pilot", "EjectionSeat", "canopyHinge" })
+                {
+                    var t = go.GetComponentsInChildren<Transform>(true).FirstOrDefault(x => x.name == n);
+                    if (t) sb.AppendLine($"T {Path(t, go.transform)} pos={t.position:F3}");
+                }
+                File.WriteAllText("MiG29Out/visible_kr67.txt", sb.ToString());
+                EditorApplication.Exit(0);
+            }
+            catch (Exception e) { Debug.LogException(e); EditorApplication.Exit(1); }
+        }
+
         public static void RunParams()
         {
             try

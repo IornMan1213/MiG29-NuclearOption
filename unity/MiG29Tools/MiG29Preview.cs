@@ -128,6 +128,8 @@ namespace MiG29Tools
             }
         }
 
+        static int idCount;
+
         static void Render(string prefix, bool tintParts, bool gearUp, bool open, bool armed = false, string inner = "mig29_R27R_AKU470", string outer = "mig29_R73_APU73")
         {
             var go = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath));
@@ -150,6 +152,9 @@ namespace MiG29Tools
                     if (t != null) t.localEulerAngles = d.FindPropertyRelative(open ? "openAngle" : "closedAngle").vector3Value;
                 }
             }
+            if (gearUp && prefix == "flight")
+                foreach (var r in go.GetComponentsInChildren<MeshRenderer>(true).Where(r => r.name.StartsWith("wheel_") || r.name.Contains("_unsprung") || r.name.Contains("_sprung")))
+                    Debug.Log($"[MiG29] stowed {r.name}: c={r.bounds.center:F3} min={r.bounds.min:F3} max={r.bounds.max:F3} (MiG frame c={(r.bounds.center - new Vector3(0, -0.44f, -2.655f)):F3})");
             if (open)
             {
                 var cso = new SerializedObject(go.GetComponentInChildren(T("Canopy"), true));
@@ -206,6 +211,14 @@ namespace MiG29Tools
                 else if (mig)
                 {
                     m = new Material(lit); m.SetTexture("_BaseMap", tex); m.SetColor("_BaseColor", Color.white); m.SetFloat("_Smoothness", 0.35f);
+                }
+                else if (Environment.GetEnvironmentVariable("MIG29_IDCOLORS") == "1")
+                {
+                    // dev: unique flat colour per leftover KR-67 renderer, legend in the log
+                    int id = idCount++;
+                    var col = new Color32((byte)(40 + (id * 67) % 200), (byte)(40 + (id * 131) % 200), (byte)(40 + (id * 197) % 200), 255);
+                    m = new Material(unlit); m.SetColor("_BaseColor", col);
+                    Debug.Log($"[MiG29] idcolor {col.r},{col.g},{col.b} = {r.transform.parent?.name}/{r.name} ({r.GetType().Name})");
                 }
                 else
                 {

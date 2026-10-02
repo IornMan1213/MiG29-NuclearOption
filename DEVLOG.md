@@ -146,3 +146,15 @@ missile prefabs cloned in the builder (R-73 from AAM1, R-27R from AAM2 with SARH
   matter more in play; documented as a known limitation.
 - FBW candidates, not applied (need flight testing): flyByWire.alphaLimiter 27 -> 26 (MiG-29 AoA limiter), cornerSpeed 160 ->
   ~175 m/s, maxRollAngularVel 10 -> ~7 (effective cap 0.5x = ~200 deg/s at low q).
+
+### Exterior clean-up (2026-10-01)
+- `canopyFrame_F_int_simple` / `canopyFrame_R_int_simple` (KR-67 simplified interior frames) draw from outside and poked through
+  the MiG canopy: now hidden with the other KR-67 interior meshes. The KR-67 ejection-seat headbox (top y 0.95) poked through the
+  lower MiG canopy (0.91): seat dropped 0.09 m (visual only; the pilot and the cockpitViewPoint = helmetCamPoint stay).
+- Nose wheel (KR-67, 0.66 m) stowed at MiG (0, 0.45, 3.2) stuck out of the thin centre fuselage. Ray scan of the skin -> stowed at
+  (0, 0.30, 3.5): wheel top 0.63 vs skin 0.66 at x 0.32; strut now ~5-15 cm below the belly between the nose-gear doors.
+- Known: main-gear strut tips (KR-67 struts stow angled inboard) show in the centre tunnel from directly below; the main wheels
+  (0.85 m) already touch the nacelle top skin, so no vertical room to raise them. Some KR-67 gear is visible deep inside the
+  intake mouths from dead ahead.
+- Dev: `MIG29_IDCOLORS=1` with MiG29Preview.RenderAll colours each leftover KR-67 renderer uniquely (legend in the log);
+  `MiG29Inspect.RunVisible` lists every KR-67 renderer that still draws.

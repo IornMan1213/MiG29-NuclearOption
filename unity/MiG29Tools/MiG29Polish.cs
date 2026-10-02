@@ -179,7 +179,11 @@ namespace MiG29Tools
         // warning-light strip move onto the MiG panel (KR-67 frame, prefab coordinates; panel face measured at z 4.50-4.55,
         // y 0.21-0.69, x +-0.33 with blender analysis of MiG-29-cockpit).
         static readonly string[] KrInteriorHidden = { "canopy_F_int", "canopy_R_int", "canopyFrame_F_int", "canopyFrame_R_int",
+                                                      "canopyFrame_F_int_simple", "canopyFrame_R_int_simple",   // these draw from outside
                                                       "cockpit_int", "cockpit_int_simple", "joystick", "throttle" };
+        // KR-67 K-seat headbox (top y 0.95) pokes through the lower MiG canopy (0.91); the seat is visual only, so drop it.
+        // The pilot stays put: cockpitViewPoint is the pilot's helmetCamPoint.
+        const float SeatDrop = 0.09f;
         // gauge panel face is at z ~4.30-4.45 (the 4.50-4.55 faces are the HUD housing); the screen cluster (main tactical display +
         // three small sub-displays, one game mesh) covers the lower-centre gauges and keeps the upper row (ADI, airspeed, altitude)
         static readonly Vector3 TacScreenCenter = new Vector3(0.02f, 0.255f, 4.25f);
@@ -192,6 +196,8 @@ namespace MiG29Tools
             int hidden = 0;
             foreach (var t in root.GetComponentsInChildren<Transform>(true).Where(t => KrInteriorHidden.Contains(t.name)))
                 if (t.TryGetComponent<MeshFilter>(out var mf) && mf.sharedMesh != null) { mf.sharedMesh = null; hidden++; }
+
+            Find(root, "EjectionSeat").position += Vector3.down * SeatDrop;
 
             Bounds MoveRendererTo(string name, Vector3 center, float width)
             {

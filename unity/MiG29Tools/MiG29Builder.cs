@@ -308,7 +308,7 @@ namespace MiG29Tools
             // the MiG body (found by blender/gearbay.py; MiG frame).
             StowGear(root, "wheel_L", new Vector3(-0.23f, -0.08f, 2.9f) + ModelOffset); // wheel mesh sits 0.27 m outboard of wheel_L
             StowGear(root, "wheel_R", new Vector3(0.23f, -0.08f, 2.9f) + ModelOffset);
-            StowGear(root, "wheel_F", new Vector3(0f, 0.45f, 3.2f) + ModelOffset);
+            StowGear(root, "wheel_F", new Vector3(0f, 0.30f, 3.5f) + ModelOffset); // KR-67 nose wheel (0.66 m) fits the thin centre fuselage here: top 0.63 vs skin 0.66 at x 0.32 (blender ray scan)
 
             // nozzles (thrust + afterburner effects) to the MiG nozzles
             SetWorld(root, "nozzle_L", new Vector3(-0.866f, -0.292f, -3.768f) + ModelOffset);
