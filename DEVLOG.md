@@ -139,3 +139,10 @@ missile prefabs cloned in the builder (R-73 from AAM1, R-27R from AAM2 with SARH
   Checked with `MiG29Preview.RenderCockpit` (pilot's-eye renders from cockpitViewPoint with exterior + pilot renderers off).
   Needs an in-game look: lighting, tac-screen readability, head movement clipping.
 - Not done: in-game spawn check. Windows input idle stayed under 2 minutes (someone at the PC), so the game was not driven.
+
+### Flight-model notes (offline, 2026-10-01)
+- Climb: sim gives Ps 207 m/s at sea level (published 260-330). The game has no Mach drag rise (only a 15 % transonic bump), so
+  matching the SL and 13 km top speeds needs drag area ~1.5 m^2 at all speeds (real subsonic ~0.7). Kept: top speed and turn
+  matter more in play; documented as a known limitation.
+- FBW candidates, not applied (need flight testing): flyByWire.alphaLimiter 27 -> 26 (MiG-29 AoA limiter), cornerSpeed 160 ->
+  ~175 m/s, maxRollAngularVel 10 -> ~7 (effective cap 0.5x = ~200 deg/s at low q).

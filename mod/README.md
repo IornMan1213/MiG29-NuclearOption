@@ -38,6 +38,8 @@ Multiplayer: everyone needs the same mod set (Blueprinter checks this).
 - Cockpit: the MiG-29's own cockpit (gauges, HUD frame, canopy arch) with the game's tactical display and warning lights
   fitted on a console in the lower panel. The rest of the cockpit systems are the KR-67 Ifrit's.
 - Flight model was tuned and verified offline; report handling issues with your controls and speed/altitude.
+- Nuclear Option has no supersonic drag rise, so drag is tuned to hit the real top speeds; as a result subsonic climb
+  (~210 m/s at sea level) and acceleration are somewhat below the real MiG's.
 
 ## Links
 - Project page: https://iornman1213.github.io/MiG29-NuclearOption/
