@@ -15,7 +15,8 @@ cannon, a working canopy and gear doors, a custom cockpit damage display, and fo
 ## Install (players)
 1. Install [BepInEx 5](https://github.com/BepInEx/BepInEx) into the Nuclear Option folder.
 2. Install [Blueprinter](https://github.com/nikkorap/NOBlueprinter-Releases) 2.0.1 or newer into `BepInEx/plugins`.
-3. Download `MiG-29 Fulcrum_x.y.z.nobp` and `MiG29Instruments.dll` from the newest
+3. Install it with a mod manager that uses [NOMNOM](https://github.com/KopterBuzz/NOMNOM) (e.g. NOMM), or by hand: download
+   `MiG29-Fulcrum_x.y.z.zip` (or `MiG-29 Fulcrum_x.y.z.nobp` and `MiG29Instruments.dll`) from the newest
    [release](https://github.com/IornMan1213/MiG29-NuclearOption/releases) (every version is also on the
    [`builds` branch](https://github.com/IornMan1213/MiG29-NuclearOption/tree/builds)) and put both in
    `BepInEx/plugins/MiG-29_Fulcrum/`. Delete any older versions first. The DLL makes the cockpit instruments work.

@@ -1,0 +1,21 @@
+MiG-29 Fulcrum for Nuclear Option - credits and licences
+https://github.com/IornMan1213/MiG29-NuclearOption
+
+Install: put "MiG-29 Fulcrum_<version>.nobp" and "MiG29Instruments.dll" in BepInEx/plugins/MiG-29_Fulcrum/.
+Requires BepInEx 5 and Blueprinter 2.0.1 or newer.
+
+3D model
+  "MiG-29 - Fighter Jet - Free" by bohmerang
+  https://sketchfab.com/3d-models/mig-29-fighter-jet-free-0a21787096244220b246ec8747e7b09c
+  Licensed CC BY-NC-SA 4.0 (https://creativecommons.org/licenses/by-nc-sa/4.0/).
+  Converted and modified for this mod (split into parts, retextured liveries, game integration).
+  The .nobp file is distributed under the same licence: free, non-commercial, credit required.
+
+Cockpit, instrument faces, missiles and launchers
+  Modelled and drawn from scratch for this mod.
+
+MiG29Instruments.dll
+  Open source (MIT): unity/MiG29Instruments in the repository above.
+
+The mod is built with Blueprinter (https://github.com/nikkorap/NOBlueprinter-Releases), which references the game's own
+assets at runtime; no game files are redistributed. Nuclear Option is (c) Shockfront Studios; this is an unofficial fan mod.

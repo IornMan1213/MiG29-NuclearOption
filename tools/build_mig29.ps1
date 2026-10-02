@@ -63,10 +63,21 @@ Select-String -Path $log -Pattern '\[MiG29\]|\[Blueprinter\]|error CS|Exception'
 Get-ChildItem $env:MIG29_OUT -Filter *.nobp | ForEach-Object { "OUTPUT $($_.FullName) $($_.Length)" }
 
 # 4. The instruments plugin (BepInEx, ships next to the .nobp): built against the installed game.
-$plugin = Join-Path (Split-Path $PSScriptRoot) "unity\MiG29Instruments"
-dotnet build "$plugin\MiG29Instruments.csproj" -c Release -o "$env:MIG29_OUT" -nologo -v q | Select-String "error|Warn" | ForEach-Object { $_.Line }
+$repo = Split-Path $PSScriptRoot
+$plugin = Join-Path $repo "unity\MiG29Instruments"
+# one version for the mod and the plugin: mod managers (NOMNOM / NOMM) match the release version against the DLL's
+$ver = [regex]::Match((Get-Content (Join-Path $repo "unity\MiG29Tools\MiG29Builder.cs") -Raw), 'Version = "([\d.]+)"').Groups[1].Value
+if (-not (Select-String -Path "$plugin\Plugin.cs" -SimpleMatch "ModVersion = `"$ver`"" -Quiet)) { throw "Plugin.cs ModVersion must be $ver (MiG29Builder.Version)" }
+dotnet build "$plugin\MiG29Instruments.csproj" -c Release -o "$env:MIG29_OUT" -nologo -v q "-p:Version=$ver" | Select-String "error|Warn" | ForEach-Object { $_.Line }
 if ($LASTEXITCODE -ne 0) { throw "instruments plugin build failed" }
 Get-ChildItem $env:MIG29_OUT -Filter MiG29Instruments.dll | ForEach-Object { "OUTPUT $($_.FullName) $($_.Length)" }
+
+# 5. One archive with everything (the first release asset; what NOMNOM / NOMM install): .nobp + plugin + credits.
+$zip = Join-Path $env:MIG29_OUT "MiG29-Fulcrum_$ver.zip"
+Remove-Item "$env:MIG29_OUT\MiG29-Fulcrum_*.zip" -ErrorAction SilentlyContinue
+Copy-Item (Join-Path $repo "mod\CREDITS.txt") $env:MIG29_OUT -Force
+Compress-Archive -Path "$env:MIG29_OUT\MiG-29 Fulcrum_$ver.nobp", "$env:MIG29_OUT\MiG29Instruments.dll", "$env:MIG29_OUT\CREDITS.txt" -DestinationPath $zip -Force
+"OUTPUT $zip $((Get-Item $zip).Length)"
 if ($Release -and $code -eq 0) {
     Get-ChildItem $env:MIG29_OUT -Filter *.nobp | ForEach-Object { python (Join-Path $PSScriptRoot "backup_build.py") $_.FullName --note $Note }
 }

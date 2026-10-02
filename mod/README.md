@@ -1,4 +1,4 @@
-# MiG-29 Fulcrum for Nuclear Option (v0.7.0)
+# MiG-29 Fulcrum for Nuclear Option (v0.7.1)
 
 A flyable MiG-29 (9.12) with its own flight model, R-27R / R-27T / R-73 / R-60M missiles, the GSh-30-1 cannon, working canopy
 and gear doors, its own damage display, four liveries and loading screens.
@@ -6,7 +6,8 @@ and gear doors, its own damage display, four liveries and loading screens.
 ## Install
 1. Install [BepInEx 5](https://github.com/BepInEx/BepInEx) into the Nuclear Option folder.
 2. Install [Blueprinter](https://github.com/nikkorap/NOBlueprinter-Releases) (2.0.1 or newer) into `BepInEx/plugins`.
-3. Put `MiG-29 Fulcrum_0.7.0.nobp` and `MiG29Instruments.dll` in `BepInEx/plugins/MiG-29_Fulcrum/`.
+3. Put `MiG-29 Fulcrum_0.7.1.nobp` and `MiG29Instruments.dll` (both in `MiG29-Fulcrum_0.7.1.zip`) in
+   `BepInEx/plugins/MiG-29_Fulcrum/`, or install the mod with a NOMNOM mod manager such as NOMM.
    Remove older `MiG-29 Fulcrum_*.nobp` files. The DLL makes the cockpit instruments work; without it the MiG still flies,
    with the gauges parked.
 

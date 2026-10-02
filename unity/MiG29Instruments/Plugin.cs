@@ -11,9 +11,11 @@ namespace MiG29Instruments
     // Makes every instrument in the MiG-29 Fulcrum mod's cockpit work. The .nobp carries the moving parts (MiG29_ins_<id> mounts with
     // a "needle" child, MiG29_lamp_<id> lamps); this plugin finds them on the aircraft you fly and drives them from its live state.
     // Visual only: nothing is sent over the network, other aircraft are untouched.
-    [BepInPlugin("iornman.mig29.instruments", "MiG-29 Instruments", "1.0.0")]
+    [BepInPlugin("iornman.mig29.instruments", "MiG-29 Instruments", ModVersion)]
     public class MiG29InstrumentsPlugin : BaseUnityPlugin
     {
+        // same as MiG29Builder.Version (build_mig29.ps1 checks): mod managers match the release version against this DLL's version
+        public const string ModVersion = "0.7.1";
         internal static ManualLogSource Log;
         internal static BepInEx.Configuration.ConfigEntry<float> PanelLighting;
 

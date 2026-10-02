@@ -27,7 +27,7 @@ def main():
     notes = m.group(1).strip() if m else ""
     nobp = os.path.join(ROOT, "builds", f"MiG-29 Fulcrum_{ver}.nobp")
     dll = os.path.join(ROOT, "builds", f"MiG29Instruments_{ver}.dll")
-    extra = " and `MiG29Instruments.dll`" if os.path.exists(dll) else ""
+    extra = " and `MiG29Instruments.dll` (both are in the zip)" if os.path.exists(dll) else ""
     notes += (f"\n\n**Install:** put `MiG-29 Fulcrum_{ver}.nobp`{extra} in `BepInEx/plugins/MiG-29_Fulcrum/` (delete older versions). "
               "Requires BepInEx 5 and Blueprinter 2.0.1+.\n\nThe mod contains a modified version of \"MiG-29 - Fighter Jet - Free\" by bohmerang "
               "(CC BY-NC-SA 4.0).")
@@ -35,12 +35,17 @@ def main():
     sha = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, cwd=ROOT).stdout.strip()
     rel = api("POST", f"https://api.github.com/repos/{REPO}/releases", tok, json.dumps(
         {"tag_name": f"v{ver}", "target_commitish": sha, "name": f"v{ver}", "body": notes, "prerelease": pre, "make_latest": "true"}).encode())
-    up = rel["upload_url"].split("{")[0] + "?name=" + urllib.request.quote(os.path.basename(nobp))
-    asset = api("POST", up, tok, open(nobp, "rb").read(), "application/octet-stream")
-    print("release:", rel["html_url"]); print("asset:", asset["browser_download_url"], asset["size"])
+    print("release:", rel["html_url"])
+    base = rel["upload_url"].split("{")[0]
+    # the all-in-one zip goes first: NOMNOM / NOMM take the first release asset
+    zipf = os.path.join(ROOT, "builds", f"MiG29-Fulcrum_{ver}.zip")
+    uploads = [(zipf, os.path.basename(zipf), "application/zip")] if os.path.exists(zipf) else []
+    uploads += [(nobp, os.path.basename(nobp), "application/octet-stream")]
     if os.path.exists(dll):   # published under the name it needs in the game folder
-        a2 = api("POST", rel["upload_url"].split("{")[0] + "?name=MiG29Instruments.dll", tok, open(dll, "rb").read(), "application/octet-stream")
-        print("asset:", a2["browser_download_url"], a2["size"])
+        uploads.append((dll, "MiG29Instruments.dll", "application/octet-stream"))
+    for path, name, ctype in uploads:
+        a = api("POST", base + "?name=" + urllib.request.quote(name), tok, open(path, "rb").read(), ctype)
+        print("asset:", a["browser_download_url"], a["size"])
 
 
 if __name__ == "__main__":

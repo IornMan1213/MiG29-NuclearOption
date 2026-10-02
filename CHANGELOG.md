@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.1
+- Packaged for mod managers ([NOMNOM](https://github.com/KopterBuzz/NOMNOM) / NOMM): each release now starts with
+  `MiG29-Fulcrum_<version>.zip`, holding the .nobp, `MiG29Instruments.dll` and `CREDITS.txt`.
+- The instruments plugin's version now follows the mod version (0.7.1), as mod managers expect.
+- No gameplay changes from 0.7.0.
+
 ## 0.7.0
 **Every cockpit instrument works.** Install `MiG29Instruments.dll` (a small BepInEx plugin) next to the .nobp.
 - 20 needles: airspeed and Mach, altimeter (two hands), vertical speed, angle of attack, g meter, radar altimeter, both engine
