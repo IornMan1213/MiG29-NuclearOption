@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Download the latest build
+    url: https://github.com/IornMan1213/MiG29-NuclearOption/releases
+    about: Releases and the builds branch with every version

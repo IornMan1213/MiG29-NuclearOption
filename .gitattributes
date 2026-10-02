@@ -1,0 +1,6 @@
+* text=auto
+*.png binary
+*.jpg binary
+*.mp4 binary
+*.nobp binary
+*.blend binary

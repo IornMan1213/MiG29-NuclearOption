@@ -1,0 +1,11 @@
+name: Suggestion
+description: An idea for the MiG-29 (weapons, liveries, realism, ...)
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: Idea
+      description: What would you like to see, and why? Links to references (photos, manuals) are welcome.
+    validations:
+      required: true

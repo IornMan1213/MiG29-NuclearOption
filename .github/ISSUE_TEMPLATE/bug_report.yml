@@ -1,0 +1,39 @@
+name: Bug report
+description: Something broken or wrong with the MiG-29 in game
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Mod version
+      description: The number in the .nobp file name, e.g. 0.5.1
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected and what happened instead. Speed, altitude and loadout help for flight or weapon issues.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [Flight model / handling, Weapons, Cockpit / displays, Model / visuals, Spawning / loading, Multiplayer, Other]
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        Attach or paste the relevant part of:
+        - `Nuclear Option/BepInEx/LogOutput.log`
+        - `%USERPROFILE%\AppData\LocalLow\Shockfront\NuclearOption\Player.log` (search for `Exception` near the time of the problem)
+      render: text
+  - type: textarea
+    id: mods
+    attributes:
+      label: Other mods installed
+      description: Other Blueprinter / BepInEx mods can interact with this one.

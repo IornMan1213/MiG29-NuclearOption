@@ -4,14 +4,19 @@ A flyable MiG-29 (9.12) mod for [Nuclear Option](https://store.steampowered.com/
 tuned to real-world data, R-27R and R-73 missiles built from scratch, a working canopy and gear doors, a custom cockpit damage
 display, and two liveries.
 
-**[Project page](https://iornman1213.github.io/MiG29-NuclearOption/) · [Download](https://github.com/IornMan1213/MiG29-NuclearOption/releases) · [Report an issue](https://github.com/IornMan1213/MiG29-NuclearOption/issues)**
+[![Latest release](https://img.shields.io/github/v/release/IornMan1213/MiG29-NuclearOption?include_prereleases&label=release)](https://github.com/IornMan1213/MiG29-NuclearOption/releases)
+[![Licence: code MIT, model CC BY-NC-SA 4.0](https://img.shields.io/badge/licence-MIT%20%2B%20CC%20BY--NC--SA%204.0-blue)](#licence)
+[![Nuclear Option + Blueprinter](https://img.shields.io/badge/Nuclear%20Option-Blueprinter%202.0.1%2B-red)](https://github.com/nikkorap/NOBlueprinter-Releases)
+
+**[Project page](https://iornman1213.github.io/MiG29-NuclearOption/) · [Releases](https://github.com/IornMan1213/MiG29-NuclearOption/releases) · [All builds](https://github.com/IornMan1213/MiG29-NuclearOption/tree/builds) · [Report an issue](https://github.com/IornMan1213/MiG29-NuclearOption/issues/new/choose)**
 
 ![MiG-29 banking](docs/img/hero_bank.jpg)
 
 ## Install (players)
 1. Install [BepInEx 5](https://github.com/BepInEx/BepInEx) into the Nuclear Option folder.
 2. Install [Blueprinter](https://github.com/nikkorap/NOBlueprinter-Releases) 2.0.1 or newer into `BepInEx/plugins`.
-3. Download `MiG-29 Fulcrum_x.y.z.nobp` from [Releases](https://github.com/IornMan1213/MiG29-NuclearOption/releases)
+3. Download `MiG-29 Fulcrum_x.y.z.nobp` from the newest [release](https://github.com/IornMan1213/MiG29-NuclearOption/releases)
+   (every version is also on the [`builds` branch](https://github.com/IornMan1213/MiG29-NuclearOption/tree/builds))
    and put it in `BepInEx/plugins/MiG-29_Fulcrum/`. Delete any older versions first.
 
 See [mod/README.md](mod/README.md) for the full feature list and known limitations.
