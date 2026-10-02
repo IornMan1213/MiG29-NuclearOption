@@ -3,7 +3,9 @@
 # Unity Hub must be running and signed in.
 param(
     [string]$Project = $env:BLUEPRINTER_PROJECT,
-    [string]$Unity = "C:\Program Files\Unity\Hub\Editor\2022.3.62f2\Editor\Unity.exe"
+    [string]$Unity = "C:\Program Files\Unity\Hub\Editor\2022.3.62f2\Editor\Unity.exe",
+    [switch]$Release,          # back the build up to builds/ and the GitHub `builds` branch (tools/backup_build.py)
+    [string]$Note = ""         # notes column for that version
 )
 $ErrorActionPreference = "Stop"
 if (-not $Project -or -not (Test-Path (Join-Path $Project "Assets"))) { throw "Pass -Project <Blueprinter-Editor folder> or set BLUEPRINTER_PROJECT" }
@@ -53,4 +55,7 @@ $log = Join-Path $Project "MiG29Out_build.log"
 $code = Invoke-Unity @('-executeMethod', 'MiG29Tools.MiG29Builder.BuildAll') $log
 Select-String -Path $log -Pattern '\[MiG29\]|\[Blueprinter\]|error CS|Exception' | Where-Object { $_.Line -notmatch 'Licensing' } | ForEach-Object { $_.Line }
 Get-ChildItem $env:MIG29_OUT -Filter *.nobp | ForEach-Object { "OUTPUT $($_.FullName) $($_.Length)" }
+if ($Release -and $code -eq 0) {
+    Get-ChildItem $env:MIG29_OUT -Filter *.nobp | ForEach-Object { python (Join-Path $PSScriptRoot "backup_build.py") $_.FullName --note $Note }
+}
 exit $code
