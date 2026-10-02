@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MiG-29 Fulcrum for Nuclear Option</title>
+<meta name="description" content="A flyable MiG-29 (9.12) mod for Nuclear Option with its own flight model, R-27R and R-73 missiles, liveries and damage display.">
+<meta property="og:title" content="MiG-29 Fulcrum for Nuclear Option">
+<meta property="og:description" content="Flyable MiG-29 with its own flight model, R-27R / R-73 missiles, two liveries and a custom damage display.">
+<meta property="og:image" content="img/hero_bank.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f1216; --panel: #171b21; --line: #262c35; --text: #dfe4ea; --muted: #8d98a6;
+  --accent: #d23c3c; --accent2: #c9a648; --link: #8fc1ff;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 Inter, system-ui, sans-serif; }
+a { color: var(--link); }
+img { max-width: 100%; display: block; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+nav { position: sticky; top: 0; z-index: 5; background: rgba(15,18,22,.88); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+nav .wrap { display: flex; align-items: center; gap: 20px; height: 54px; }
+nav .brand { font: 700 20px "Barlow Condensed", sans-serif; letter-spacing: .04em; color: var(--text); text-decoration: none; margin-right: auto; }
+nav .brand span { color: var(--accent); }
+nav a.l { color: var(--muted); text-decoration: none; font-size: 14px; }
+nav a.l:hover { color: var(--text); }
+@media (max-width: 640px) { nav a.l.opt { display: none; } }
+
+.hero { position: relative; min-height: 78vh; display: flex; align-items: flex-end; background: #0b0d10 url(img/hero_bank.jpg) center/cover no-repeat; }
+.hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(15,18,22,0) 35%, rgba(15,18,22,.92) 90%, var(--bg)); }
+.hero .wrap { position: relative; z-index: 1; padding-bottom: 56px; }
+.tag { display: inline-block; font: 600 12px Inter; letter-spacing: .14em; text-transform: uppercase; color: var(--accent2); border: 1px solid rgba(201,166,72,.45); padding: 3px 10px; border-radius: 3px; }
+h1 { font: 700 clamp(44px, 8vw, 96px)/0.95 "Barlow Condensed", sans-serif; margin: 14px 0 10px; letter-spacing: .01em; }
+h1 em { font-style: normal; color: var(--accent); }
+.lead { font-size: clamp(16px, 2.2vw, 20px); color: #c4ccd6; max-width: 640px; margin: 0 0 26px; }
+.btns { display: flex; flex-wrap: wrap; gap: 12px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 4px; font-weight: 600; text-decoration: none; }
+.btn.p { background: var(--accent); color: #fff; }
+.btn.p:hover { background: #e04848; }
+.btn.s { border: 1px solid #3a424e; color: var(--text); }
+.btn.s:hover { border-color: #5a6574; }
+
+section { padding: 72px 0; border-bottom: 1px solid var(--line); }
+h2 { font: 700 38px/1.05 "Barlow Condensed", sans-serif; margin: 0 0 8px; letter-spacing: .02em; }
+.sub { color: var(--muted); margin: 0 0 32px; max-width: 720px; }
+
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; margin-bottom: 28px; }
+.stat { background: var(--panel); padding: 18px 18px 16px; }
+.stat b { display: block; font: 700 30px/1 "Barlow Condensed", sans-serif; color: #fff; }
+.stat span { font-size: 13px; color: var(--muted); }
+
+.split { display: grid; grid-template-columns: 1.1fr 1fr; gap: 36px; align-items: center; }
+.split.rev { grid-template-columns: 1fr 1.1fr; }
+.split.rev .media { order: 2; }
+@media (max-width: 820px) { .split, .split.rev { grid-template-columns: 1fr; } .split.rev .media { order: 0; } }
+.media img { border-radius: 6px; border: 1px solid var(--line); }
+ul.feat { list-style: none; padding: 0; margin: 0; }
+ul.feat li { padding: 10px 0 10px 22px; border-bottom: 1px solid var(--line); position: relative; }
+ul.feat li::before { content: ""; position: absolute; left: 2px; top: 19px; width: 8px; height: 8px; background: var(--accent); transform: rotate(45deg); }
+ul.feat li b { color: #fff; }
+
+.weapons { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; margin-top: 28px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 22px; }
+.card h3 { font: 700 26px "Barlow Condensed", sans-serif; margin: 0 0 2px; }
+.card .nato { color: var(--accent2); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+.card dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin: 14px 0 0; font-size: 14px; }
+.card dt { color: var(--muted); }
+.card dd { margin: 0; }
+
+.gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.gallery img { border-radius: 6px; border: 1px solid var(--line); aspect-ratio: 16/10; object-fit: cover; width: 100%; }
+@media (max-width: 640px) { .gallery { grid-template-columns: 1fr; } }
+
+ol.steps { counter-reset: s; list-style: none; padding: 0; margin: 0; }
+ol.steps li { counter-increment: s; position: relative; padding: 0 0 22px 52px; }
+ol.steps li::before { content: counter(s); position: absolute; left: 0; top: -2px; width: 34px; height: 34px; border-radius: 50%; border: 1px solid #3a424e; display: grid; place-items: center; font: 700 18px "Barlow Condensed"; color: var(--accent2); }
+code { background: #1d232b; border: 1px solid var(--line); border-radius: 3px; padding: 1px 6px; font-size: 14px; }
+.note { background: var(--panel); border-left: 3px solid var(--accent2); padding: 14px 18px; border-radius: 0 6px 6px 0; color: #c4ccd6; font-size: 15px; }
+footer { padding: 36px 0 56px; color: var(--muted); font-size: 14px; }
+footer p { margin: 6px 0; }
+</style>
+</head>
+<body>
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#">MiG-29 <span>FULCRUM</span></a>
+    <a class="l opt" href="#flight">Flight model</a>
+    <a class="l opt" href="#weapons">Weapons</a>
+    <a class="l" href="#install">Install</a>
+    <a class="l" href="https://github.com/IornMan1213/MiG29-NuclearOption">GitHub</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="tag">Nuclear Option mod &middot; v0.4.1</span>
+    <h1>MiG-29 <em>Fulcrum</em></h1>
+    <p class="lead">A flyable MiG-29 (9.12) for Nuclear Option, with its own flight model tuned to real-world data, R-27R and R-73 missiles built from scratch, working canopy and gear doors, and two liveries.</p>
+    <div class="btns">
+      <a class="btn p" href="https://github.com/IornMan1213/MiG29-NuclearOption/releases/latest">Download latest release</a>
+      <a class="btn s" href="https://github.com/IornMan1213/MiG29-NuclearOption">Source on GitHub</a>
+    </div>
+  </div>
+</header>
+
+<section id="flight">
+  <div class="wrap">
+    <h2>Flight model</h2>
+    <p class="sub">Tuned offline with a Python re-implementation of Nuclear Option's per-part aerodynamics and engine thrust, against published MiG-29 figures.</p>
+    <div class="stats">
+      <div class="stat"><b>1,530 km/h</b><span>top speed at sea level</span></div>
+      <div class="stat"><b>Mach 2.24</b><span>top speed at 13 km</span></div>
+      <div class="stat"><b>~210 km/h</b><span>stall speed</span></div>
+      <div class="stat"><b>28&deg;/s</b><span>instantaneous turn</span></div>
+      <div class="stat"><b>9 g</b><span>airframe limit</span></div>
+      <div class="stat"><b>2 &times; RD-33</b><span>49 kN dry / ~85 kN wet</span></div>
+    </div>
+    <div class="split">
+      <div class="media"><img src="img/climb.jpg" alt="MiG-29 climbing" loading="lazy"></div>
+      <ul class="feat">
+        <li><b>All-moving stabilators</b> for pitch and differential roll, plus rudders, ailerons and flaps. Every surface moves on the model.</li>
+        <li><b>RD-33 engines</b> with an altitude thrust curve and afterburner. No thrust vectoring, as on the real 9.12.</li>
+        <li><b>3.7 t internal fuel</b> and an 11.5 t empty weight. Lift points are placed for a stable static margin.</li>
+        <li><b>Breakable airframe</b>: hitboxes come from the base game's part colliders scaled to the MiG, so parts break off and scorch realistically.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="weapons">
+  <div class="wrap">
+    <div class="split rev">
+      <div class="media"><img src="img/armed_below.jpg" alt="MiG-29 underside with two R-27R and four R-73 missiles" loading="lazy"></div>
+      <div>
+        <h2>Weapons</h2>
+        <p class="sub">The missiles and their launch rails are modelled from scratch to published dimensions. Each wing has three pylons, matching the real aircraft.</p>
+        <ul class="feat">
+          <li><b>Inner pylon</b>: R-27R on an AKU-470 rail, R-73, or stock stores</li>
+          <li><b>Middle pylon</b>: R-73 on an APU-73 rail, or stock stores</li>
+          <li><b>Outer pylon</b>: R-73</li>
+        </ul>
+      </div>
+    </div>
+    <div class="weapons">
+      <div class="card">
+        <h3>R-27R</h3><div class="nato">AA-10 Alamo-A</div>
+        <dl><dt>Guidance</dt><dd>Semi-active radar. Keep your radar locked until impact.</dd><dt>Range</dt><dd>~50 km</dd><dt>Motor</dt><dd>Two-stage</dd><dt>Size</dt><dd>4.08 m &times; 0.23 m, "butterfly" control fins</dd></dl>
+      </div>
+      <div class="card">
+        <h3>R-73</h3><div class="nato">AA-11 Archer</div>
+        <dl><dt>Guidance</dt><dd>All-aspect infrared</dd><dt>Off-boresight</dt><dd>45&deg;</dd><dt>Control</dt><dd>Canards and thrust vectoring</dd><dt>Size</dt><dd>2.90 m &times; 0.17 m</dd></dl>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="airframe">
+  <div class="wrap">
+    <div class="split">
+      <div>
+        <h2>Airframe &amp; cockpit</h2>
+        <p class="sub">The details that make it feel like a MiG rather than a reskin.</p>
+        <ul class="feat">
+          <li><b>Canopy</b> opens from its rear hinge on the ground and ejects with the seat.</li>
+          <li><b>Gear doors</b> on the nose and main gear open and close with the gear.</li>
+          <li><b>Damage display</b> in the cockpit and the map icon are both drawn from the MiG's own outline.</li>
+          <li><b>Two liveries</b>, Two-Tone Grey and Desert Tan, available to both factions.</li>
+          <li><b>Two loading screens</b> rendered from the model.</li>
+        </ul>
+      </div>
+      <div class="media"><img src="img/damage_display.jpg" alt="Cockpit damage display outline, part map and map icon" loading="lazy"></div>
+    </div>
+  </div>
+</section>
+
+<section id="gallery">
+  <div class="wrap">
+    <h2>Gallery</h2>
+    <p class="sub">Renders of the mod's model and liveries. In-game screenshots are welcome; open an issue on GitHub to share yours.</p>
+    <div class="gallery">
+      <img src="img/armed_quarter.jpg" alt="Grey MiG-29 armed, front three-quarter view" loading="lazy">
+      <img src="img/desert_bank.jpg" alt="Desert-tan MiG-29 banking" loading="lazy">
+      <img src="img/desert_side.jpg" alt="Desert-tan MiG-29 side view" loading="lazy">
+      <img src="img/missiles.jpg" alt="R-73 and R-27R models" loading="lazy">
+    </div>
+  </div>
+</section>
+
+<section id="install">
+  <div class="wrap">
+    <h2>Install</h2>
+    <p class="sub">Requires BepInEx 5 and Blueprinter 2.0.1 or newer.</p>
+    <ol class="steps">
+      <li>Install <a href="https://github.com/BepInEx/BepInEx">BepInEx 5</a> into your Nuclear Option folder.</li>
+      <li>Install <a href="https://github.com/nikkorap/NOBlueprinter-Releases">Blueprinter</a> into <code>BepInEx/plugins</code>.</li>
+      <li>Download <code>MiG-29 Fulcrum_x.y.z.nobp</code> from the <a href="https://github.com/IornMan1213/MiG29-NuclearOption/releases/latest">latest release</a> and put it in <code>BepInEx/plugins/MiG-29_Fulcrum/</code>. Delete any older versions first.</li>
+      <li>Start the game. The MiG-29 appears in medium hangars, shelters and revetments on land bases, and in the Encyclopedia.</li>
+    </ol>
+    <p class="note">Multiplayer: every player needs the same mod set, and Blueprinter checks this when you join. This is an early release, so please report handling or weapon issues on <a href="https://github.com/IornMan1213/MiG29-NuclearOption/issues">GitHub Issues</a>, including your controls and your speed and altitude at the time.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>MiG-29 3D model: <a href="https://sketchfab.com/3d-models/mig-29-fighter-jet-free-0a21787096244220b246ec8747e7b09c">"MiG-29 - Fighter Jet - Free"</a> by <a href="https://sketchfab.com/bohmerang">bohmerang</a>, licensed <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a>, converted and modified for this mod. The released mod file is therefore also CC BY-NC-SA 4.0: free, non-commercial, credit required.</p>
+    <p>Missile and launcher models, flight model and build tooling were made for this mod (code under the MIT licence). Built on the KR-67 Ifrit's systems from Nuclear Option by Shockfront and loaded with Blueprinter by nikkorap. This is an unofficial fan mod with no affiliation to Shockfront.</p>
+  </div>
+</footer>
+</body>
+</html>

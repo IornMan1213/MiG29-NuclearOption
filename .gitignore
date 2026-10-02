@@ -1,0 +1,19 @@
+# Whitelist: only the project layout is tracked (session scratch files may sit at the root)
+/*
+!/.gitignore
+!/README.md
+!/LICENSE
+!/DEVLOG.md
+!/unity/
+!/tools/
+!/blender/
+!/docs/
+!/mod/
+!/assets/
+__pycache__/
+*.pyc
+# never commit the source model, game files or built mods
+*.blend
+*.blend1
+*.nobp
+*.dll
