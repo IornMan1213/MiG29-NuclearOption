@@ -453,6 +453,33 @@ put("radar_frame", dial(256, g_radar_frame, bezel=False, round_=False), (0, 120)
 img = canvas(512, 64, PAINT["turq"]); d = ImageDraw.Draw(img)
 label(d, (256 * SS, 32 * SS), "МиГ-29   ·   9.12   ·   ФОРСАЖ ↑   МАЛЫЙ ГАЗ ↓", 22 * SS, (20, 30, 30), FONT)
 put("placard", down(img, 512, 64))
+
+# cockpit side wall (one cell for the whole wall, mapped by station z and height y): painted panels, seams, rivets, access hatches
+def side_wall(w=512, h=192, seed=41):
+    rnd = random.Random(seed)
+    base = noise_fill(w, h, PAINT["turq"], 5, 0.8, seed)
+    img = base.resize((w * SS, h * SS)); d = ImageDraw.Draw(img); S = SS
+    seam = tuple(int(c * 0.62) for c in PAINT["turq"]); rivet = tuple(int(c * 0.78) for c in PAINT["turq"])
+    xs = [0, 70, 150, 236, 318, 404, 512]
+    for x in xs[1:-1]:
+        d.line((x * S, 0, x * S, h * S), fill=seam, width=2 * S)
+        for y in range(4, h, 8):
+            d.ellipse(((x - 4) * S - S, y * S - S, (x - 4) * S + S, y * S + S), fill=rivet)
+            d.ellipse(((x + 4) * S - S, y * S - S, (x + 4) * S + S, y * S + S), fill=rivet)
+    for y in (64, 132):
+        d.line((0, y * S, w * S, y * S), fill=seam, width=2 * S)
+        for x in range(4, w, 8):
+            d.ellipse((x * S - S, (y - 4) * S - S, x * S + S, (y - 4) * S + S), fill=rivet)
+    for k in range(4):   # access hatches with screws
+        x0 = rnd.choice(xs[:-1]) + 12; y0 = rnd.choice((12, 76, 140)); ww = rnd.randint(30, 50); hh = rnd.randint(30, 44)
+        d.rectangle((x0 * S, y0 * S, (x0 + ww) * S, (y0 + hh) * S), outline=seam, width=2 * S)
+        for sx, sy in ((x0 + 4, y0 + 4), (x0 + ww - 4, y0 + 4), (x0 + 4, y0 + hh - 4), (x0 + ww - 4, y0 + hh - 4)):
+            d.ellipse(((sx - 2.5) * S, (sy - 2.5) * S, (sx + 2.5) * S, (sy + 2.5) * S), fill=(120, 124, 122))
+    label(d, (110 * S, 100 * S), "НЕ НАСТУПАТЬ", 8 * S, seam, FONT)
+    return down(img, w, h)
+
+
+put("wall", side_wall())
 img = canvas(256, 64, PAINT["yellow"]); d = ImageDraw.Draw(img)
 label(d, (128 * SS, 32 * SS), "КАТАПУЛЬТ", 28 * SS, (20, 20, 20), FONT)
 put("eject_label", down(img, 256, 64))

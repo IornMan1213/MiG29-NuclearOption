@@ -22,6 +22,8 @@ cannon, a working canopy and gear doors, a custom cockpit damage display, and fo
 
 See [mod/README.md](mod/README.md) for the full feature list and known limitations.
 
+![In flight: the from-scratch cockpit with working instruments](docs/img/cockpit_flight.jpg)
+
 ![The four liveries](docs/img/liveries.jpg)
 
 ## Repository layout

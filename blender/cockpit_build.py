@@ -250,7 +250,11 @@ for side in (-1, 1):
         for k in range(6):
             q = [(side * wall_x(ys0[k], z0), ys0[k], z0), (side * wall_x(ys1[k], z1), ys1[k], z1),
                  (side * wall_x(ys1[k + 1], z1), ys1[k + 1], z1), (side * wall_x(ys0[k + 1], z0), ys0[k + 1], z0)]
-            poly_paint("tub", q if side < 0 else list(reversed(q)), "turq")
+            q = q if side < 0 else list(reversed(q))
+            # one continuous texture along the wall: u by station, v by height
+            wu0, wv0, wu1, wv1 = rect_uv("wall", 1.0)
+            uvs = [(wu0 + (p[2] - Z_BULK) / (Z_FRONT - Z_BULK) * (wu1 - wu0), wv0 + (p[1] - FLOOR) / (1.06 - FLOOR) * (wv1 - wv0)) for p in q]
+            PARTS["tub"].face([P(*p) for p in q], uvs)
     # sill cap: covers the fuselage rim between the wall top and the canopy glass edge
     for z0, z1 in zip(zs, zs[1:]):
         if z0 > 7.30: break
@@ -721,7 +725,6 @@ box("throttle", (-0.335, 0.80, 6.592), (0.06, 0.05, 0.075), "black", 0.012, segs
 box("throttle", (-0.362, 0.805, 6.60), (0.012, 0.026, 0.04), "dgrey", 0.004)
 cylinder("throttle", (-0.335, 0.828, 6.60), (0, 1, 0), 0.008, 0.008, "red", 10)
 box("throttle", (-0.302, 0.80, 6.612), (0.010, 0.018, 0.018), "dgrey", 0.003)
-cylinder("throttle", (-0.335, 0.735, 6.582), (0, 1, 0.1), 0.022, 0.03, "rubber", 12, r2=0.012)        # lever boot
 
 # ------------------------------------------------------------------------------------------------ the MiG model's own frames
 def frames_part():
