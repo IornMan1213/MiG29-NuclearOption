@@ -34,6 +34,17 @@ Multiplayer: everyone needs the same mod set (Blueprinter checks this).
 - **Liveries**: Two-Tone Grey, Desert Tan, Digital Grey and Display Blue (both factions can pick any).
 - Four loading screens.
 
+## Troubleshooting
+- **The MiG-29 isn't in the aircraft list.** It spawns from medium hangars, shelters and revetments on land bases (not carriers).
+  Check that `BepInEx/LogOutput.log` has the line `Loaded mig29 x.y.z`, and that only one `MiG-29 Fulcrum_*.nobp` is installed.
+- **Can't join a multiplayer server.** Every player needs the same mod set and the same MiG-29 version; Blueprinter compares
+  them when you join.
+- **R-27R misses.** It's semi-active: keep the target locked on your radar until impact. For fire-and-forget at medium range,
+  use the R-27T (infrared; lock its seeker before launch).
+- **The gun runs dry fast.** The GSh-30-1 has 150 rounds, about five and a half seconds of fire. Short bursts.
+- **Something else.** [Open an issue](https://github.com/IornMan1213/MiG29-NuclearOption/issues/new/choose) with your mod version
+  and the `Exception` lines from `%USERPROFILE%\AppData\LocalLow\Shockfront\NuclearOption\Player.log`.
+
 ## Known limitations
 - Cockpit: a modern glass panel (the KR-67's displays and controls) inside the MiG-29's canopy arch, sills and seat.
 - Flight model was tuned and verified offline; report handling issues with your controls and speed/altitude.
