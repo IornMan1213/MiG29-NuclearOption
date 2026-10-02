@@ -356,7 +356,14 @@ namespace MiG29Tools
                 while (it.Next(true))
                     if (it.propertyType == SerializedPropertyType.ObjectReference && it.objectReferenceValue != null && AssetDatabase.GetAssetPath(it.objectReferenceValue) == donorPath)
                         it.objectReferenceValue = null;
+                // ...except the seeker's own missile: MissileSeeker.missile must point at this missile, or Initialize/Seek throw
+                // a NullReferenceException at launch and on every physics tick (v0.5.0 bug, R-27R and R-27T)
+                sso.FindProperty("missile").objectReferenceValue = go.GetComponent(T("Missile"));
                 sso.ApplyModifiedPropertiesWithoutUndo();
+                // the airframe donor (AAM2) is active-radar; take the seeker donor's mode (passive SARH / IR)
+                var mso = new SerializedObject(go.GetComponent(T("Missile")));
+                mso.FindProperty("seekerMode").enumValueIndex = new SerializedObject(donor.GetComponent(T("Missile"))).FindProperty("seekerMode").enumValueIndex;
+                mso.ApplyModifiedPropertiesWithoutUndo();
             }
             return go;
         }

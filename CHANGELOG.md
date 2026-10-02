@@ -1,6 +1,13 @@
 # Changelog
 
-## 0.5.0 (unreleased)
+## 0.5.1
+- Fixed R-27R and R-27T: their copied seekers lost the reference to their own missile, so every launch threw a
+  NullReferenceException at launch and on every physics tick (tens of thousands of errors, frame-rate drops) and the missiles
+  did not guide. Seeker mode also taken from the seeker donor.
+- Cockpit reworked: the KR-67 glass-cockpit panel (tactical screen, MFDs, side-stick and throttle in their own mounts) framed by
+  the MiG's windscreen arch, mirrors, sills and seat. The full MiG cockpit still shows from outside.
+
+## 0.5.0
 **Weapons**
 - GSh-30-1 cannon replaces the KR-67's 27 mm: 150 rounds, ~1,650 rpm, 870 m/s, muzzle in the left wing root.
 - R-27T (infrared R-27, fire-and-forget) on the AKU-470 rail, and R-60M (light infrared dogfight missile) on an APU-60 rail.

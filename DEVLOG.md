@@ -171,3 +171,13 @@ missile prefabs cloned in the builder (R-73 from AAM1, R-27R from AAM2 with SARH
 - Landing light: `gearLight_F` (+ its spotlight/particle child) hung on the KR-67 front gear door, 3.6 m ahead of the moved nose
   gear. Re-parented to `gear_F_sprung`, 0.72 m above / 0.42 m ahead of the nose wheel; hidden when stowed (checked with
   MIG29_IDCOLORS renders). Nav lights, wingtip vortices, wing vapour and heat haze were already at MiG positions.
+
+## v0.5.1 (2026-10-02)
+- User session log: 40,000 x NullReferenceException in SARHSeeker.Seek / Initialize after two R-27R launches. Cause: when the
+  seeker is copied from a donor prefab, references into the donor are nulled, including MissileSeeker.missile (the seeker's own
+  missile). Now set to this missile's Missile component; Missile.seekerMode copied from the seeker donor. Same fix for R-27T.
+- Cockpit rework after user feedback ("closer to the Aryx FS-41/F-22 interior"): MiG29_cockpit (full) is an exterior renderer
+  again; a trimmed copy `MiG29_cockpit_shell` (TrimmedCockpit: panel/glareshield z>6.8 |x|<0.29 y<1.05, HUD |x|<0.20 y<1.19,
+  consoles/floor y<0.82 except the seat, plus small leftover islands near the panel) is appended to Aircraft.cockpitRenderers.
+  The KR-67 cockpit_int, tacScreen, warning lights, joystick and throttle stay in place; only KR-67 canopy frames and
+  cockpit_int_simple are hidden. The retrofit console is gone.

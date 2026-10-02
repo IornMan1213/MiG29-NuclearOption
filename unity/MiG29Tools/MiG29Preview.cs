@@ -70,7 +70,7 @@ namespace MiG29Tools
                     var m = new Material(lit);
                     if (glass) { m.SetColor("_BaseColor", new Color(0.3f, 0.4f, 0.5f, 0.25f)); m.SetFloat("_Surface", 1); m.renderQueue = 3000; m.SetOverrideTag("RenderType", "Transparent"); m.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha); m.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha); m.SetInt("_ZWrite", 0); m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT"); }
                     else if (r.name == "MiG29_mfd_console") m.SetColor("_BaseColor", new Color(0.24f, 0.25f, 0.26f));   // atlas dgrey in game
-                    else if (mig) { m.SetTexture("_BaseMap", tex); m.SetColor("_BaseColor", Color.white); }
+                    else if (mig) { m.SetTexture("_BaseMap", tex); m.SetColor("_BaseColor", r.name == "MiG29_cockpit_shell" && Environment.GetEnvironmentVariable("MIG29_TINTSHELL") == "1" ? new Color(1f, 0.5f, 0.5f) : Color.white); }
                     else if (r.name == "tacScreen") { m.SetColor("_BaseColor", pretty ? new Color(0.03f, 0.16f, 0.13f) : new Color(1f, 0.1f, 0.9f)); if (pretty) { m.EnableKeyword("_EMISSION"); m.SetColor("_EmissionColor", new Color(0.02f, 0.22f, 0.16f)); } }
                     else if (r.name == "warningLights") m.SetColor("_BaseColor", pretty ? new Color(0.9f, 0.6f, 0.1f) : new Color(0.1f, 1f, 0.2f));
                     else m.SetColor("_BaseColor", new Color(1f, 0.45f, 0.15f));
@@ -79,6 +79,9 @@ namespace MiG29Tools
                     r.enabled = true;
                 }
                 var eyeP = vp ? vp.position : Vector3.zero;
+                foreach (var r in go.GetComponentsInChildren<Renderer>(true))
+                    if (r.enabled && r.bounds.SqrDistance(eyeP) < 1.0f && r.bounds.size.magnitude > 0.01f)
+                        Debug.Log($"[MiG29] near1m {r.transform.parent?.name}/{r.name} c={r.bounds.center:F2} s={r.bounds.size:F2}");
                 foreach (var r in go.GetComponentsInChildren<Renderer>(true))
                     if (r.enabled && !r.name.StartsWith("MiG29_") && r.bounds.SqrDistance(eyeP) < 2.5f * 2.5f)
                     {
