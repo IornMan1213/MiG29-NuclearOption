@@ -14,6 +14,10 @@ S = 17.32 / 176.7176  # same scale as export_mig29.py
 # pylon hardpoints in the exported MiG frame (Unity, metres) -- keep in sync with MiG29Weapons.cs
 INNER, MIDDLE, OUTER = (2.36, -0.27, 1.31), (3.10, -0.29, 0.66), (3.73, -0.40, 0.28)
 LOADOUT = [(INNER, "AKU470", "R27R", -0.14 - 0.115), (MIDDLE, "APU73", "R73", -0.10 - 0.085), (OUTER, "APU73", "R73", -0.10 - 0.085)]
+# MIG29_LOADOUT="R27T,R73,R60M" picks the inner / middle / outer missiles (rail and hang depth follow the missile)
+RAILS = {"R27R": ("AKU470", -0.14 - 0.115), "R27T": ("AKU470", -0.14 - 0.115), "R73": ("APU73", -0.10 - 0.085), "R60M": ("APU60", -0.08 - 0.06)}
+if os.environ.get("MIG29_LOADOUT"):
+    LOADOUT = [(pos, RAILS[m][0], m, RAILS[m][1]) for pos, m in zip((INNER, MIDDLE, OUTER), os.environ["MIG29_LOADOUT"].split(","))]
 
 
 def u2b(x, y, z):
