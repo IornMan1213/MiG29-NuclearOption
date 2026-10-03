@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MiG-29 Fulcrum for Nuclear Option</title>
-<meta name="description" content="A flyable MiG-29 (9.12) mod for Nuclear Option with its own flight model, R-27R/T, R-73 and R-60M missiles, the GSh-30-1 cannon, liveries and damage display.">
+<meta name="description" content="A flyable MiG-29 (9.12) mod for Nuclear Option with its own flight model, R-27R/T, R-73 and R-60M missiles, the GSh-30-1 cannon, droppable fuel tanks, chaff and flares, liveries and damage display.">
 <meta property="og:title" content="MiG-29 Fulcrum for Nuclear Option">
 <meta property="og:description" content="Flyable MiG-29 with its own flight model, R-27R/T, R-73 and R-60M missiles, the GSh-30-1 cannon and four liveries.">
 <meta property="og:image" content="img/hero_bank.jpg">
@@ -97,9 +97,9 @@ footer p { margin: 6px 0; }
 
 <header class="hero">
   <div class="wrap">
-    <span class="tag">Nuclear Option mod &middot; v0.7.1</span>
+    <span class="tag">Nuclear Option mod &middot; v0.8.0</span>
     <h1>MiG-29 <em>Fulcrum</em></h1>
-    <p class="lead">A flyable MiG-29 (9.12) for Nuclear Option, with its own flight model tuned to real-world data, R-27R, R-27T, R-73 and R-60M missiles built from scratch, the GSh-30-1 cannon, working canopy and gear doors, and four liveries.</p>
+    <p class="lead">A flyable MiG-29 (9.12) for Nuclear Option, with its own flight model tuned to real-world data, R-27R, R-27T, R-73 and R-60M missiles built from scratch, the GSh-30-1 cannon, droppable fuel tanks, flares and chaff, working canopy and gear doors, and four liveries.</p>
     <div class="btns">
       <a class="btn p" href="https://github.com/IornMan1213/MiG29-NuclearOption/releases">Download latest release</a>
       <a class="btn s" href="https://github.com/IornMan1213/MiG29-NuclearOption">Source on GitHub</a>
@@ -139,10 +139,13 @@ footer p { margin: 6px 0; }
         <h2>Weapons</h2>
         <p class="sub">Four missiles and their launch rails, modelled from scratch to published dimensions, plus the MiG's own cannon. Each wing has three pylons, matching the real aircraft.</p>
         <ul class="feat">
-          <li><b>Inner pylon</b>: R-27R or R-27T on an AKU-470 rail, R-73, R-60M, or stock stores</li>
+          <li><b>Inner pylon</b>: R-27R or R-27T on an AKU-470 rail, R-73, R-60M, a PTB-1150 drop tank, or stock stores</li>
           <li><b>Middle pylon</b>: R-73 on an APU-73 rail, R-60M on an APU-60 rail, or stock stores</li>
           <li><b>Outer pylon</b>: R-73 or R-60M</li>
-          <li><b>Presets</b>: air superiority, dogfight and strike loadouts, which AI-flown MiGs also use</li>
+          <li><b>Centreline</b>: a PTB-1500 drop tank under the belly</li>
+          <li><b>Drop tanks</b> feed their fuel first, as on the real jet, and weigh what they hold. Fire to drop them one at a time or press Ctrl+J to jettison all; the ПТБ caution light tells you when they're dry</li>
+          <li><b>Flares and chaff</b> fire upward from the MiG's own BVP-30-26M dispensers on the tail booms: 30 of each, plus the radar jammer. Chaff decoys radar missiles best when you beam them</li>
+          <li><b>Presets</b>: air superiority, long-range CAP, dogfight, strike and ferry loadouts, which AI-flown MiGs also use</li>
         </ul>
       </div>
     </div>
@@ -218,7 +221,7 @@ footer p { margin: 6px 0; }
     <ol class="steps">
       <li>Install <a href="https://github.com/BepInEx/BepInEx">BepInEx 5</a> into your Nuclear Option folder.</li>
       <li>Install <a href="https://github.com/nikkorap/NOBlueprinter-Releases">Blueprinter</a> into <code>BepInEx/plugins</code>.</li>
-      <li>Download <code>MiG-29 Fulcrum_x.y.z.nobp</code> and <code>MiG29Instruments.dll</code> from the <a href="https://github.com/IornMan1213/MiG29-NuclearOption/releases">latest release</a> (every version is also kept on the <a href="https://github.com/IornMan1213/MiG29-NuclearOption/tree/builds">builds branch</a>) and put both in <code>BepInEx/plugins/MiG-29_Fulcrum/</code>. Delete any older versions first. The DLL makes the cockpit instruments work.</li>
+      <li>Download <code>MiG-29 Fulcrum_x.y.z.nobp</code> and <code>MiG29Instruments.dll</code> from the <a href="https://github.com/IornMan1213/MiG29-NuclearOption/releases">latest release</a> (every version is also kept on the <a href="https://github.com/IornMan1213/MiG29-NuclearOption/tree/builds">builds branch</a>) and put both in <code>BepInEx/plugins/MiG-29_Fulcrum/</code>. Delete any older versions first. The DLL makes the cockpit instruments work and feeds the drop tanks' fuel.</li>
       <li>Start the game. The MiG-29 appears in medium hangars, shelters and revetments on land bases, and in the Encyclopedia.</li>
     </ol>
     <h3 style="font:700 26px 'Barlow Condensed',sans-serif;margin:34px 0 10px">Troubleshooting</h3>
