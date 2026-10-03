@@ -10,20 +10,27 @@ namespace MiG29Instruments
 {
     // Makes every instrument in the MiG-29 Fulcrum mod's cockpit work. The .nobp carries the moving parts (MiG29_ins_<id> mounts with
     // a "needle" child, MiG29_lamp_<id> lamps); this plugin finds them on the aircraft you fly and drives them from its live state.
-    // Visual only: nothing is sent over the network, other aircraft are untouched.
+    // The instruments are visual only. The plugin also gives the MiG's drop tanks their fuel (StoresDriver, Stores.cs): on MiGs
+    // simulated on this machine it feeds tank fuel to the internal tanks; releases go through the game's own networked weapon stations.
     [BepInPlugin("iornman.mig29.instruments", "MiG-29 Instruments", ModVersion)]
     public class MiG29InstrumentsPlugin : BaseUnityPlugin
     {
         // same as MiG29Builder.Version (build_mig29.ps1 checks): mod managers match the release version against this DLL's version
-        public const string ModVersion = "0.7.1";
+        public const string ModVersion = "0.8.0";
         internal static ManualLogSource Log;
         internal static BepInEx.Configuration.ConfigEntry<float> PanelLighting;
+        internal static BepInEx.Configuration.ConfigEntry<BepInEx.Configuration.KeyboardShortcut> JettisonKey;
+        internal static BepInEx.Configuration.ConfigEntry<bool> AutoDropEmpty;
 
         void Awake()
         {
             Log = Logger;
             PanelLighting = Config.Bind("Cockpit", "Night panel lighting", 1f,
                 new BepInEx.Configuration.ConfigDescription("Brightness of the cockpit flood lights at night (0 = off)", new BepInEx.Configuration.AcceptableValueRange<float>(0f, 4f)));
+            JettisonKey = Config.Bind("Drop tanks", "Jettison key", new BepInEx.Configuration.KeyboardShortcut(KeyCode.J, KeyCode.LeftControl),
+                "Drops all drop tanks at once (they can also be selected and fired like any store)");
+            AutoDropEmpty = Config.Bind("Drop tanks", "Drop empty tanks automatically", false,
+                "Release your drop tanks by themselves once they run dry (AI-flown MiGs always do)");
             // some games destroy BepInEx's manager object on scene loads: scan from an object of our own
             var go = new GameObject("MiG29InstrumentsScanner");
             DontDestroyOnLoad(go);
@@ -36,8 +43,9 @@ namespace MiG29Instruments
     // Finds the aircraft the player flies (CombatHUD) and, if it is the MiG-29, attaches the instrument driver.
     public class Scanner : MonoBehaviour
     {
-        float nextScan;
+        float nextScan, nextStoresScan;
         int lastChecked;
+        const string MiG29Key = "mig29_Fulcrum";   // MiG29Builder.JsonKey
 
         bool dev;
 
@@ -73,6 +81,17 @@ namespace MiG29Instruments
                         MiG29InstrumentsPlugin.Log.LogInfo("dev: teleported 1500 m up at 220 m/s");
                     }
                 }
+            }
+            if (Time.unscaledTime >= nextStoresScan)   // every MiG (player and AI) gets the drop-tank driver
+            {
+                nextStoresScan = Time.unscaledTime + 2f;
+                try
+                {
+                    foreach (var a in UnityEngine.Object.FindObjectsOfType<Aircraft>())
+                        if (((Unit)a).definition != null && ((Unit)a).definition.jsonKey == MiG29Key && a.GetComponent<StoresDriver>() == null)
+                            a.gameObject.AddComponent<StoresDriver>();
+                }
+                catch (Exception e) { MiG29InstrumentsPlugin.Log.LogError(e); nextStoresScan = Time.unscaledTime + 10f; }
             }
             if (Time.unscaledTime < nextScan) return;
             nextScan = Time.unscaledTime + 0.5f;
@@ -285,6 +304,7 @@ namespace MiG29Instruments
             st.fireL = fireL; st.fireR = fireR; st.damagedL = damaged[0]; st.damagedR = engines.Count > 1 ? damaged[1] : damaged[0];
 
             st.fuelKg = ac.GetFuelQuantity(); st.fuelFrac = ac.GetFuelLevel();
+            var stores = ac.GetComponent<StoresDriver>(); st.ptbEmpty = stores != null && stores.TanksEmpty;
             // hydraulics: engine-driven pumps (210 kgf/cm2), bleeding down slowly with both engines off or both damaged
             float hydTarget = (Mathf.Max(rl, rr) > 30f && !(st.damagedL && st.damagedR)) ? 210f : 0f;
             hydraulic += (hydTarget - hydraulic) * (1f - Mathf.Exp(-(hydTarget > hydraulic ? 1.5f : 0.15f) * dt));

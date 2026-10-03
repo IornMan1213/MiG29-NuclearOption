@@ -417,7 +417,7 @@ CAUTION = [("fire_l", "ПОЖАР Л", RED), ("fire_r", "ПОЖАР П", RED), (
            ("hyd", "ГИДРО", AMB), ("lock", "ЗАХВАТ", RED),
            ("pump", "НАСОС", AMB), ("oil", "МАСЛО", AMB), ("vib", "ВИБРАЦ", AMB), ("canopy", "ФОНАРЬ", AMB),
            ("gear", "ШАССИ", AMB), ("speed", "СКОРОСТЬ", RED),
-           ("batt", "АККУМ", AMB), ("flaps", "ЩИТКИ", GRN), ("brake", "ТОРМОЗ", GRN), ("fod", "ПЗУ", GRN),
+           ("ptb", "ПТБ", AMB), ("flaps", "ЩИТКИ", GRN), ("brake", "ТОРМОЗ", GRN), ("fod", "ПЗУ", GRN),
            ("ab", "ФОРСАЖ", GRN), ("master", "ПРОВЕРЬ", AMB)]
 LAYOUT["caution"] = {"cols": 6, "rows": 4, "ids": [c[0] for c in CAUTION]}
 

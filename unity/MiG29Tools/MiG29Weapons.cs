@@ -26,7 +26,7 @@ namespace MiG29Tools
         [Serializable] class PartDump { public string name; public float[] vertices, normals, uvs; public int[] triangles; }
         [Serializable] class Dump { public PartDump[] parts; }
 
-        public class Result { public ScriptableObject r73Mount, r27Mount, r27tMount, r60Mount, gunMount; }
+        public class Result { public ScriptableObject r73Mount, r27Mount, r27tMount, r60Mount, gunMount, ptb1500Mount, ptb1150Mount; }
 
         public delegate T Saver<T>(T obj, string path) where T : UnityEngine.Object;
 
@@ -179,8 +179,102 @@ namespace MiG29Tools
             var r60Mount = CloneMount("AAM1_single", "mig29_R60M_mount", r60MountPrefab, r60Info, "mig29_R60M_single", "R-60M", mass: 66f, emptyMass: 22f, drag: 0.025f);
 
             var gunMount = BuildGun();
-            Debug.Log("[MiG29] weapons built: R-73, R-27R, R-27T, R-60M, GSh-30-1");
-            return new Result { r73Mount = r73Mount, r27Mount = r27Mount, r27tMount = r27tMount, r60Mount = r60Mount, gunMount = gunMount };
+
+            // ---------- drop tanks (released like a dumb bomb; the instruments plugin feeds their fuel to the internal tanks) ----------
+            var ptb1500Mount = BuildDropTank("PTB1500", "PTB-1500", meshes["PTB1500"], meshes["PTB_PYLON_C"], mat, length: 4.9f, halfHeight: 0.34f, radius: 0.34f,
+                pylonDepth: 0.08f, fullMass: 1300f, pylonMass: 35f, drag: 0.10f, rcs: 0.06f,
+                desc: "PTB-1500 centreline drop tank: 1,500 litres (about 1,180 kg) of fuel, used before the internal fuel. Select it and fire to drop it, or press the jettison key (Ctrl+J by default).");
+            var ptb1150Mount = BuildDropTank("PTB1150", "PTB-1150", meshes["PTB1150"], meshes["PTB_PYLON_W"], mat, length: 4.6f, halfHeight: 0.32f, radius: 0.32f,
+                pylonDepth: 0.10f, fullMass: 1000f, pylonMass: 30f, drag: 0.08f, rcs: 0.05f,
+                desc: "PTB-1150 wing drop tanks: 1,150 litres (about 905 kg) of fuel each, used before the internal fuel. Select them and fire to drop them, or press the jettison key (Ctrl+J by default).");
+            Debug.Log("[MiG29] weapons built: R-73, R-27R, R-27T, R-60M, GSh-30-1, PTB-1500, PTB-1150");
+            return new Result { r73Mount = r73Mount, r27Mount = r27Mount, r27tMount = r27tMount, r60Mount = r60Mount, gunMount = gunMount,
+                ptb1500Mount = ptb1500Mount, ptb1150Mount = ptb1150Mount };
+        }
+
+        // ---------------- drop tanks ----------------
+
+        // The tank is a "bomb" with no steering authority (torque 0) and almost no warhead: on impact it bursts with a small puff of
+        // dust or spray. Its weapon info has zero effectiveness against everything, so the AI never picks it as a weapon.
+        static ScriptableObject BuildDropTank(string id, string name, Mesh tank, Mesh pylon, Material mat, float length, float halfHeight, float radius,
+            float pylonDepth, float fullMass, float pylonMass, float drag, float rcs, string desc)
+        {
+            var go = MakeMissile("bomb_250_1", "mig29_" + id, tank, mat, length, radius, seekerFrom: null, seekerType: null);
+            UnityEngine.Object Fx(string n) => AssetDatabase.LoadAssetAtPath<GameObject>(GO + n + "_PLACEHOLDER.prefab");
+            Tune(go, so =>
+            {
+                so.FindProperty("mass").floatValue = fullMass;
+                so.FindProperty("torque").floatValue = 0f;          // no steering: it falls where it is dropped
+                so.FindProperty("maxTurnRate").floatValue = 0f;
+                so.FindProperty("blastYield").floatValue = 1f;      // a bursting tank, not a bomb
+                so.FindProperty("pierceDamage").floatValue = 20f;
+                so.FindProperty("impactFuse").boolValue = true;
+                var wh = so.FindProperty("warhead");
+                wh.FindPropertyRelative("airEffect").objectReferenceValue = Fx("cannonHit_50mm_dusty");
+                wh.FindPropertyRelative("armorEffect").objectReferenceValue = Fx("cannonHit_50mm_dusty");
+                wh.FindPropertyRelative("terrainEffect").objectReferenceValue = Fx("cannonHit_50mm_dusty");
+                wh.FindPropertyRelative("waterSurfaceEffect").objectReferenceValue = Fx("ShellSplash_10kg");
+                wh.FindPropertyRelative("underwaterEffect").objectReferenceValue = Fx("ShellSplash_10kg");
+                wh.FindPropertyRelative("fizzleEffect").objectReferenceValue = null;
+            });
+            TuneSeeker(go, "OpticalSeekerBomb", so =>
+            {
+                so.FindProperty("searchRadius").floatValue = 0f;
+                so.FindProperty("tangibleDelay").floatValue = 1.0f;   // clear of the jet before it can hit anything
+                so.FindProperty("armDelay").floatValue = 1.5f;
+                so.FindProperty("altitudeFuseHeight").floatValue = 0f;
+            });
+            var prefab = SavePrefab(go, $"{Dir}/mig29_{id}.prefab");
+
+            var def = CloneDef("Bomb_250_1", $"mig29_{id}_def", d =>
+            {
+                d.FindProperty("jsonKey").stringValue = "mig29_" + id;
+                d.FindProperty("unitName").stringValue = name;
+                d.FindProperty("description").stringValue = desc;
+                d.FindProperty("mass").floatValue = fullMass;
+                d.FindProperty("value").floatValue = 0.01f;
+                d.FindProperty("unitPrefab").objectReferenceValue = prefab;
+            });
+            SetDefinition(prefab, def);
+
+            var info = Clone("info_bomb_250_1", $"mig29_{id}_info");
+            var iso = new SerializedObject(info);
+            iso.FindProperty("weaponPrefab").objectReferenceValue = prefab;
+            iso.FindProperty("weaponName").stringValue = name + " Drop Tank";
+            iso.FindProperty("shortName").stringValue = name;
+            iso.FindProperty("description").stringValue = desc;
+            foreach (var e in new[] { "antiSurface", "antiAir", "antiMissile", "antiRadar" })
+                iso.FindProperty("effectiveness." + e).floatValue = 0f;
+            iso.FindProperty("pierceDamage").floatValue = 20f;
+            iso.FindProperty("blastDamage").floatValue = 0f;
+            iso.FindProperty("costPerRound").floatValue = 0.01f;
+            iso.FindProperty("massPerRound").floatValue = fullMass;
+            iso.FindProperty("fireInterval").floatValue = 0.3f;
+            iso.ApplyModifiedPropertiesWithoutUndo();
+
+            var mountPrefab = MakeMount("bomb_250_single", $"mig29_{id}_rack", "pylon", "bomb", pylon, tank, mat,
+                missileY: -pylonDepth - halfHeight, info, length, radius, $"{Dir}/mig29_{id}_rack.prefab");
+            // a short, quick release instead of the bomb rack's slow 0.5 m slide
+            var path = AssetDatabase.GetAssetPath(mountPrefab);
+            var root = PrefabUtility.LoadPrefabContents(path);
+            var mm = new SerializedObject(root.GetComponentInChildren(T("MountedMissile"), true));
+            mm.FindProperty("railLength").floatValue = 0.12f;
+            mm.FindProperty("railSpeed").floatValue = 2f;
+            mm.ApplyModifiedPropertiesWithoutUndo();
+            PrefabUtility.SaveAsPrefabAsset(root, path);
+            PrefabUtility.UnloadPrefabContents(root);
+            mountPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+
+            var m = CloneMount("bomb_250_single", $"mig29_{id}_mount", mountPrefab, info, $"mig29_{id}", name + " drop tank",
+                mass: fullMass + pylonMass, emptyMass: pylonMass, drag: drag);
+            var mso = new SerializedObject(m);
+            mso.FindProperty("emptyDrag").floatValue = 0.01f;
+            mso.FindProperty("RCS").floatValue = rcs;
+            mso.FindProperty("emptyRCS").floatValue = 0.004f;
+            mso.FindProperty("GearSafety").boolValue = true;     // no release with the gear down or on the ground
+            mso.FindProperty("GroundSafety").boolValue = true;
+            mso.ApplyModifiedPropertiesWithoutUndo();
+            return m;
         }
 
         // ---------------- GSh-30-1 ----------------
@@ -530,7 +624,7 @@ namespace MiG29Tools
                 }
             }
             sets.GetArrayElementAtIndex(inner).FindPropertyRelative("name").stringValue = "Inner Pylons";
-            AddOptions(inner, w.r27Mount, w.r27tMount, w.r73Mount, w.r60Mount);
+            AddOptions(inner, w.r27Mount, w.r27tMount, w.r73Mount, w.r60Mount, w.ptb1150Mount);
             sets.GetArrayElementAtIndex(middle).FindPropertyRelative("name").stringValue = "Middle Pylons";
             AddOptions(middle, w.r73Mount, w.r60Mount);
 
@@ -568,17 +662,68 @@ namespace MiG29Tools
             return outer;
         }
 
+        // ---------------- centreline station (PTB-1500) ----------------
+
+        // MiG-frame belly between the engine nacelles: flat at y -0.44 from z 0.5 to 2.0 (blender/analysis/stores_pos.py)
+        public static readonly Vector3 CentrelineStation = new Vector3(0f, -0.44f, 1.0f);
+
+        // The KR-67's forward weapon bay becomes the MiG's centreline station: one hardpoint on the belly, no bay doors.
+        // Returns the set's index (loadouts keep that slot).
+        public static int SetupCentreline(GameObject go, Vector3 modelOffset, Result w)
+        {
+            var so = new SerializedObject(go.GetComponentInChildren(T("WeaponManager"), true));
+            var sets = so.FindProperty("hardpointSets");
+            int idx = -1;
+            for (int i = 0; i < sets.arraySize; i++)
+                if (sets.GetArrayElementAtIndex(i).FindPropertyRelative("name").stringValue == "Forward Weapon Bay") idx = i;
+            if (idx < 0) throw new Exception("[MiG29] forward weapon bay set not found");
+            var set = sets.GetArrayElementAtIndex(idx);
+            set.FindPropertyRelative("name").stringValue = "Centreline";
+            var opts = set.FindPropertyRelative("weaponOptions");
+            opts.arraySize = 2;
+            opts.GetArrayElementAtIndex(0).objectReferenceValue = null;
+            opts.GetArrayElementAtIndex(1).objectReferenceValue = w.ptb1500Mount;
+            var hps = set.FindPropertyRelative("hardpoints");
+            hps.arraySize = 1;
+            var hp = hps.GetArrayElementAtIndex(0);
+            var t = (Transform)hp.FindPropertyRelative("transform").objectReferenceValue;
+            var part = (Component)hp.FindPropertyRelative("part").objectReferenceValue;
+            t.name = "hardpoint_centreline";
+            t.SetParent(part.transform, true);
+            t.SetPositionAndRotation(CentrelineStation + modelOffset, Quaternion.identity);
+            t.localScale = Vector3.one;
+            hp.FindPropertyRelative("bayDoors").arraySize = 0;
+            hp.FindPropertyRelative("pylonOptions").arraySize = 0;
+            hp.FindPropertyRelative("Pylon").objectReferenceValue = null;
+            hp.FindPropertyRelative("Plug").objectReferenceValue = null;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            Debug.Log($"[MiG29] centreline station: set {idx} on part {part.name}");
+            return idx;
+        }
+
+        // the forward bay's KR-67 weapons are not centreline options: empty that slot in every stock loadout
+        public static void ClearLoadoutSlot(SerializedObject pso, int index)
+        {
+            void Clr(SerializedProperty weapons) { if (index < weapons.arraySize) weapons.GetArrayElementAtIndex(index).objectReferenceValue = null; }
+            var loadouts = pso.FindProperty("loadouts");
+            for (int i = 0; i < loadouts.arraySize; i++) Clr(loadouts.GetArrayElementAtIndex(i).FindPropertyRelative("weapons"));
+            var std = pso.FindProperty("StandardLoadouts");
+            for (int i = 0; i < std.arraySize; i++) Clr(std.GetArrayElementAtIndex(i).FindPropertyRelative("loadout.weapons"));
+        }
+
         // Default loadout (loadouts[1]: the loadout screen's starting point and the fallback) and the standard loadouts AI-flown
-        // MiGs spawn with. Hardpoint sets: 0 gun, 1 inner, 2 middle, 3 outer, 4 tail hook.
+        // MiGs spawn with. Hardpoint sets: 0 gun, 1 centreline, 2 inner, 3 middle, 4 outer, 5 tail hook.
         public static void SetLoadouts(SerializedObject pso, Result w)
         {
             UnityEngine.Object Stock(string n) => AssetDatabase.LoadAssetAtPath<ScriptableObject>(MB + n + "_PLACEHOLDER.asset");
-            var airSup = new UnityEngine.Object[] { w.gunMount, w.r27Mount, w.r73Mount, w.r73Mount, null };
+            var airSup = new UnityEngine.Object[] { w.gunMount, null, w.r27Mount, w.r73Mount, w.r73Mount, null };
             var presets = new (string name, float fuel, UnityEngine.Object[] weapons)[]
             {
                 ("Air Superiority (R-27R / R-73)", 0.8f, airSup),
-                ("Dogfight (R-27T / R-73 / R-60M)", 0.6f, new UnityEngine.Object[] { w.gunMount, w.r27tMount, w.r73Mount, w.r60Mount, null }),
-                ("Strike (FAB-500 / rockets / R-73)", 0.7f, new UnityEngine.Object[] { w.gunMount, Stock("bomb_500_single"), Stock("Rocket2_4Pod"), w.r73Mount, null }),
+                ("Long-Range CAP (PTB-1500 / R-27R / R-73)", 1.0f, new UnityEngine.Object[] { w.gunMount, w.ptb1500Mount, w.r27Mount, w.r73Mount, w.r73Mount, null }),
+                ("Dogfight (R-27T / R-73 / R-60M)", 0.6f, new UnityEngine.Object[] { w.gunMount, null, w.r27tMount, w.r73Mount, w.r60Mount, null }),
+                ("Strike (FAB-500 / rockets / R-73)", 0.7f, new UnityEngine.Object[] { w.gunMount, null, Stock("bomb_500_single"), Stock("Rocket2_4Pod"), w.r73Mount, null }),
+                ("Ferry (3 drop tanks / R-73)", 1.0f, new UnityEngine.Object[] { w.gunMount, w.ptb1500Mount, w.ptb1150Mount, w.r73Mount, null, null }),
             };
             void Fill(SerializedProperty weapons, UnityEngine.Object[] src)
             {

@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.8.0
+**Drop tanks and chaff.**
+- **PTB-1500 centreline tank** (1,500 L, about 1,180 kg of fuel) on a new belly station between the engine nacelles, and
+  **PTB-1150 wing tanks** (1,150 L each) on the inner pylons. Both are modelled for the mod.
+- **External fuel is used first**, as on the real MiG-29: while the tanks hang, they keep the internal tanks full. The aircraft's
+  weight follows the fuel: a full tank weighs what it should, and dropping one sheds only the empty tank and the fuel left in it.
+- **Drop on command:** select the tanks and fire like any store (one per press), or press **Ctrl+J** to jettison them all.
+  Both are blocked with the gear down. When tanks you carry run dry, the new **ПТБ** caution light comes on (it replaces the
+  rarely seen АККУМ light). AI MiGs drop their tanks once they are empty. Optional: `Drop empty tanks automatically`.
+- **Chaff**: the MiG now carries a chaff dispenser, using the game's own radar chaff (no stock aircraft carries it).
+  It decoys active and semi-active radar missiles, works best when the missile sees you side-on and is close, and fills
+  a glittering cloud behind you. Cycle countermeasures to pick it: IR Flares, Radar Chaff, Radar ECM.
+- **MiG-29 dispensers**: flares and chaff now fire upward from the BVP-30-26M dispensers on the tail booms, as on the real
+  aircraft, instead of from the KR-67's engine tops. 60 cartridges in all, as on the real jet: 30 flares and 30 chaff
+  (the KR-67 carried 72 flares). The Radar ECM stays (the 9.13's internal Gardeniya jammer).
+- New preset loadouts: Long-Range CAP (PTB-1500 / R-27R / R-73) and Ferry (three tanks / R-73).
+- The instruments plugin (now also the stores plugin) is required for the tanks to give fuel.
+
 ## 0.7.1
 - Packaged for mod managers ([NOMNOM](https://github.com/KopterBuzz/NOMNOM) / NOMM): each release now starts with
   `MiG-29-Fulcrum_<version>.zip`, holding the .nobp, `MiG29Instruments.dll` and `CREDITS.txt`.

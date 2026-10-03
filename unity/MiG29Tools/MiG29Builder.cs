@@ -21,7 +21,7 @@ namespace MiG29Tools
 
         public const string JsonKey = "mig29_Fulcrum";
         public const string DisplayName = "MiG-29 Fulcrum";
-        public const string Version = "0.7.1";
+        public const string Version = "0.8.0";
 
         // MiG model frame -> aircraft root. Puts MiG main wheels on the KR-67 main gear and MiG wheels on KR-67 ground line.
         static readonly Vector3 ModelOffset = new Vector3(0f, -0.44f, -2.655f);
@@ -104,7 +104,9 @@ namespace MiG29Tools
             TuneToMiG(root);
             bayIndices = BayIndices(go);
             RemoveInternalBays(go);
+            var centreSet = MiG29Weapons.SetupCentreline(go, ModelOffset, weapons);
             var outerPylonSet = MiG29Weapons.SetupPylons(go, ModelOffset, weapons);
+            MiG29Countermeasures.Setup(go, ModelOffset);
             var oldGun = MiG29Weapons.SetupGun(go, ModelOffset, weapons);
             var displays = MiG29Polish.BuildDisplays(go);
 
@@ -117,6 +119,7 @@ namespace MiG29Tools
             var pso = new SerializedObject(parameters);
             pso.FindProperty("aircraftName").stringValue = "MiG-29";
             RemoveBayLoadouts(pso);
+            MiG29Weapons.ClearLoadoutSlot(pso, centreSet);
             MiG29Weapons.InsertLoadoutSlot(pso, outerPylonSet);
             Debug.Log($"[MiG29] loadouts: {MiG29Weapons.ReplaceInLoadouts(pso, oldGun, weapons.gunMount)} gun entries switched to GSh-30-1");
             MiG29Weapons.SetLoadouts(pso, weapons);
@@ -662,7 +665,8 @@ namespace MiG29Tools
 
         // ---------------- internal bays: the MiG has none ----------------
 
-        static readonly string[] BayNames = { "Forward Weapon Bay", "Rear Weapon Bay", "Side Weapon Bays" };
+        // (the forward bay's set is kept and becomes the centreline drop-tank station: MiG29Weapons.SetupCentreline)
+        static readonly string[] BayNames = { "Rear Weapon Bay", "Side Weapon Bays" };
         static List<int> bayIndices = new List<int>();
 
         static List<int> BayIndices(GameObject go)

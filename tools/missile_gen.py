@@ -6,6 +6,8 @@ Dimensions from open sources: R-73 2.90 m x 0.17 m, canard span 0.385 m, wing sp
 R-27R 4.08 m x 0.23 m, canard span 0.97 m ("butterfly" control fins), wing span 0.80 m;
 R-27T 3.80 m x 0.23 m (same airframe, short infrared nose with a glass dome);
 R-60M 2.09 m x 0.12 m, wing span 0.39 m, with its APU-60 rail.
+Drop tanks: PTB-1500 centreline tank (1,500 L, 4.9 m, slightly flattened to fit between the engine nacelles) and PTB-1150 wing
+tank (1,150 L, 4.6 m x 0.64 m), each with a short pylon adapter whose bottom touches the tank top.
 """
 import json, math, sys
 import numpy as np
@@ -193,6 +195,50 @@ def aku470():
     return m
 
 
+def tank_profile(L, R, nose, tail, tail_r, n=10):
+    zt = L / 2; prof = []
+    for i in range(n + 1):                      # elliptical nose
+        t = i / n; prof.append((zt - nose * (1 - math.cos(t * math.pi / 2)), R * math.sin(t * math.pi / 2) if i else 0.0))
+    prof[0] = (zt, 0.0)
+    for i in range(1, n + 1):                   # tapering tail cone, slightly convex
+        t = i / n; prof.append((-zt + tail * (1 - t), tail_r + (R - tail_r) * (1 - t ** 1.6)))
+    prof.insert(n + 1, (-zt + tail, R))
+    return sorted(set(prof), key=lambda p: -p[0])
+
+
+def squash(m, ky):
+    """Flatten a mesh vertically by ky (normals corrected)."""
+    for v in m.v: v[1] *= ky
+    for nr in m.n:
+        nr[1] /= ky; l = math.sqrt(sum(c * c for c in nr)) or 1.0
+        nr[:] = [c / l for c in nr]
+
+
+def ptb1500():
+    """PTB-1500 centreline tank: 4.9 m long, 0.80 m wide, 0.68 m deep (about 1.5 m3)."""
+    m = Mesh(); L = 4.9; R = 0.40
+    m.revolve(tank_profile(L, R, nose=1.35, tail=1.25, tail_r=0.07), seg=28,
+              cells=lambda z: "dgrey" if z > L / 2 - 0.05 else ("red" if -0.62 < z < -0.56 else "camo"))
+    squash(m, 0.85)
+    return m
+
+
+def ptb1150():
+    """PTB-1150 wing tank: 4.6 m x 0.64 m (about 1.15 m3)."""
+    m = Mesh(); L = 4.6; R = 0.32
+    m.revolve(tank_profile(L, R, nose=1.2, tail=1.0, tail_r=0.05), seg=24,
+              cells=lambda z: "dgrey" if z > L / 2 - 0.04 else ("red" if -0.52 < z < -0.47 else "camo"))
+    return m
+
+
+def ptb_pylon(depth, length, width):
+    """Pylon adapter for a drop tank: a streamlined blade from y = 0 (hardpoint) down to y = -depth (tank top)."""
+    m = Mesh()
+    m.box(-width / 2, width / 2, -depth, 0.0, -length / 2, length / 2, "camo", nose_taper=min(0.3, length / 4))
+    m.box(-width / 2 - 0.01, width / 2 + 0.01, -depth - 0.012, -depth + 0.02, -length / 2 + 0.15, length / 2 - 0.3, "metal")   # sway braces / lugs
+    return m
+
+
 def textures():
     a = Image.new("RGB", (64, 64))
     for i, name in enumerate(NAMES):
@@ -210,7 +256,9 @@ def textures():
 if __name__ == "__main__":
     textures()
     parts = [r73().dump("R73"), r27r().dump("R27R"), r27t().dump("R27T"), r60m().dump("R60M"),
-             apu73().dump("APU73"), aku470().dump("AKU470"), apu60().dump("APU60")]
+             apu73().dump("APU73"), aku470().dump("AKU470"), apu60().dump("APU60"),
+             ptb1500().dump("PTB1500"), ptb1150().dump("PTB1150"),
+             ptb_pylon(0.08, 1.9, 0.12).dump("PTB_PYLON_C"), ptb_pylon(0.10, 1.6, 0.10).dump("PTB_PYLON_W")]
     json.dump({"parts": parts}, open(OUT + "/missiles.json", "w"))
     for p in parts:
         v = np.array(p["vertices"]).reshape(-1, 3)

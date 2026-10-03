@@ -12,6 +12,7 @@ namespace MiG29Tools
         public float iasKmh, mach, altM, vsMs, aoaDeg, g = 1f, pitchDeg, rollDeg, headingDeg, radAltM;
         public float rpmL, rpmR, egtL, egtR;          // % and deg C
         public float fuelKg, fuelFrac = 1f;
+        public bool ptbEmpty;   // drop tanks carried and empty (MiG29Instruments StoresDriver)
         public float oxygen = 150f, hydraulic, cabinKm, volts, brake, throttle, yaw;
         public float hours, minutes, seconds;
         public bool gearDown = true, gearMoving, onGround = true, canopyOpen, airborne;
@@ -101,7 +102,7 @@ namespace MiG29Tools
             C("canopy", s.canopyOpen);
             C("gear", s.gearMoving || (s.airborne && !s.gearDown && s.iasKmh < 300 && s.radAltM < 300));
             C("speed", s.iasKmh > 1450 || s.mach > 2.25f);
-            C("batt", engOffL && engOffR);
+            C("ptb", s.ptbEmpty);   // drop tanks carried but dry: drop them
             C("flaps", s.gearDown && !s.gearMoving && s.airborne);
             C("brake", s.brake > 0.1f);
             C("fod", s.onGround && s.iasKmh < 200 && (s.rpmL > 40 || s.rpmR > 40));
