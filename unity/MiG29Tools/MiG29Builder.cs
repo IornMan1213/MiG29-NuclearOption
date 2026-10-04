@@ -21,7 +21,7 @@ namespace MiG29Tools
 
         public const string JsonKey = "mig29_Fulcrum";
         public const string DisplayName = "MiG-29 Fulcrum";
-        public const string Version = "0.8.1";
+        public const string Version = "0.9.0";
 
         // MiG model frame -> aircraft root. Puts MiG main wheels on the KR-67 main gear and MiG wheels on KR-67 ground line.
         static readonly Vector3 ModelOffset = new Vector3(0f, -0.44f, -2.655f);
@@ -70,7 +70,10 @@ namespace MiG29Tools
             // nose-gear strut, so it rides on the strut (retracting with it), just ahead of and above the wheel.
             var landingLight = Find(root, "gearLight_F");
             landingLight.SetParent(Find(root, "gear_F_sprung"), true);
-            landingLight.position = Find(root, "wheel_F").position + new Vector3(0f, 0.72f, 0.42f);
+            // 0.55 m up the strut and 0.12 m ahead of it: the earlier 0.72 / 0.42 offset rotated down to the belly line when the leg
+            // swung 92 deg into the bay, and the lamp poked out of the closed doors just ahead of the intakes (user screenshot, v0.8.1).
+            // Folded either way, this spot stays inside the bay (stowed y >= +0.10 m, MiG frame).
+            landingLight.position = Find(root, "wheel_F").position + new Vector3(0f, 0.55f, 0.12f);
             // The light itself (a 30 deg spot plus a glare sprite) sits on a child placed for the KR-67's door, which swings ~87 deg
             // open and so aimed it forward; on the strut it kept the closed-door angle and shone straight down, flooding the ground and
             // glaring in every direction. Aim it ahead and slightly down from the lamp, and halve the glare.
@@ -79,12 +82,13 @@ namespace MiG29Tools
             foreach (var ps in beam.GetComponentsInChildren<ParticleSystem>(true))
             {
                 var main = ps.main;
-                main.startSizeMultiplier *= 0.5f;
+                main.startSizeMultiplier *= 0.3f;      // the glare is a camera-facing sprite: kept small so it doesn't glow in every direction
             }
+            LogStowed(root, "wheel_F");
             foreach (var l in beam.GetComponentsInChildren<Light>(true))
             {
                 l.spotAngle = 24f;           // landing-light beam
-                l.intensity *= 0.6f;
+                l.intensity *= 0.5f;
             }
 
             var visual = new GameObject("MiG29_visual").transform;
@@ -337,7 +341,11 @@ namespace MiG29Tools
             // the MiG body (found by blender/gearbay.py; MiG frame).
             StowGear(root, "wheel_L", new Vector3(-0.23f, -0.08f, 2.9f) + ModelOffset, MainGearExtraFold); // wheel mesh sits 0.27 m outboard of wheel_L
             StowGear(root, "wheel_R", new Vector3(0.23f, -0.08f, 2.9f) + ModelOffset, MainGearExtraFold);
-            StowGear(root, "wheel_F", new Vector3(0f, 0.30f, 3.5f) + ModelOffset); // KR-67 nose wheel (0.66 m) fits the thin centre fuselage here: top 0.63 vs skin 0.66 at x 0.32 (blender ray scan)
+            // KR-67 nose wheel (0.66 m) fits the thin centre fuselage here: top 0.63 vs skin 0.66 at x 0.32 (blender ray scan).
+            // Folded the stock 92 deg, the KR-67 strut slopes down toward its hinge and, once shifted so the wheel stows, its upper end
+            // hung 15 cm below the closed bay doors (stowed check: y -0.32 at z 4.5-5.2; user screenshot, v0.8.1). The fold angle and
+            // stow point are now searched against the leg's real vertices (StowGear searchBay).
+            StowGear(root, "wheel_F", new Vector3(0f, 0.30f, 3.5f) + ModelOffset, 0f, searchBay: true);
 
             // nozzles (thrust + afterburner effects) to the MiG nozzles
             SetWorld(root, "nozzle_L", new Vector3(-0.866f, -0.292f, -3.768f) + ModelOffset);
@@ -359,20 +367,68 @@ namespace MiG29Tools
             SetWorld(root, "hardpoint_pylon_L2", new Vector3(-3.10f, -0.29f, 0.24f) + ModelOffset);
             SetWorld(root, "hardpoint_pylon_R2", new Vector3(3.10f, -0.29f, 0.24f) + ModelOffset);
 
-            // wingtip light glow + vortex trails at the MiG wingtips (KR-67 meshes there are hidden; the glow sits
-            // 0.7 m outboard of its parent, so place the effect objects themselves)
+            // Navigation lights (red left, green right) on the MiG wingtips. The tip edge runs x 5.53-5.57, y ~-0.05, from the leading
+            // edge at z ~-0.40 aft (MiG frame, mig29_mesh.json). They used to sit 5 cm outboard of and ahead of the leading-edge corner
+            // with a 0.6 m glow, so the glow hung in the air off the tip (user screenshots, v0.8.1): now on the tip edge, 0.3 m aft of
+            // the leading edge, with a lamp-sized glow. Vortex trails leave the trailing tip corner.
             foreach (var s in new[] { "L", "R" })
             {
                 float sx = s == "L" ? -1 : 1;
-                SetWorld(root, "navlight_" + s + "_effects", new Vector3(sx * 5.62f, -0.45f, -3.0f));
-                SetWorld(root, "wingtipvortex_" + s, new Vector3(sx * 5.65f, -0.45f, -3.6f));
+                var nav = Find(root, "navlight_" + s + "_effects");
+                nav.position = new Vector3(sx * 5.55f, -0.045f, -0.70f) + ModelOffset;
+                foreach (var ps in nav.GetComponentsInChildren<ParticleSystem>(true)) { var main = ps.main; main.startSizeMultiplier *= 0.45f; }
+                SetWorld(root, "wingtipvortex_" + s, new Vector3(sx * 5.56f, -0.05f, -1.65f) + ModelOffset);
             }
         }
 
         // extra fold on the main legs so the KR-67 strut tips (stowed angled inboard) stay inside the belly tunnel
         static readonly float MainGearExtraFold = float.TryParse(Environment.GetEnvironmentVariable("MIG29_MAINFOLD") ?? "12", System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var f) ? f : 12f;
 
-        static void StowGear(Transform root, string wheelName, Vector3 stowedWorld, float extraFold = 0f)
+        // Poses a leg as LandingGear does when retracted (hinge + foldDegrees, + hingeFoldMotion) and logs where each visible piece
+        // ends up, MiG frame, so a stowed leg poking out of the skin shows in the build log.
+        static void LogStowed(Transform root, string wheelName)
+        {
+            var wheel = Find(root, wheelName);
+            foreach (var lg in root.GetComponentsInChildren(TypeByName("LandingGear"), true))
+            {
+                var so = new SerializedObject(lg);
+                var hinge = so.FindProperty("gearHinge").objectReferenceValue as Transform;
+                if (hinge == null || !wheel.IsChildOf(hinge)) continue;
+                var baseRot = hinge.localEulerAngles; var basePos = hinge.localPosition;
+                hinge.localEulerAngles = baseRot + new Vector3(so.FindProperty("foldDegrees").floatValue, 0f, 0f);
+                hinge.localPosition = basePos + so.FindProperty("hingeFoldMotion").vector3Value;
+                foreach (var r in hinge.GetComponentsInChildren<Renderer>(true))
+                {
+                    var mf = r.GetComponent<MeshFilter>();
+                    if (mf == null || mf.sharedMesh == null || !r.enabled) continue;
+                    var m = r.transform.localToWorldMatrix;
+                    var pts = mf.sharedMesh.vertices.Select(v => m.MultiplyPoint3x4(v) - ModelOffset).ToArray();
+                    var low = pts.OrderBy(p => p.y).First();
+                    var worst = r.name.Contains("chock") ? 0f : pts.Min(p => BayMargin(p));
+                    Debug.Log($"[MiG29]   {wheelName} stowed {r.name}: vertices y {pts.Min(p => p.y):F2}..{pts.Max(p => p.y):F2}, z {pts.Min(p => p.z):F2}..{pts.Max(p => p.z):F2}, lowest at z {low.z:F2}, inside the skin by {worst * 100f:F1} cm");
+                }
+                hinge.localEulerAngles = baseRot; hinge.localPosition = basePos;
+                return;
+            }
+        }
+
+        // Nose bay envelope (tools/nose_bay.py): per (x, z) cell the outer skin from below (closed doors / belly) and from above. The
+        // model's bay-well walls in between are hidden behind the closed doors, so a stowed leg may cross them but not the skin.
+        [Serializable] class BayGrid { public float x0, dx, z0, dz; public int nx, nz; public float[] floor, roof; }
+        static BayGrid bay;
+        const float BayClearance = 0.015f;
+
+        // margin of a MiG-frame point inside the bay skin (negative = outside)
+        static float BayMargin(Vector3 p)
+        {
+            if (bay == null) bay = JsonUtility.FromJson<BayGrid>(File.ReadAllText(Path.Combine(SourceDir, "nose_bay.json")));
+            int i = Mathf.RoundToInt((p.z - bay.z0) / bay.dz), j = Mathf.RoundToInt((p.x - bay.x0) / bay.dx);
+            if (i < 0 || j < 0 || i >= bay.nz || j >= bay.nx) return -1f;
+            int k = i * bay.nx + j;
+            return Mathf.Min(p.y - bay.floor[k], bay.roof[k] - p.y) - BayClearance;
+        }
+
+        static void StowGear(Transform root, string wheelName, Vector3 stowedWorld, float extraFold = 0f, bool searchBay = false)
         {
             var wheel = Find(root, wheelName);
             var lgType = TypeByName("LandingGear");
@@ -382,9 +438,38 @@ namespace MiG29Tools
                 var hinge = so.FindProperty("gearHinge").objectReferenceValue as Transform;
                 if (hinge == null || !wheel.IsChildOf(hinge))
                     continue;
+                var baseRot = hinge.localEulerAngles;
+                if (searchBay)
+                {
+                    // try fold angles and stow points; keep the pose whose real vertices stay inside the bay with the most margin
+                    float stock = so.FindProperty("foldDegrees").floatValue;
+                    float best = float.MinValue; float bestFold = stock; Vector3 bestStow = stowedWorld;
+                    var basePos = hinge.localPosition;
+                    var rends = hinge.GetComponentsInChildren<MeshFilter>(true).Where(mf => mf.sharedMesh != null && !mf.name.Contains("chock"))
+                                     .Select(mf => (mf, verts: mf.sharedMesh.vertices)).ToList();
+                    for (float ef = -40f; ef <= 30f; ef += 1f)
+                        for (float dy = -0.16f; dy <= 0.12f; dy += 0.02f)
+                            for (float dz = -0.40f; dz <= 0.60f; dz += 0.05f)
+                            {
+                                var stow = stowedWorld + new Vector3(0f, dy, dz);
+                                hinge.localEulerAngles = baseRot + new Vector3(stock + ef, 0f, 0f);
+                                hinge.localPosition = basePos;
+                                var f = wheel.position;
+                                hinge.localPosition = basePos + hinge.parent.InverseTransformVector(stow - f);
+                                float score = float.MaxValue;
+                                foreach (var (mf, verts) in rends)
+                                {
+                                    var m = mf.transform.localToWorldMatrix;
+                                    foreach (var v in verts) { float mg = BayMargin(m.MultiplyPoint3x4(v) - ModelOffset); if (mg < score) score = mg; }
+                                }
+                                if (score > best) { best = score; bestFold = stock + ef; bestStow = stow; }
+                            }
+                    hinge.localEulerAngles = baseRot; hinge.localPosition = basePos;
+                    extraFold = bestFold - stock; stowedWorld = bestStow;
+                    Debug.Log($"[MiG29] {wheelName}: bay search -> fold {bestFold:F0} deg (stock {stock:F0}), stow {bestStow - ModelOffset}, margin {best * 100f:F1} cm");
+                }
                 var fold = so.FindProperty("foldDegrees").floatValue + extraFold;
                 so.FindProperty("foldDegrees").floatValue = fold;
-                var baseRot = hinge.localEulerAngles;
                 hinge.localEulerAngles = baseRot + new Vector3(fold, 0f, 0f);
                 var folded = wheel.position;
                 hinge.localEulerAngles = baseRot;

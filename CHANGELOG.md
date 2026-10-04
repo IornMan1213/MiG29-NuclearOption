@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased (0.9.0)
+- **New engine nozzles, modelled from scratch.** RD-33 convergent-divergent nozzles replace the model's lumpy, low-poly cans:
+  - each has 16 long shroud feathers with 16 seals and 16 inner petals, heat-tinted metal, and afterburner flame holders and
+    the turbine cone visible inside;
+  - they follow the engines' real 2 deg toe-out and droop;
+  - the petals move with the engine, as on the real jet: open with the engine off, partly closed at idle, closed down at full
+    power, wide open in afterburner. This works on AI MiGs too (MiG29Instruments plugin).
+- **Nose gear stows cleanly.** The stowed strut hung 15 cm below the closed doors, just ahead of the intakes. The fold angle and
+  stow point are now chosen at build time by testing the leg's real vertices against the bay's skin. Every piece now ends up
+  at least 10 cm inside.
+- **Landing light.** It shone straight down from the nose strut with a large glare, so it looked like a bright light in every
+  direction. It now points ahead and slightly down with a narrower, softer beam and a small glare, and sits lower on the
+  strut so it stows inside the bay.
+- **Navigation lights on the wingtips.** The red and green lights hung in the air off the wingtips. They now sit on the tip
+  edges with lamp-sized glows; the wingtip vortex trails leave the trailing tip corners.
+
 ## 0.8.1
 **Interior polish.**
 - **Equipment bay behind the seat.** The space under the rear canopy, between the seat and the canopy's rear edge, was empty:
