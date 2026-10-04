@@ -6,5 +6,6 @@
  "0.6.0": "Cockpit modelled from scratch for the MiG-29; missile launch fix confirmed",
  "0.7.0": "Every cockpit instrument works (needs MiG29Instruments.dll)",
  "0.7.1": "Mod-manager zip (NOMNOM / NOMM); plugin version = mod version",
- "0.8.0": "Drop tanks (PTB-1500 / PTB-1150) with fuel transfer and jettison; chaff; MiG-29 dispensers"
+ "0.8.0": "Drop tanks (PTB-1500 / PTB-1150) with fuel transfer and jettison; chaff; MiG-29 dispensers",
+ "0.8.1": "Interior polish: bay behind the seat, bow and mirrors, 3D switches, breakers, K-36DM seat"
 }
