@@ -156,6 +156,15 @@ def poly_paint(part, pts_u, paint):
     PARTS[part].face(pts, paint_uvs(pts, n, paint))
 
 
+def face_toward(part, pts_u, want, paint=None, uvs=None):
+    """A face whose front points along the Unity-frame direction want (vertex order flipped if needed); painted or with uvs."""
+    pts = [P(*p) for p in pts_u]
+    if (pts[1] - pts[0]).cross(pts[2] - pts[0]).dot(P(*want)) < 0:
+        pts = pts[::-1]; uvs = uvs[::-1] if uvs else None
+    n = (pts[1] - pts[0]).cross(pts[2] - pts[0])
+    PARTS[part].face(pts, uvs if uvs else paint_uvs(pts, n, paint))
+
+
 def prism(part, outline, axis_off, paint):
     """Extrude a planar outline (list of Unity points, CCW seen from the front) by the vector axis_off (Unity), capped."""
     a = [P(*p) for p in outline]; off = Vector((axis_off[0], axis_off[2], axis_off[1]))
@@ -282,17 +291,120 @@ def bulkhead(z, top, paint, facing):
         q = [(-wall_x(y0, z), y0, z), (wall_x(y0, z), y0, z), (wall_x(y1, z), y1, z), (-wall_x(y1, z), y1, z)]
         poly_paint("tub", q if facing > 0 else q[::-1], paint)
 bulkhead(Z_FRONT, sill_y(Z_FRONT), "dgrey", -1)
-# rear bulkhead and the deck behind it, up to the canopy
+# rear bulkhead (behind the seat back) with the seat's guide rails
 top_b = sill_y(Z_BULK)
 bulkhead(Z_BULK, top_b, "dgrey", 1)
-deck_z = [5.70, 5.78, 5.86, 5.94, Z_BULK]
-for z0, z1 in zip(deck_z, deck_z[1:]):
-    y0, y1 = sill_y(z0) - 0.02, sill_y(z1) - 0.02
+for s in (-1, 1):
+    box("tub", (s * 0.13, (FLOOR + top_b) / 2, Z_BULK + 0.012), (0.03, top_b - FLOOR, 0.022), "metal", 0.004)
+
+# ------------------------------------------------------------------------------------------------ equipment bay behind the seat
+# Under the rear canopy, between the seat bulkhead and the canopy's rear edge, the MiG-29 carries avionics blocks, oxygen bottles
+# and cable runs. The airframe isn't drawn this close to the eye in the cockpit view (and its inner faces are back faces), so
+# without this bay the view over the pilot's shoulders went straight out of the aircraft. Deck, side walls and sills up to the
+# glass, a rear bulkhead fitted to the canopy's cross-section, then the equipment.
+Z_REAR = 5.67                                    # canopy glass rear edge is at z ~5.65 (blender/analysis/rear_cockpit.py)
+BAY_Z = [Z_REAR, 5.73, 5.79, 5.85, 5.91, 5.97, Z_BULK]
+
+
+def glass_halfwidth(y, z):
+    hit = glass_bvh.ray_cast(P(0, y, z), Vector((1, 0, 0)), 1.0)
+    return hit[0].x if hit[0] is not None else None
+
+
+def glass_edge_y(z):
+    """Lowest height at which the canopy glass closes the side at station z."""
+    lo, hi = 0.80, 1.30
+    if glass_halfwidth(hi, z) is None:
+        return None
+    for _ in range(16):
+        mid = (lo + hi) / 2
+        if glass_halfwidth(mid, z) is not None: hi = mid
+        else: lo = mid
+    return hi
+
+
+def bay_halfwidth(y, z):
+    g = glass_halfwidth(y, z)
+    w = min(wall_x(y, z), g - 0.012) if g is not None else wall_x(y, z)
+    # the glass curves down toward its rear edge: shrink until the corner is clear of it
+    while w > 0.02:
+        gt = glass_top(w, z)
+        if gt is None or y <= gt - 0.012: break
+        w -= 0.004
+    return w
+
+
+deck_y = {z: sill_y(z) - 0.02 for z in BAY_Z}
+DECK = min(deck_y.values())
+for z0, z1 in zip(BAY_Z, BAY_Z[1:]):
+    y0, y1 = deck_y[z0], deck_y[z1]
     w0, w1 = wall_x(y0, z0) - 0.01, wall_x(y1, z1) - 0.01
-    poly_paint("tub", [(-w0, y0, z0), (-w1, y1, z1), (w1, y1, z1), (w0, y0, z0)][::-1], "dgrey")
-box("tub", (0, top_b + 0.01, 5.86), (0.30, 0.05, 0.22), "mgrey", 0.01)               # avionics bay cover behind the seat
-box("tub", (0.10, top_b + 0.045, 5.84), (0.06, 0.025, 0.06), "black", 0.006)
-box("tub", (-0.10, top_b + 0.045, 5.84), (0.06, 0.025, 0.06), "black", 0.006)
+    face_toward("tub", [(-w0, y0, z0), (-w1, y1, z1), (w1, y1, z1), (w0, y0, z0)], (0, 1, 0), "dgrey")
+    for side in (-1, 1):
+        # wall from the deck up to the glass edge, then the canopy sill (a ledge out to the glass) and a rail along it
+        e0, e1 = glass_edge_y(z0) or deck_y[z0] + 0.08, glass_edge_y(z1) or deck_y[z1] + 0.08
+        q = [(side * w0, y0, z0), (side * w1, y1, z1), (side * wall_x(e1, z1), e1 - 0.010, z1), (side * wall_x(e0, z0), e0 - 0.010, z0)]
+        q = [(x, under_glass(x, y, z, 0.012), z) for x, y, z in q]
+        face_toward("tub", q, (-side, 0, 0), "turq_dark")
+        g0, g1 = glass_halfwidth(e0 + 0.012, z0), glass_halfwidth(e1 + 0.012, z1)
+        if g0 is not None and g1 is not None:
+            # tucked under the glass edge (same 12 mm clearance as the sill caps further forward)
+            q = [(side * wall_x(e0, z0), under_glass(side * wall_x(e0, z0), e0 - 0.010, z0, 0.012), z0),
+                 (side * wall_x(e1, z1), under_glass(side * wall_x(e1, z1), e1 - 0.010, z1, 0.012), z1),
+                 (side * (g1 - 0.012), under_glass(side * (g1 - 0.012), e1, z1, 0.012), z1), (side * (g0 - 0.012), under_glass(side * (g0 - 0.012), e0, z0, 0.012), z0)]
+            face_toward("tub", q, (0, 1, 0), "dgrey")
+for side in (-1, 1):
+    tube("tub", [(side * (wall_x(glass_edge_y(z) or deck_y[z] + 0.08, z) - 0.016), (glass_edge_y(z) or deck_y[z] + 0.08) - 0.030, z) for z in BAY_Z], 0.011, "dgrey")
+
+# rear bulkhead fitted to the canopy's cross-section, riveted panel texture mapped across it
+top_r = under_glass(0, 2.0, Z_REAR, 0.015)
+ys = [deck_y[Z_REAR] + (top_r - deck_y[Z_REAR]) * k / 12 for k in range(13)]
+au0, av0, au1, av1 = rect_uv("aft_bulk", 1.0)
+def aft_uv(p):
+    # seen looking aft, +x is on the viewer's left: u runs from +x to -x
+    return (au0 + (0.40 - p[0]) / 0.80 * (au1 - au0), av0 + (p[1] - ys[0]) / (ys[-1] - ys[0]) * (av1 - av0))
+for y0, y1 in zip(ys, ys[1:]):
+    w0, w1 = bay_halfwidth(y0, Z_REAR), bay_halfwidth(y1, Z_REAR) if y1 < ys[-1] else 0.04
+    q = [(-w0, y0, Z_REAR), (w0, y0, Z_REAR), (w1, y1, Z_REAR), (-w1, y1, Z_REAR)]
+    face_toward("tub", q, (0, 0, 1), uvs=[aft_uv(p) for p in q])
+# canopy seal frame around the bulkhead's top edge
+tube("tub", [(-bay_halfwidth(y, Z_REAR) + 0.012, y, Z_REAR + 0.012) for y in ys[3:-1]] + [(0, top_r - 0.012, Z_REAR + 0.012)] +
+     [(bay_halfwidth(y, Z_REAR) - 0.012, y, Z_REAR + 0.012) for y in reversed(ys[3:-1])], 0.009, "black")
+
+
+def block(center, size, face):
+    """Avionics block: painted case, textured front face toward the pilot, mounting feet."""
+    cx, cy, cz = center; sx, sy, sz = size
+    box("tub", center, size, "black", 0.006)
+    zf = cz + sz / 2 + 0.0015
+    u0, v0, u1, v1 = rect_uv(face, 1.0)
+    # seen looking aft, +x is on the viewer's left
+    q = [(cx + sx / 2 - 0.004, cy - sy / 2 + 0.004, zf), (cx - sx / 2 + 0.004, cy - sy / 2 + 0.004, zf),
+         (cx - sx / 2 + 0.004, cy + sy / 2 - 0.004, zf), (cx + sx / 2 - 0.004, cy + sy / 2 - 0.004, zf)]
+    face_toward("tub", q, (0, 0, 1), uvs=[(u0, v0), (u1, v0), (u1, v1), (u0, v1)])
+    for s in (-1, 1):
+        box("tub", (cx + s * (sx / 2 + 0.012), cy - sy / 2 + 0.01, cz), (0.024, 0.02, sz * 0.8), "metal", 0.003)
+
+
+block((-0.115, DECK + 0.095, 5.81), (0.20, 0.17, 0.20), "avionics_a")
+block((0.115, DECK + 0.075, 5.79), (0.19, 0.13, 0.18), "avionics_b")
+box("tub", (0.0, DECK + 0.02, 5.80), (0.42, 0.012, 0.24), "metal", 0.003)                   # equipment tray
+# oxygen bottles in straps by the walls, valves on top, lines running forward to the seat bulkhead
+for s in (-1, 1):
+    ox = s * (bay_halfwidth(DECK + 0.07, 5.78) - 0.075)
+    sphere("tub", (ox, DECK + 0.072, 5.775), 0.066, "o2")
+    tube("tub", [(ox - 0.07, DECK + 0.07, 5.775), (ox, DECK + 0.075, 5.775), (ox + 0.07, DECK + 0.07, 5.775)], 0.008, "black", 8)
+    cylinder("tub", (ox, DECK + 0.148, 5.775), (0, 1, 0), 0.012, 0.024, "metal", 12)
+    cylinder("tub", (ox, DECK + 0.165, 5.775), (0, 1, 0), 0.018, 0.010, "black", 12)
+    # oxygen line: from the valve down beside the bottle, then low along the wall to the seat bulkhead
+    tube("tub", [(ox, DECK + 0.16, 5.775), (ox + s * 0.035, DECK + 0.15, 5.79), (ox + s * 0.05, DECK + 0.10, 5.82), (ox + s * 0.05, DECK + 0.05, 5.86),
+                 (ox + s * 0.05, DECK + 0.045, 5.99), (ox + s * 0.05, deck_y[Z_BULK] + 0.04, Z_BULK - 0.008)], 0.006, "metal", 8)
+    # cable looms along the walls and from the blocks to the bulkhead
+    tube("tub", [(s * (wall_x(DECK + 0.03, z) - 0.02), DECK + 0.03, z) for z in BAY_Z], 0.012, "black", 8)
+    tube("tub", [(s * 0.115, DECK + 0.05, 5.90), (s * 0.12, DECK + 0.03, 5.98), (s * 0.13, deck_y[Z_BULK] + 0.01, Z_BULK - 0.01)], 0.009, "black", 8)
+# a radio / IFF box on the rear bulkhead with its cable
+block((0.0, DECK + 0.205, 5.705), (0.16, 0.07, 0.06), "avionics_b")
+tube("tub", [(0.06, DECK + 0.17, 5.71), (0.10, DECK + 0.15, 5.73), (0.115, DECK + 0.14, 5.75)], 0.007, "black", 8)
 
 # ------------------------------------------------------------------------------------------------ side consoles
 CON_Z0, CON_Z1 = 6.12, 7.02
@@ -691,6 +803,10 @@ box("seat", (0, 1.125, back_z(1.125) + 0.075), (0.20, 0.13, 0.025), "cushion", 0
 for s in (-1, 1):
     box("seat", (s * 0.14, 1.12, back_z(1.12) + 0.06), (0.03, 0.15, 0.08), "headrest", 0.01, rot=("x", -13))
 box("seat", (0, 1.205, back_z(1.205) - 0.02), (0.22, 0.012, 0.08), "yellow", 0.003, rot=("x", -13))
+# K-36 canopy breakers: two spikes on the headbox, there to punch through the canopy if it fails to jettison
+for s in (-1, 1):
+    cylinder("seat", (s * 0.075, 1.212, back_z(1.212) - 0.005), (0, 1, -0.23), 0.012, 0.010, "dgrey", 10)
+    cylinder("seat", (s * 0.075, 1.232, back_z(1.232) - 0.0005), (0, 1, -0.23), 0.010, 0.034, "metal", 10, r2=0.0015)
 # harness straps
 for s in (-1, 1):
     tube("seat", [(s * 0.09, 1.0, back_z(1.0) + 0.075), (s * 0.085, 0.80, back_z(0.80) + 0.08), (s * 0.06, 0.55, 6.32)], 0.008, "olive", 6)
@@ -830,6 +946,7 @@ for name in ("tub", "seat"):
         if body_bvh.ray_cast(c + d * 0.003, d, 2.0)[0] is None and glass_bvh.ray_cast(c + d * 0.003, d, 2.0)[0] is None:
             outside.append((round(c.x, 3), round(c.z, 3), round(c.y, 3)))
     print(f"[cockpit] {name}: {len(outside)} verts outside the airframe (unity x,y,z): {sorted(set(outside))[:40]}")
+    print(f"[cockpit] {name}: of those in the bay behind the seat (z < {Z_BULK}): {sorted(set(o for o in outside if o[2] < Z_BULK))[:20]}")
 
 # ------------------------------------------------------------------------------------------------ preview renders
 if PREVIEW:
@@ -886,9 +1003,15 @@ if PREVIEW:
     scene.view_settings.view_transform = "Standard"
     E = P(*EYE)
     views = {"fwd": (E, E + P(0, -0.30, 1)), "down": (E, E + P(0, -0.75, 0.6)), "left": (E, E + P(-1, -0.6, 0.25)), "right": (E, E + P(1, -0.6, 0.25)),
-             "back": (E, E + P(0.2, -0.3, -1)), "outside": (P(1.6, 1.9, 6.0), P(0, 0.75, 6.75)), "outside_front": (P(0.9, 1.6, 8.6), P(0, 0.85, 6.9))}
+             "back": (E, E + P(0.2, -0.3, -1)), "outside": (P(1.6, 1.9, 6.0), P(0, 0.75, 6.75)), "outside_front": (P(0.9, 1.6, 8.6), P(0, 0.85, 6.9)),
+             # the equipment bay behind the seat: over each shoulder (head turned and leaned, as with free look) and from outside
+             "shoulder_l": (E + P(0.17, 0.0, -0.02), E + P(-0.50, -0.55, -1)), "shoulder_r": (E + P(-0.17, 0.0, -0.02), E + P(0.50, -0.55, -1)),
+             "bay": (P(0.30, 1.45, 6.30), P(-0.02, 0.98, 5.80)), "outside_rear": (P(1.3, 1.9, 4.9), P(0, 1.0, 5.9))}
+    only = [v for v in os.environ.get("MIG29_VIEWS", "").split(",") if v]   # e.g. MIG29_VIEWS=back,bay renders just those
     for name, (loc, look) in views.items():
-        cam = cs.camera(name, loc, look, lens=13 if name not in ("outside", "outside_front") else 30)
+        if only and name not in only:
+            continue
+        cam = cs.camera(name, loc, look, lens=30 if name in ("outside", "outside_front", "outside_rear") else 13)
         scene.camera = cam
         scene.render.filepath = os.path.join(PREVIEW, f"ck_{name}.png")
         bpy.ops.render.render(write_still=True)

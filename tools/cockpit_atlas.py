@@ -484,6 +484,60 @@ img = canvas(256, 64, PAINT["yellow"]); d = ImageDraw.Draw(img)
 label(d, (128 * SS, 32 * SS), "КАТАПУЛЬТ", 28 * SS, (20, 20, 20), FONT)
 put("eject_label", down(img, 256, 64))
 
+# ---------------------------------------------------------------- compartment behind the seat (cockpit_build.py: rear bay)
+# Soviet oxygen bottles are painted light blue
+put("paint_o2", noise_fill(128, 128, (92, 142, 190), 5, 0.3, seed=7), (0, 90))
+
+
+def avionics_front(w=256, h=128, seed=3):
+    """Front face of an avionics block: crinkle-black case, two carry handles, round connectors, data plate, screws."""
+    rnd = random.Random(seed)
+    img = noise_fill(w, h, (44, 47, 46), 7, 0.4, seed).resize((w * SS, h * SS)); d = ImageDraw.Draw(img); S = SS
+    d.rectangle((3 * S, 3 * S, (w - 3) * S, (h - 3) * S), outline=(78, 80, 80), width=2 * S)
+    for x in (16, w - 16):   # carry handles
+        d.rounded_rectangle(((x - 6) * S, 18 * S, (x + 6) * S, (h - 18) * S), radius=6 * S, outline=(170, 172, 170), width=3 * S)
+    for i, cx in enumerate((62, 104, 146)):   # MIL round connectors with their caps
+        cy = 88
+        d.ellipse(((cx - 15) * S, (cy - 15) * S, (cx + 15) * S, (cy + 15) * S), fill=(120, 122, 118), outline=(60, 60, 60), width=2 * S)
+        d.ellipse(((cx - 10) * S, (cy - 10) * S, (cx + 10) * S, (cy + 10) * S), fill=(30, 30, 30))
+        for k in range(6):
+            a = k / 6 * math.tau; d.ellipse(((cx + math.cos(a) * 5.5 - 1.5) * S, (cy + math.sin(a) * 5.5 - 1.5) * S, (cx + math.cos(a) * 5.5 + 1.5) * S, (cy + math.sin(a) * 5.5 + 1.5) * S), fill=(190, 170, 90))
+    d.rectangle((40 * S, 16 * S, 200 * S, 56 * S), fill=(205, 205, 196), outline=(90, 90, 86), width=S)   # data plate
+    label(d, (120 * S, 28 * S), "БЛОК " + rnd.choice(["Н019-01", "СУО-29", "СПО-15", "А-323"]), 11 * S, (25, 25, 25), FONT)
+    label(d, (120 * S, 45 * S), f"№ {rnd.randint(1000, 9999)}   1987", 9 * S, (40, 40, 40), FONT_R)
+    lamp(d, 196 * S, 88 * S, 6 * S, PAINT["green_lamp"])
+    for sx, sy in ((10, 10), (w - 10, 10), (10, h - 10), (w - 10, h - 10)):
+        d.ellipse(((sx - 3) * S, (sy - 3) * S, (sx + 3) * S, (sy + 3) * S), fill=(130, 130, 126)); d.line(((sx - 2) * S, sy * S, (sx + 2) * S, sy * S), fill=(40, 40, 40), width=S)
+    return down(img, w, h)
+
+
+put("avionics_a", avionics_front(seed=3), (40, 90))
+put("avionics_b", avionics_front(seed=11), (40, 90))
+
+
+def aft_bulkhead(w=256, h=128, seed=5):
+    """Rear bulkhead under the canopy: dark grey panel, rivet lines, an access hatch and a canopy warning stencil."""
+    base = noise_fill(w, h, PAINT["dgrey"], 5, 0.7, seed)
+    img = base.resize((w * SS, h * SS)); d = ImageDraw.Draw(img); S = SS
+    seam = tuple(int(c * 0.6) for c in PAINT["dgrey"]); rivet = tuple(int(c * 1.5) for c in PAINT["dgrey"])
+    for x in (64, 192):
+        d.line((x * S, 0, x * S, h * S), fill=seam, width=2 * S)
+        for y in range(4, h, 8):
+            d.ellipse(((x + 4) * S - S, y * S - S, (x + 4) * S + S, y * S + S), fill=rivet)
+    for x in range(4, w, 8):
+        d.ellipse((x * S - S, 6 * S - S, x * S + S, 6 * S + S), fill=rivet)
+    d.rectangle((84 * S, 44 * S, 172 * S, 104 * S), outline=seam, width=2 * S)            # access hatch
+    for sx, sy in ((90, 50), (166, 50), (90, 98), (166, 98)):
+        d.ellipse(((sx - 2.5) * S, (sy - 2.5) * S, (sx + 2.5) * S, (sy + 2.5) * S), fill=(120, 122, 120))
+    d.rectangle((92 * S, 16 * S, 164 * S, 34 * S), fill=PAINT["yellow"])                   # stencil: canopy, keep clear
+    label(d, (128 * S, 25 * S), "ФОНАРЬ", 10 * S, (20, 20, 20), FONT)
+    label(d, (128 * S, 116 * S), "НЕ НАСТУПАТЬ", 7 * S, seam, FONT)
+    return down(img, w, h)
+
+
+put("aft_bulk", aft_bulkhead())
+assert pk.y + pk.row <= W, f"cockpit atlas overflow: {pk.y + pk.row} > {W}"
+
 atlas.save(os.path.join(OUT, "cockpit_atlas.png"))
 metal.save(os.path.join(OUT, "cockpit_metallic.png"))
 json.dump({"size": W, "rects": rects, "layout": LAYOUT}, open(os.path.join(OUT, "cockpit_atlas.json"), "w"), indent=1)

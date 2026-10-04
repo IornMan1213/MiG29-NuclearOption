@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+- **Equipment bay behind the seat.** The space under the rear canopy, between the seat and the canopy's rear edge, was empty:
+  looking over your shoulder you saw straight out of the aircraft. It is now a closed bay modelled for the mod:
+  - A deck, side walls and canopy sills.
+  - A riveted rear bulkhead shaped to the canopy, with a ФОНАРЬ stencil and an access hatch.
+  - Two avionics blocks with data plates, connectors and carry handles.
+  - A radio box, two blue oxygen bottles in straps with valves and lines, and cable looms.
+  - The bay also shows through the rear canopy from outside.
+- The K-36 seat has its canopy breakers on the headbox, and the seat's guide rails are on the bulkhead behind it.
+
 ## 0.8.0
 **Drop tanks and chaff.**
 - **PTB-1500 centreline tank** (1,500 L, about 1,180 kg of fuel) on a new belly station between the engine nacelles, and
