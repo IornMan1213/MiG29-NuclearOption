@@ -82,14 +82,17 @@ namespace MiG29Instruments
                     }
                 }
             }
-            if (Time.unscaledTime >= nextStoresScan)   // every MiG (player and AI) gets the drop-tank driver
+            if (Time.unscaledTime >= nextStoresScan)   // every MiG (player and AI) gets the drop-tank and nozzle drivers
             {
                 nextStoresScan = Time.unscaledTime + 2f;
                 try
                 {
                     foreach (var a in UnityEngine.Object.FindObjectsOfType<Aircraft>())
-                        if (((Unit)a).definition != null && ((Unit)a).definition.jsonKey == MiG29Key && a.GetComponent<StoresDriver>() == null)
-                            a.gameObject.AddComponent<StoresDriver>();
+                        if (((Unit)a).definition != null && ((Unit)a).definition.jsonKey == MiG29Key)
+                        {
+                            if (a.GetComponent<StoresDriver>() == null) a.gameObject.AddComponent<StoresDriver>();
+                            if (a.GetComponent<NozzleDriver>() == null) a.gameObject.AddComponent<NozzleDriver>();
+                        }
                 }
                 catch (Exception e) { MiG29InstrumentsPlugin.Log.LogError(e); nextStoresScan = Time.unscaledTime + 10f; }
             }

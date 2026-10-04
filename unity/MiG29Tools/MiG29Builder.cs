@@ -43,6 +43,12 @@ namespace MiG29Tools
         public static void BuildAssets()
         {
             var data = JsonUtility.FromJson<MeshDump>(File.ReadAllText(Path.Combine(SourceDir, "mig29_mesh.json")));
+            // the model's nozzle cans give way to the from-scratch RD-33 nozzles (MiG29Nozzles.Build below)
+            foreach (var p in data.parts.Where(p => p.name == "body"))
+            {
+                p.triangles = MiG29Nozzles.StripModelNozzles(p.vertices, p.triangles, out int stripped);
+                Debug.Log($"[MiG29] nozzles: {stripped} model nozzle triangles stripped");
+            }
             AssetDatabase.DeleteAsset(ModDir + "/meshes"); // no stale meshes in the bundle
             EnsureFolder(ModDir); EnsureFolder(ModDir + "/meshes"); EnsureFolder(ModDir + "/textures"); EnsureFolder(ModDir + "/materials");
 
@@ -65,6 +71,21 @@ namespace MiG29Tools
             var landingLight = Find(root, "gearLight_F");
             landingLight.SetParent(Find(root, "gear_F_sprung"), true);
             landingLight.position = Find(root, "wheel_F").position + new Vector3(0f, 0.72f, 0.42f);
+            // The light itself (a 30 deg spot plus a glare sprite) sits on a child placed for the KR-67's door, which swings ~87 deg
+            // open and so aimed it forward; on the strut it kept the closed-door angle and shone straight down, flooding the ground and
+            // glaring in every direction. Aim it ahead and slightly down from the lamp, and halve the glare.
+            var beam = Find(landingLight, "gearLight_F_effects");
+            beam.SetPositionAndRotation(landingLight.position + new Vector3(0f, 0f, 0.03f), Quaternion.LookRotation(new Vector3(0f, -0.07f, 1f), Vector3.up));
+            foreach (var ps in beam.GetComponentsInChildren<ParticleSystem>(true))
+            {
+                var main = ps.main;
+                main.startSizeMultiplier *= 0.5f;
+            }
+            foreach (var l in beam.GetComponentsInChildren<Light>(true))
+            {
+                l.spotAngle = 24f;           // landing-light beam
+                l.intensity *= 0.6f;
+            }
 
             var visual = new GameObject("MiG29_visual").transform;
             visual.SetParent(root, false);
@@ -96,6 +117,7 @@ namespace MiG29Tools
             var fm = MiG29FlightModel.Load();
             MiG29FlightModel.ApplyToPrefab(root, fm, (n, c) => CubeMesh("MiG29_col_" + n, c, 0.3f));
 
+            MiG29Nozzles.Build(root, ModelOffset, materials.skin, (o, path) => CreateOrReplace(o, path));
             MoveCockpit(root);
             MiG29Polish.SetupCanopy(go, ModelOffset, migCanopy, (m, path) => CreateOrReplace(m, path), exterior);
             AddIntakeBlockers(root);
