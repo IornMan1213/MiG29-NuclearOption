@@ -18,6 +18,15 @@
   state, and every rotary selector is a 3D knob with a white pointer. They used to be printed flat on the plates.
 - **Sharper cockpit textures.** The cockpit atlas is now 4096 px instead of 2048, so switch legends, placards, rivets and
   gauge faces stay crisp up close.
+- **Rebuilt K-36DM seat.** It was made of flat slabs; now it has:
+  - three separate padded back cushions;
+  - split thigh pads with a front roll on the survival-kit box;
+  - a rounded headbox with a raised head pad and side wings;
+  - small canopy breakers at the back of the headbox top (they had looked like horns);
+  - trim on the bucket edges;
+  - flat webbing shoulder and lap straps meeting at a metal quick-release buckle, plus a negative-g strap.
+- **Circuit-breaker panels (АЗС)** on both cockpit walls above the consoles: three rows of 3D breaker buttons with legends.
+- Seat fabric is plain now; the printed quilting showed as stray diagonal slashes.
 - Fixed: the bulkhead behind the seat and the footwell's front wall faced away from the pilot, so the game didn't draw them
   (you could see out of the aircraft past the seat). Both face into the cockpit now.
 

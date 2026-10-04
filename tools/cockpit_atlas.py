@@ -98,10 +98,7 @@ for name, col in PAINT.items():
     grime = 0.6 if name in ("turq", "turq_dark", "floor", "dgrey", "seat") else 0.0
     amp = 10 if name in ("cushion", "floor") else 5
     img = noise_fill(128, 128, col, amp, grime, seed=hash(name) % 1000)
-    if name == "cushion":   # quilted seat fabric
-        d = ImageDraw.Draw(img)
-        for i in range(0, 128, 32):
-            d.line((i * K, 0, i * K, 128 * K), fill=tuple(int(c * 0.72) for c in col), width=2 * K)
+    # (cushions are separate padded blocks now: plain fabric, no printed quilting, which planar mapping turned into stray slashes)
     if name == "floor":     # anti-slip tread
         d = ImageDraw.Draw(img)
         for yy in range(2, 128, 6):
@@ -417,6 +414,29 @@ def switch_panel(w, h, seed, base="black", rows=None, name=None):
                     label(d, (x, y + 16 * s), rnd.choice(WORDS), 7 * s, (215, 215, 208), FONT_R)
     return down(img, w, h)
 
+
+def breaker_panel(w=512, h=128, seed=77):
+    """Circuit-breaker panel (АЗС): three rows of breakers, each a white collar with a legend under it. The breaker buttons are
+    3D (cockpit_build.py): LAYOUT["sp_cb"] lists them like the switches, kind "breaker"."""
+    rnd = random.Random(seed)
+    img = canvas(w, h, PAINT["black"]); d = ImageDraw.Draw(img); s = SS
+    d.rectangle((3 * s, 3 * s, (w - 3) * s, (h - 3) * s), outline=(70, 72, 74), width=s)
+    lay = LAYOUT["sp_cb"] = []
+    label(d, (w / 2 * s, 12 * s), "АЗС", 10 * s, (225, 225, 218), FONT)
+    cols, rows = 12, 3
+    for r_ in range(rows):
+        for c_ in range(cols):
+            x = (24 + c_ * (w - 48) / (cols - 1)) * s; y = (34 + r_ * 32) * s
+            d.ellipse((x - 7 * s, y - 7 * s, x + 7 * s, y + 7 * s), fill=(200, 200, 194), outline=(90, 90, 90), width=s)
+            d.ellipse((x - 4.5 * s, y - 4.5 * s, x + 4.5 * s, y + 4.5 * s), fill=(30, 30, 30))
+            label(d, (x, y + 12 * s), rnd.choice(WORDS), 6 * s, (215, 215, 208), FONT_R)
+            lay.append(["breaker", x / (w * s), y / (h * s), 4.5 / w, 1 if rnd.random() < 0.9 else 0])
+    for sx, sy in ((8, 8), (w - 8, 8), (8, h - 8), (w - 8, h - 8)):
+        d.ellipse(((sx - 2.5) * s, (sy - 2.5) * s, (sx + 2.5) * s, (sy + 2.5) * s), fill=(110, 110, 108))
+    return down(img, w, h)
+
+
+put("sp_cb", breaker_panel(), (0, 90))
 
 for i, (name, w, h) in enumerate([("sp_lc1", 384, 256), ("sp_lc2", 256, 256), ("sp_lc3", 256, 128), ("sp_rc1", 384, 256), ("sp_rc2", 256, 256),
                                    ("sp_rc3", 256, 128), ("sp_pl", 256, 256), ("sp_pr", 256, 256), ("sp_ped", 256, 384), ("sp_wl", 128, 256),

@@ -172,6 +172,11 @@ def switches_3d(corners, cell):
             tip = p + n * 0.014 + t_ax * state * 0.005
             tube("tub", [tuple(p + n * 0.002), tuple(tip)], 0.0014, "metal", 6)
             cylinder("tub", tuple(tip), tuple((tip - p).normalized()), 0.0023, 0.004, "metal", 8, r2=0.0016)   # bat tip
+        elif kind == "breaker":
+            # circuit breaker: black button in a white collar; a tripped one (state 0) stands proud showing its white band
+            out = 0.0045 if state else 0.009
+            cylinder("tub", tuple(p + n * 0.0012), tuple(n), r * 1.45, 0.0024, "white", 10)
+            cylinder("tub", tuple(p + n * (out / 2)), tuple(n), r, out, "black", 10)
         else:
             # rotary knob with a white pointer at its setting
             cylinder("tub", tuple(p + n * 0.0015), tuple(n), r, 0.003, "dgrey", 14)
@@ -477,6 +482,16 @@ for side, cell, z0, z1 in ((-1, "sp_lc3", 6.18, 6.40), (1, "sp_aft", 6.20, 6.42)
     # corners bottom-left, bottom-right, top-right, top-left as the pilot sees the wall
     q = [(X, a0, b1), (X, a0, b0), (X, a1, b0), (X, a1, b1)] if side > 0 else [(X, a0, b0), (X, a0, b1), (X, a1, b1), (X, a1, b0)]
     quad_uv("tub", q, rect_uv(cell))
+
+# circuit-breaker panels (АЗС) on both walls, ahead of the equipment boxes
+for side in (-1, 1):
+    z0, z1, y0, y1 = 6.72, 7.00, CON_TOP + 0.035, CON_TOP + 0.105
+    xw = min(wall_x(y, z) for y in (y0, y1) for z in (z0, z1)) - 0.002
+    xf = xw - 0.012
+    box("tub", (side * (xw + xf) / 2, (y0 + y1) / 2, (z0 + z1) / 2), (xw - xf, y1 - y0, z1 - z0), "black", 0.003)
+    X, a0, a1, b0, b1 = side * (xf - 0.001), y0 + 0.003, y1 - 0.003, z0 + 0.003, z1 - 0.003
+    q = [(X, a0, b1), (X, a0, b0), (X, a1, b0), (X, a1, b1)] if side > 0 else [(X, a0, b0), (X, a0, b1), (X, a1, b1), (X, a1, b0)]
+    quad_uv("tub", q, rect_uv("sp_cb"))
 
 # throttle quadrant (left console): slotted cover, gate plate
 TQ_Z0, TQ_Z1 = 6.42, 6.72
@@ -817,28 +832,55 @@ for s in (-1, 1):
     tube("seat", [(s * 0.235, 0.36, 6.00), (s * 0.235, 1.10, back_z(1.10) - 0.08)], 0.018, "dgrey", 10)   # guide rails
     for k in range(3):
         cylinder("seat", (s * 0.252, 0.50 + k * 0.22, back_z(0.5 + k * 0.22) - 0.07), (1, 0, 0), 0.016, 0.014, "metal", 12)
-# seat pan cushion + survival kit
-box("seat", (0, 0.40, 6.43), (0.40, 0.07, 0.46), "cushion", 0.03, segs=3)
+# seat pan: survival kit (NAZ) box, split thigh pads, front roll
 box("seat", (0, 0.35, 6.42), (0.40, 0.05, 0.48), "seat", 0.01)
-# back cushion
-bc = Matrix.Translation(P(0, 0.72, back_z(0.72) + 0.03)) @ rot_matrix(("x", -13))
-bm = bmesh.new(); bmesh.ops.create_cube(bm, size=1.0); bmesh.ops.scale(bm, vec=Vector((0.38, 0.07, 0.56)), verts=bm.verts)
-bmesh.ops.bevel(bm, geom=list(bm.edges), offset=0.028, segments=3, affect="EDGES"); add_bm("seat", bm, "cushion", bc); bm.free()
-box("seat", (0, 0.72, back_z(0.72) - 0.03), (0.42, 0.62, 0.05), "seat", 0.01, rot=("x", -13))
-# headrest / headbox
-box("seat", (0, 1.115, back_z(1.115) + 0.0), (0.30, 0.17, 0.16), "headrest", 0.03, rot=("x", -13), segs=3)
-box("seat", (0, 1.125, back_z(1.125) + 0.075), (0.20, 0.13, 0.025), "cushion", 0.012, rot=("x", -13))
 for s in (-1, 1):
-    box("seat", (s * 0.14, 1.12, back_z(1.12) + 0.06), (0.03, 0.15, 0.08), "headrest", 0.01, rot=("x", -13))
-box("seat", (0, 1.205, back_z(1.205) - 0.02), (0.22, 0.012, 0.08), "yellow", 0.003, rot=("x", -13))
-# K-36 canopy breakers: two spikes on the headbox, there to punch through the canopy if it fails to jettison
+    box("seat", (s * 0.098, 0.405, 6.43), (0.186, 0.06, 0.42), "cushion", 0.024, segs=3)
+    box("seat", (s * 0.196, 0.352, 6.42), (0.012, 0.03, 0.40), "dgrey", 0.003)                      # kit latch rails
+cylinder("seat", (0, 0.398, 6.652), (1, 0, 0), 0.03, 0.37, "cushion", 16)
+# back: plate, three padded cushions (lumbar, middle, upper) with gaps between them
+BACK_N = Vector((0, math.sin(math.radians(13)), math.cos(math.radians(13))))   # cushion face normal (Unity frame)
+box("seat", (0, 0.76, back_z(0.76) - 0.02), (0.42, 0.66, 0.05), "seat", 0.01, rot=("x", -13))
+for yc, hh in ((0.555, 0.17), (0.75, 0.18), (0.945, 0.17)):
+    box("seat", (0, yc, back_z(yc) + 0.033), (0.36, hh, 0.06), "cushion", 0.024, rot=("x", -13), segs=3)
+# headbox: rounded, with a raised head pad and the K-36's side wings
+HB_Y = 1.135
+box("seat", (0, HB_Y, back_z(HB_Y) - 0.01), (0.32, 0.20, 0.17), "headrest", 0.04, rot=("x", -13), segs=4)
+box("seat", (0, HB_Y - 0.005, back_z(HB_Y) + 0.085), (0.20, 0.13, 0.04), "cushion", 0.016, rot=("x", -13), segs=3)
 for s in (-1, 1):
-    cylinder("seat", (s * 0.075, 1.212, back_z(1.212) - 0.005), (0, 1, -0.23), 0.012, 0.010, "dgrey", 10)
-    cylinder("seat", (s * 0.075, 1.232, back_z(1.232) - 0.0005), (0, 1, -0.23), 0.010, 0.034, "metal", 10, r2=0.0015)
-# harness straps
+    box("seat", (s * 0.168, HB_Y - 0.01, back_z(HB_Y) + 0.045), (0.032, 0.17, 0.10), "headrest", 0.012, rot=[("x", -13), ("y", -s * 14)], segs=2)
+box("seat", (0, HB_Y + 0.098, back_z(HB_Y + 0.098) + 0.03), (0.24, 0.006, 0.05), "yellow", 0.002, rot=("x", -13))   # warning band
+# K-36 canopy breakers: two short spikes at the back of the headbox top (they punch through the canopy if it fails to jettison)
 for s in (-1, 1):
-    tube("seat", [(s * 0.09, 1.0, back_z(1.0) + 0.075), (s * 0.085, 0.80, back_z(0.80) + 0.08), (s * 0.06, 0.55, 6.32)], 0.008, "olive", 6)
-    tube("seat", [(s * 0.17, 0.46, 6.25), (s * 0.08, 0.47, 6.40)], 0.007, "olive", 6)
+    bp = (s * 0.085, HB_Y + 0.103, back_z(HB_Y + 0.1) - 0.045)
+    cylinder("seat", bp, (0, 1, -0.23), 0.009, 0.006, "dgrey", 10)
+    cylinder("seat", (bp[0], bp[1] + 0.011, bp[2] - 0.0025), (0, 1, -0.23), 0.0065, 0.016, "metal", 10, r2=0.0012)
+# bucket side trim along the top edges
+for s in (-1, 1):
+    tube("seat", [(s * 0.232, 0.47, 6.68), (s * 0.232, 0.56, 6.50), (s * 0.232, 0.72, back_z(0.72) + 0.06), (s * 0.232, 1.02, back_z(1.02) + 0.03)], 0.011, "dgrey", 8)
+
+
+def strap(pts, width, normal_of, paint="olive"):
+    """Flat webbing through Unity-frame points, lying on the surface whose normal normal_of(point) gives."""
+    pts = [Vector(p) for p in pts]
+    for p0, p1 in zip(pts, pts[1:]):
+        nrm = normal_of((p0 + p1) / 2)
+        side = (p1 - p0).cross(nrm).normalized() * width / 2
+        face_toward("seat", [tuple(p0 - side), tuple(p0 + side), tuple(p1 + side), tuple(p1 - side)], tuple(nrm), paint)
+
+
+on_back = lambda p: BACK_N if p.y > 0.60 else Vector((0, 1, 0.35)).normalized()
+on_pan = lambda p: Vector((0, 1, 0))
+BUCKLE = (0.0, 0.437, 6.46)
+for s in (-1, 1):
+    # shoulder harness over the cushions down to the quick-release buckle
+    strap([(s * 0.082, y, back_z(y) + 0.064) for y in (1.05, 0.95, 0.85, 0.75, 0.65)] + [(s * 0.055, 0.52, 6.33), (s * 0.02, 0.438, 6.45)], 0.045, on_back)
+    # lap belt from the bucket side
+    strap([(s * 0.205, 0.44, 6.30), (s * 0.15, 0.437, 6.38), (s * 0.03, 0.437, 6.455)], 0.045, on_pan)
+    box("seat", (s * 0.06, 0.44, 6.44), (0.03, 0.006, 0.03), "metal", 0.002)                           # adjusters
+strap([(0, 0.437, 6.62), (0, 0.437, 6.49)], 0.04, on_pan)                                          # negative-g strap
+cylinder("seat", BUCKLE, (0, 1, 0), 0.032, 0.008, "metal", 20)                                       # quick-release box
+cylinder("seat", (BUCKLE[0], BUCKLE[1] + 0.006, BUCKLE[2]), (0, 1, 0), 0.018, 0.005, "dgrey", 16)
 # ejection handle loop between the legs
 loop = [(-0.045, 0.415, 6.675), (-0.045, 0.455, 6.685), (-0.03, 0.47, 6.688), (0.03, 0.47, 6.688), (0.045, 0.455, 6.685), (0.045, 0.415, 6.675)]
 tube("seat", loop, 0.009, "yellow", 8)
@@ -1115,7 +1157,8 @@ if PREVIEW:
              # the equipment bay behind the seat: over each shoulder (head turned and leaned, as with free look) and from outside
              "shoulder_l": (E + P(0.17, 0.0, -0.02), E + P(-0.50, -0.55, -1)), "shoulder_r": (E + P(-0.17, 0.0, -0.02), E + P(0.50, -0.55, -1)),
              "bay": (P(0.30, 1.45, 6.30), P(-0.02, 0.98, 5.80)), "outside_rear": (P(1.3, 1.9, 4.9), P(0, 1.0, 5.9)),
-             "console_l": (E + P(-0.05, -0.05, 0.0), P(-0.30, 0.66, 6.45)), "panel": (E, P(0, 0.88, 7.2))}
+             "console_l": (E + P(-0.05, -0.05, 0.0), P(-0.30, 0.66, 6.45)), "panel": (E, P(0, 0.88, 7.2)),
+             "seat_look": (E + P(-0.17, 0.0, 0.12), P(0.05, 0.92, 6.12)), "seat_front": (P(0.0, 1.02, 7.05), P(0, 0.78, 6.25))}
     only = [v for v in os.environ.get("MIG29_VIEWS", "").split(",") if v]   # e.g. MIG29_VIEWS=back,bay renders just those
     for name, (loc, look) in views.items():
         if only and name not in only:
