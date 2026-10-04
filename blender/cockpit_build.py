@@ -286,10 +286,12 @@ for z0, z1 in zip(zs, zs[1:]):
     w0, w1 = wall_x(FLOOR + 0.01, z0), wall_x(FLOOR + 0.01, z1)
     poly_paint("tub", [(-w0, FLOOR, z0), (-w1, FLOOR, z1), (w1, FLOOR, z1), (w0, FLOOR, z0)][::-1], "floor")
 def bulkhead(z, top, paint, facing):
+    """Full-width wall at station z; facing = +1 faces forward (+z), -1 aft. Built with face_toward: the earlier vertex order
+    made both bulkheads face away from the pilot, so the game culled them (you could see out behind the seat)."""
     ys = [FLOOR + (top - FLOOR) * k / 8 for k in range(9)]
     for y0, y1 in zip(ys, ys[1:]):
         q = [(-wall_x(y0, z), y0, z), (wall_x(y0, z), y0, z), (wall_x(y1, z), y1, z), (-wall_x(y1, z), y1, z)]
-        poly_paint("tub", q if facing > 0 else q[::-1], paint)
+        face_toward("tub", q, (0, 0, facing), paint)
 bulkhead(Z_FRONT, sill_y(Z_FRONT), "dgrey", -1)
 # rear bulkhead (behind the seat back) with the seat's guide rails
 top_b = sill_y(Z_BULK)

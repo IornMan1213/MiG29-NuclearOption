@@ -9,6 +9,8 @@
   - A radio box, two blue oxygen bottles in straps with valves and lines, and cable looms.
   - The bay also shows through the rear canopy from outside.
 - The K-36 seat has its canopy breakers on the headbox, and the seat's guide rails are on the bulkhead behind it.
+- Fixed: the bulkhead behind the seat and the footwell's front wall faced away from the pilot, so the game didn't draw them
+  (you could see out of the aircraft past the seat). Both face into the cockpit now.
 
 ## 0.8.0
 **Drop tanks and chaff.**
