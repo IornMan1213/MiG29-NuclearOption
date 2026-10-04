@@ -143,11 +143,43 @@ def tube(part, pts, radius, paint, segs=10):
 
 
 def quad_uv(part, corners, uvrect, flip=False):
-    """Quad (Unity-frame corners: bottom-left, bottom-right, top-right, top-left as seen from the front) with UVs spanning uvrect."""
+    """Quad (Unity-frame corners: bottom-left, bottom-right, top-right, top-left as seen from the front) with UVs spanning uvrect.
+    A switch plate (sp_* cell) also gets its 3D toggle levers and knobs, standing on the bases the atlas drew for them."""
     u0, v0, u1, v1 = uvrect
     uvs = [(u0, v0), (u1, v0), (u1, v1), (u0, v1)]
     pts = [P(*c) for c in corners]
     PARTS[part].face(pts, uvs)
+    cell = SWITCH_CELLS.get(tuple(round(x, 6) for x in uvrect))
+    if cell and part == "tub":
+        switches_3d(corners, cell)
+
+
+SWITCH_CELLS = {tuple(round(x, 6) for x in rect_uv(n)): n for n in ATLAS["layout"] if n.startswith("sp_")}
+
+
+def switches_3d(corners, cell):
+    BL, BR, TR, TL = (Vector(c) for c in corners)
+    s_ax, t_ax = (BR - BL).normalized(), (TL - BL).normalized()
+    n = t_ax.cross(s_ax).normalized()          # out of the plate, toward the viewer
+    width = (BR - BL).length
+    for kind, fx, fy, size, state in ATLAS["layout"][cell]:
+        a, b = fx, 1 - fy                      # atlas y runs down the cell
+        p = BL * (1 - a) * (1 - b) + BR * a * (1 - b) + TR * a * b + TL * (1 - a) * b
+        r = size * width
+        if kind == "toggle":
+            # bat-handle toggle: nut on the bezel, lever thrown toward the drawn "on" side
+            cylinder("tub", tuple(p + n * 0.0016), tuple(n), r * 0.6, 0.0032, "dgrey", 8)
+            tip = p + n * 0.014 + t_ax * state * 0.005
+            tube("tub", [tuple(p + n * 0.002), tuple(tip)], 0.0014, "metal", 6)
+            cylinder("tub", tuple(tip), tuple((tip - p).normalized()), 0.0023, 0.004, "metal", 8, r2=0.0016)   # bat tip
+        else:
+            # rotary knob with a white pointer at its setting
+            cylinder("tub", tuple(p + n * 0.0015), tuple(n), r, 0.003, "dgrey", 14)
+            cylinder("tub", tuple(p + n * 0.0065), tuple(n), r * 0.78, 0.007, "black", 14)
+            ang = math.radians(state)
+            d = t_ax * math.cos(ang) + s_ax * math.sin(ang)
+            top = p + n * 0.0102
+            tube("tub", [tuple(top), tuple(top + d * r * 0.7)], 0.0010, "white", 6)
 
 
 def poly_paint(part, pts_u, paint):
@@ -433,13 +465,7 @@ for side in (-1, 1):
             quad_uv("tub", [(-x1, ya, za), (-x0, ya, za), (-x0, yb, zb), (-x1, yb, zb)], rect_uv(nm))
         else:
             quad_uv("tub", [(x0, ya, za), (x1, ya, za), (x1, yb, zb), (x0, yb, zb)], rect_uv(nm))
-    # a few real knobs and toggles standing on the decals
-    for k in range(4):
-        z = 6.78 + k * 0.045
-        cylinder("tub", (side * (x0 + 0.03 + (k % 2) * 0.05), top_y(z) + 0.012, z), (0, 1, 0), 0.009, 0.022, "black", 12)
-    for k in range(5):
-        z = 6.48 + k * 0.04 if side > 0 else 6.22 + k * 0.035
-        cylinder("tub", (side * (x1 - 0.03), top_y(z) + 0.012, z), (0, 1, 0.25), 0.0025, 0.022, "metal", 6)
+    # (the plates' toggles and knobs are 3D: quad_uv -> switches_3d)
 
 # equipment boxes on the side walls above the consoles (decal faces toward the pilot's side)
 for side, cell, z0, z1 in ((-1, "sp_lc3", 6.18, 6.40), (1, "sp_aft", 6.20, 6.42), (1, "sp_rc3", 6.46, 6.66)):
@@ -844,6 +870,82 @@ box("throttle", (-0.362, 0.805, 6.60), (0.012, 0.026, 0.04), "dgrey", 0.004)
 cylinder("throttle", (-0.335, 0.828, 6.60), (0, 1, 0), 0.008, 0.008, "red", 10)
 box("throttle", (-0.302, 0.80, 6.612), (0.010, 0.018, 0.018), "dgrey", 0.003)
 
+# ------------------------------------------------------------------------------------------------ windscreen bow and mirrors
+# The MiG model's own bow, mirrors and sill pieces are low-poly and blotchy up close: in the cockpit they are replaced by this
+# from-scratch bow on the windscreen / canopy split (MiG29Polish.WindscreenZ, which it also hides: the split follows the glass's
+# triangles and zigzags), with three rear-view mirrors. The model's frames stay for the outside view only (MiG29Cockpit).
+BOW_Z = 7.15
+BOW_C = (0.0, 0.80, BOW_Z)            # arch centre for the radial casts
+
+
+def glass_hit(theta, z):
+    d = Vector((math.sin(math.radians(theta)), 0.0, math.cos(math.radians(theta))))
+    hit = glass_bvh.ray_cast(P(BOW_C[0], BOW_C[1], z), d, 1.5)
+    return (hit[0], d) if hit[0] is not None else (None, d)
+
+
+def bow_gap(theta):
+    """The model's glass is open where its bow sits (z ~7.10-7.18 at the top, leaning back toward the sides): the slot's ends."""
+    zs_ = [6.95 + k * 0.005 for k in range(61)]
+    have = [glass_hit(theta, z)[0] is not None for z in zs_]
+    for k in range(1, len(zs_)):
+        if have[k - 1] and not have[k]:
+            for j in range(k, len(zs_)):
+                if have[j]:
+                    return zs_[k - 1], zs_[j]
+    return None
+
+
+bow = []                              # per angle: outer/inner points at the rear (z0) and front (z1) edge, Unity frame
+for th in range(-88, 89, 4):
+    g = bow_gap(th)
+    if g is None:
+        continue
+    (h0, d), (h1, _) = glass_hit(th, g[0] - 0.008), glass_hit(th, g[1] + 0.008)
+    if h0 is None or h1 is None:
+        continue
+    du = (d.x, d.z, d.y)               # Blender -> Unity direction
+    def U(h, k): return (h.x - du[0] * k, h.z - du[1] * k, h.y - du[2] * k)
+    bow.append((U(h0, 0.004), U(h0, 0.042), U(h1, 0.042), U(h1, 0.004), du))
+for a, b in zip(bow, bow[1:]):
+    o0a, i0a, i1a, o1a, da = a
+    o0b, i0b, i1b, o1b, db = b
+    inward = tuple(-(da[k] + db[k]) / 2 for k in range(3))
+    face_toward("tub", [i0a, i0b, i1b, i1a], inward, "dgrey")                 # inner face
+    face_toward("tub", [o0a, o0b, i0b, i0a], (0, 0, -1), "dgrey")            # rear face (toward the pilot)
+    face_toward("tub", [o1a, i1a, i1b, o1b], (0, 0, 1), "dgrey")             # front face
+for end, out in ((bow[0], -1), (bow[-1], 1)):                                # feet down onto the sills
+    o0, i0, i1, o1, du = end
+    foot_y = wall_top(BOW_Z) - 0.01
+    face_toward("tub", [i0, i1, (i1[0], foot_y, i1[2]), (i0[0], foot_y, i0[2])], (-out, 0, 0), "dgrey")
+    face_toward("tub", [o0, i0, (i0[0], foot_y, i0[2]), (o0[0], foot_y, o0[2])], (0, 0, -1), "dgrey")
+print(f"[cockpit] windscreen bow: {len(bow)} stations")
+
+
+def look_matrix(pos, target):
+    """Blender rotation for a box whose thin axis (Unity z) faces target and whose height axis (Unity y) stays up."""
+    n = (P(*target) - P(*pos)).normalized()
+    zup = Vector((0, 0, 1)); zup = (zup - n * zup.dot(n)).normalized()
+    x = n.cross(zup)
+    return Matrix((x, n, zup)).transposed()
+
+
+def mirror(theta, w, h, stalk=0.05):
+    o0, i0, i1, o1, du = min(bow, key=lambda b: abs(math.degrees(math.atan2(b[4][0], b[4][1])) - theta))
+    base = tuple((i0[k] + i1[k]) / 2 for k in range(3))
+    pos = tuple(base[k] - du[k] * stalk for k in range(3))
+    pos = (pos[0], pos[1], pos[2] - 0.03)
+    tube("tub", [base, pos], 0.007, "black", 8)
+    m = look_matrix(pos, EYE)
+    box("tub", pos, (w, h, 0.022), "black", 0.006, rot=m)
+    n = (Vector(EYE) - Vector(pos)).normalized()
+    box("tub", tuple(pos[k] + n[k] * 0.012 for k in range(3)), (w - 0.012, h - 0.012, 0.003), "metal", 0.001, rot=m)
+
+
+mirror(0, 0.20, 0.055, stalk=0.045)        # centre rear-view mirror at the top of the bow
+mirror(-42, 0.11, 0.065)                   # side mirrors on the bow's upper corners
+mirror(42, 0.11, 0.065)
+
 # ------------------------------------------------------------------------------------------------ the MiG model's own frames
 def frames_part():
     """Windscreen bow and its mirrors from the MiG cockpit part (triangles hugging the glass at the bow station)."""
@@ -859,7 +961,7 @@ def frames_part():
         d = (near[0] - c).length if near[0] is not None else 9
         # bow + sills hug the glass; mirrors sit up near the bow top
         in_bow = 6.88 < c.y < 7.32
-        if in_bow and ((d < 0.045 and c.z > 0.86) or (c.z > 1.02 and abs(c.x) > 0.12)):
+        if in_bow and d < 0.045 and c.z > 0.86:   # bow and sills only (the model's mirrors are replaced inside by our own)
             keep += t[i:i + 3]
     used = sorted(set(keep)); remap = {o: n for n, o in enumerate(used)}
     out = {"name": "frames", "material": "skin",
@@ -989,9 +1091,13 @@ if PREVIEW:
         vi = lo.vertex_index; uvl.data[li].uv = (fr["uvs"][vi * 2], fr["uvs"][vi * 2 + 1])
     for f in fme.polygons: f.use_smooth = True
     fob = bpy.data.objects.new("frames", fme); scene.collection.objects.link(fob); fme.materials.append(m_skin)
+    if os.environ.get("MIG29_NOFRAMES"):   # the game shows the MiG frames only from outside
+        fob.hide_render = True
     obs["body"].data.materials.append(m_body)
     obs["canopy"].data.materials.append(m_glass)
     obs["cockpit"].hide_render = True
+    if os.environ.get("MIG29_NOBODY"):   # like the game's cockpit view: the airframe near the eye isn't drawn
+        obs["body"].hide_render = True
     try:
         scene.render.engine = "BLENDER_EEVEE"
     except TypeError:
@@ -1008,7 +1114,8 @@ if PREVIEW:
              "back": (E, E + P(0.2, -0.3, -1)), "outside": (P(1.6, 1.9, 6.0), P(0, 0.75, 6.75)), "outside_front": (P(0.9, 1.6, 8.6), P(0, 0.85, 6.9)),
              # the equipment bay behind the seat: over each shoulder (head turned and leaned, as with free look) and from outside
              "shoulder_l": (E + P(0.17, 0.0, -0.02), E + P(-0.50, -0.55, -1)), "shoulder_r": (E + P(-0.17, 0.0, -0.02), E + P(0.50, -0.55, -1)),
-             "bay": (P(0.30, 1.45, 6.30), P(-0.02, 0.98, 5.80)), "outside_rear": (P(1.3, 1.9, 4.9), P(0, 1.0, 5.9))}
+             "bay": (P(0.30, 1.45, 6.30), P(-0.02, 0.98, 5.80)), "outside_rear": (P(1.3, 1.9, 4.9), P(0, 1.0, 5.9)),
+             "console_l": (E + P(-0.05, -0.05, 0.0), P(-0.30, 0.66, 6.45)), "panel": (E, P(0, 0.88, 7.2))}
     only = [v for v in os.environ.get("MIG29_VIEWS", "").split(",") if v]   # e.g. MIG29_VIEWS=back,bay renders just those
     for name, (loc, look) in views.items():
         if only and name not in only:

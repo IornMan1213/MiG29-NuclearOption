@@ -10,8 +10,9 @@ import json, math, os, random, sys
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else "."
-W = 2048
-SS = 4  # supersampling for the drawn cells
+K = 2   # texel density: cells are laid out in "cell px" and stored at K texels per cell px (4096 atlas, sharp up close)
+W = 2048 * K
+SS = 4 * K  # drawing resolution per cell px (4x supersampling of the stored texels)
 FONT = "C:/Windows/Fonts/arialbd.ttf"
 FONT_R = "C:/Windows/Fonts/arial.ttf"
 FONT_N = "C:/Windows/Fonts/bahnschrift.ttf"
@@ -67,10 +68,12 @@ def canvas(w, h, col):
 
 
 def down(img, w, h):
-    return img.resize((w, h), Image.LANCZOS)
+    return img.resize((w * K, h * K), Image.LANCZOS)
 
 
 def noise_fill(w, h, col, amp=6, grime=0.0, seed=0):
+    """Painted-metal swatch, w x h cell px (stored at K texels per px)."""
+    w, h = w * K, h * K
     rnd = random.Random(seed)
     img = Image.new("RGB", (w, h), col)
     px = img.load()
@@ -78,11 +81,11 @@ def noise_fill(w, h, col, amp=6, grime=0.0, seed=0):
         for x in range(w):
             n = rnd.uniform(-amp, amp)
             px[x, y] = tuple(max(0, min(255, int(c + n))) for c in col)
-    img = img.filter(ImageFilter.GaussianBlur(0.8))
+    img = img.filter(ImageFilter.GaussianBlur(0.8 * K))
     if grime:
         g = Image.new("L", (w, h), 0); d = ImageDraw.Draw(g)
         for _ in range(int(40 * grime)):
-            cx, cy, r = rnd.uniform(0, w), rnd.uniform(0, h), rnd.uniform(4, w / 5)
+            cx, cy, r = rnd.uniform(0, w), rnd.uniform(0, h), rnd.uniform(4 * K, w / 5)
             d.ellipse((cx - r, cy - r, cx + r, cy + r), fill=rnd.randint(8, 30))
         g = g.filter(ImageFilter.GaussianBlur(w / 16))
         dark = Image.new("RGB", (w, h), tuple(int(c * 0.7) for c in col))
@@ -98,19 +101,19 @@ for name, col in PAINT.items():
     if name == "cushion":   # quilted seat fabric
         d = ImageDraw.Draw(img)
         for i in range(0, 128, 32):
-            d.line((i, 0, i, 128), fill=tuple(int(c * 0.72) for c in col), width=2)
+            d.line((i * K, 0, i * K, 128 * K), fill=tuple(int(c * 0.72) for c in col), width=2 * K)
     if name == "floor":     # anti-slip tread
         d = ImageDraw.Draw(img)
         for yy in range(2, 128, 6):
             for xx in range(2 + (yy // 6 % 2) * 3, 128, 6):
-                d.rectangle((xx, yy, xx + 2, yy + 1), fill=(58, 60, 62))
+                d.rectangle((xx * K, yy * K, (xx + 2) * K, (yy + 1) * K), fill=(58, 60, 62))
     put("paint_" + name, img, SURF.get(name, (0, 70)))
 
 # yellow/black ejection handle stripes
-img = Image.new("RGB", (256, 64), PAINT["black"]); d = ImageDraw.Draw(img)
+img = canvas(256, 64, PAINT["black"]); d = ImageDraw.Draw(img)
 for i in range(-64, 256, 32):
-    d.polygon([(i, 64), (i + 16, 64), (i + 80, 0), (i + 64, 0)], fill=PAINT["yellow"])
-put("stripes", img)
+    d.polygon([(i * SS, 64 * SS), ((i + 16) * SS, 64 * SS), ((i + 80) * SS, 0), ((i + 64) * SS, 0)], fill=PAINT["yellow"])
+put("stripes", down(img, 256, 64))
 
 
 # ---------------------------------------------------------------- instrument faces
@@ -352,18 +355,22 @@ WORDS = ["ВКЛ", "ОТКЛ", "РЛС", "САУ", "ОСВЕЩ", "ПОДСВ", "
          "ПЗУ", "КАНАЛ", "ГРОМК", "ЛЕВ", "ПРАВ", "ОСН", "РЕЗ", "АВАР", "ПОЖАР", "КОНД", "ДЕМПФ", "СПО", "ТАНК", "ЗАЛП", "ЛОК"]
 
 
-def toggle(d, x, y, s, up=True):
+def toggle(d, x, y, s, up=True, lever=True):
+    """Toggle switch: bezel and nut; the lever is drawn only when no 3D lever stands on it (lever=False for console plates)."""
     r = s * 0.5
     d.ellipse((x - r, y - r, x + r, y + r), fill=(150, 150, 150), outline=(60, 60, 60), width=max(1, int(s * 0.08)))
     d.ellipse((x - r * 0.55, y - r * 0.55, x + r * 0.55, y + r * 0.55), fill=(70, 70, 70))
+    if not lever:
+        return
     ty = y - s * 0.9 if up else y + s * 0.9
     d.line((x, y, x, ty), fill=(205, 205, 200), width=max(2, int(s * 0.28)))
     d.ellipse((x - s * 0.22, ty - s * 0.22, x + s * 0.22, ty + s * 0.22), fill=(225, 225, 220))
 
 
-def knob(d, x, y, s):
+def knob(d, x, y, s, pointer=True):
     d.ellipse((x - s, y - s, x + s, y + s), fill=(30, 30, 30), outline=(90, 90, 90), width=max(1, int(s * 0.15)))
-    d.line((x, y, x, y - s * 0.9), fill=(230, 230, 225), width=max(2, int(s * 0.2)))
+    if pointer:
+        d.line((x, y, x, y - s * 0.9), fill=(230, 230, 225), width=max(2, int(s * 0.2)))
     for a in range(-120, 121, 40):
         ra = math.radians(a)
         d.line((x + math.sin(ra) * s * 1.2, y - math.cos(ra) * s * 1.2, x + math.sin(ra) * s * 1.45, y - math.cos(ra) * s * 1.45), fill=(220, 220, 215), width=max(1, int(s * 0.1)))
@@ -374,8 +381,11 @@ def lamp(d, x, y, s, col):
     d.ellipse((x - s * 0.4, y - s * 0.5, x, y - s * 0.1), fill=tuple(min(255, int(c * 0.9)) for c in col))
 
 
-def switch_panel(w, h, seed, base="black", rows=None):
+def switch_panel(w, h, seed, base="black", rows=None, name=None):
+    """Switch plate. With a name, toggles and knobs are left for 3D parts (cockpit_build.py stands real levers and knobs on them):
+    LAYOUT[name] lists them as [kind, x, y, size, state] in fractions of the cell (y down), size = radius / cell width."""
     rnd = random.Random(seed)
+    parts3d = LAYOUT.setdefault(name, []) if name else None
     img = canvas(w, h, PAINT[base]); d = ImageDraw.Draw(img); s = SS
     # sub-plates with white group outlines and screws
     nx = max(1, w // 128); ny = max(1, h // 128)
@@ -393,10 +403,14 @@ def switch_panel(w, h, seed, base="black", rows=None):
                 x = x0 + cw * (i + 0.5) / n; y = y0 + ch * 0.55
                 k = kind if kind != "mixed" else rnd.choice(["toggles", "knobs", "lamps"])
                 if k == "toggles":
-                    toggle(d, x, y, 9 * s, rnd.random() < 0.6)
+                    up = rnd.random() < 0.6
+                    toggle(d, x, y, 9 * s, up, lever=parts3d is None)
+                    if parts3d is not None: parts3d.append(["toggle", x / (w * s), y / (h * s), 4.5 / w, 1 if up else -1])
                     label(d, (x, y0 + ch - 20 * s), rnd.choice(WORDS), 8 * s, (215, 215, 208), FONT_R)
                 elif k == "knobs":
-                    knob(d, x, y, 10 * s)
+                    ang = rnd.choice((-80, -40, 0, 40, 80))
+                    knob(d, x, y, 10 * s, pointer=parts3d is None)
+                    if parts3d is not None: parts3d.append(["knob", x / (w * s), y / (h * s), 10 / w, ang])
                     label(d, (x, y0 + ch - 18 * s), rnd.choice(WORDS), 8 * s, (215, 215, 208), FONT_R)
                 else:
                     lamp(d, x, y, 7 * s, rnd.choice([PAINT["green_lamp"], PAINT["amber"], (200, 50, 40), (230, 230, 230)]))
@@ -407,7 +421,7 @@ def switch_panel(w, h, seed, base="black", rows=None):
 for i, (name, w, h) in enumerate([("sp_lc1", 384, 256), ("sp_lc2", 256, 256), ("sp_lc3", 256, 128), ("sp_rc1", 384, 256), ("sp_rc2", 256, 256),
                                    ("sp_rc3", 256, 128), ("sp_pl", 256, 256), ("sp_pr", 256, 256), ("sp_ped", 256, 384), ("sp_wl", 128, 256),
                                    ("sp_wr", 128, 256), ("sp_aft", 256, 128)]):
-    put(name, switch_panel(w, h, 100 + i), (0, 90))
+    put(name, switch_panel(w, h, 100 + i, name=name), (0, 90))
 
 # caution / warning panel: every caption has a job (MiG29Instruments plugin). (id, caption, colour)
 RED, AMB, GRN = (190, 40, 28), (220, 140, 20), (50, 170, 70)

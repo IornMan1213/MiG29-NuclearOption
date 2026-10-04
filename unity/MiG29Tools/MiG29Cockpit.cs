@@ -42,17 +42,14 @@ namespace MiG29Tools
                 if (t.TryGetComponent<MeshFilter>(out var mf) && mf.sharedMesh != null) { mf.sharedMesh = null; hidden++; }
 
             // static pieces, in the MiG frame (the cockpit part sits at the prefab origin)
-            foreach (var (name, m) in new[] { ("tub", mat), ("frames", skin), ("glass", glass) })
+            foreach (var (name, m) in new[] { ("tub", mat), ("glass", glass) })
             {
                 var mesh = (Mesh)save(MakeMesh(parts[name], v => v + modelOffset, n => n, "MiG29_ck_" + name), $"{ModDir}/meshes/MiG29_ck_{name}.asset");
                 var o = new GameObject("MiG29_ck_" + name);
                 o.transform.SetParent(cockpitPart, false);
                 o.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
                 o.AddComponent<MeshFilter>().sharedMesh = mesh;
-                var r = o.AddComponent<MeshRenderer>(); r.sharedMaterial = m;
-                // only the MiG frames (MiG skin UVs) take part damage: the damage shader samples the livery/damage maps in the airframe
-                // UV layout, which punches holes in, and tints, anything mapped to the cockpit atlas
-                if (name == "frames") addDamage(cockpitPart, r);
+                o.AddComponent<MeshRenderer>().sharedMaterial = m;
             }
 
             // game-driven pieces: move the pivots, bake the meshes into their local frames
@@ -70,12 +67,24 @@ namespace MiG29Tools
             { t.gameObject.layer = layer; moved++; }
             // The main (outside) camera does not draw that layer: an exterior copy of the interior on the default layer, which the
             // game hides in the cockpit view (exterior renderer), keeps the cockpit visible through the canopy from outside.
-            foreach (var n in new[] { "MiG29_ck_tub", "MiG29_ck_frames" })
             {
-                var src = cockpitPart.Find(n);
+                var src = cockpitPart.Find("MiG29_ck_tub");
                 var ext = UnityEngine.Object.Instantiate(src.gameObject, src.parent);
-                ext.name = n + "_ext"; ext.layer = 0;
+                ext.name = "MiG29_ck_tub_ext"; ext.layer = 0;
                 exterior.Add(ext.GetComponent<Renderer>());
+            }
+            // The MiG model's own windscreen bow and sills (skin UVs, livery and damage): outside view only. Up close they are low-poly
+            // and blotchy, so inside the cockpit the tub's from-scratch bow and mirrors replace them. Only these take part damage: the
+            // damage shader samples the livery/damage maps in the airframe UV layout, which punches holes in anything on the atlas.
+            {
+                var mesh = (Mesh)save(MakeMesh(parts["frames"], v => v + modelOffset, n => n, "MiG29_ck_frames"), $"{ModDir}/meshes/MiG29_ck_frames.asset");
+                var o = new GameObject("MiG29_ck_frames_ext");
+                o.transform.SetParent(cockpitPart, false);
+                o.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+                o.AddComponent<MeshFilter>().sharedMesh = mesh;
+                var r = o.AddComponent<MeshRenderer>(); r.sharedMaterial = skin;
+                addDamage(cockpitPart, r);
+                exterior.Add(r);
             }
             Debug.Log($"[MiG29] cockpit: {moved} objects on the interior layer {layer} ({LayerMask.LayerToName(layer)})");
             Debug.Log($"[MiG29] cockpit: from-scratch interior ({parts["tub"].triangles.Length / 3} tris), {glassCount} MiG glass renderers in both views, {hidden} KR-67 interior meshes hidden");
@@ -166,7 +175,7 @@ namespace MiG29Tools
             imp.mipmapEnabled = true;
             imp.filterMode = FilterMode.Trilinear;
             imp.anisoLevel = 8;          // console decals are seen at grazing angles
-            imp.maxTextureSize = 2048;
+            imp.maxTextureSize = 4096;   // tools/cockpit_atlas.py draws a 4096 atlas (K = 2) so switch legends and rivets stay sharp up close
             imp.textureCompression = TextureImporterCompression.CompressedHQ;
             imp.SaveAndReimport();
             return AssetDatabase.LoadAssetAtPath<Texture2D>(dst);

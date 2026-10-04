@@ -9,6 +9,15 @@
   - A radio box, two blue oxygen bottles in straps with valves and lines, and cable looms.
   - The bay also shows through the rear canopy from outside.
 - The K-36 seat has its canopy breakers on the headbox, and the seat's guide rails are on the bulkhead behind it.
+- **Windscreen bow and mirrors, from scratch.**
+  - Inside the cockpit, the model's low-poly bow, black blades, mirror plank and stray mirror lump are gone.
+  - In their place is a clean dark-grey bow fitted to the gap in the glass, covering the windscreen and canopy seam.
+  - It carries three rear-view mirrors: one at the top and one in each upper corner.
+  - The model's bow still shows from outside, with the livery.
+- **Real switches.** Every toggle on the consoles, pedestal and wall boxes is now a 3D bat-handle lever, thrown to its drawn
+  state, and every rotary selector is a 3D knob with a white pointer. They used to be printed flat on the plates.
+- **Sharper cockpit textures.** The cockpit atlas is now 4096 px instead of 2048, so switch legends, placards, rivets and
+  gauge faces stay crisp up close.
 - Fixed: the bulkhead behind the seat and the footwell's front wall faced away from the pilot, so the game didn't draw them
   (you could see out of the aircraft past the seat). Both face into the cockpit now.
 
