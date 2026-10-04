@@ -16,7 +16,7 @@ namespace MiG29Instruments
     public class MiG29InstrumentsPlugin : BaseUnityPlugin
     {
         // same as MiG29Builder.Version (build_mig29.ps1 checks): mod managers match the release version against this DLL's version
-        public const string ModVersion = "0.8.0";
+        public const string ModVersion = "0.8.1";
         internal static ManualLogSource Log;
         internal static BepInEx.Configuration.ConfigEntry<float> PanelLighting;
         internal static BepInEx.Configuration.ConfigEntry<BepInEx.Configuration.KeyboardShortcut> JettisonKey;
