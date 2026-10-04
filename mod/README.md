@@ -1,4 +1,4 @@
-# MiG-29 Fulcrum for Nuclear Option (v0.8.0)
+# MiG-29 Fulcrum for Nuclear Option (v0.8.1)
 
 A flyable MiG-29 (9.12) with its own flight model, R-27R / R-27T / R-73 / R-60M missiles, the GSh-30-1 cannon, droppable fuel
 tanks, flares and chaff, working canopy and gear doors, its own damage display, four liveries and loading screens.
@@ -6,7 +6,7 @@ tanks, flares and chaff, working canopy and gear doors, its own damage display, 
 ## Install
 1. Install [BepInEx 5](https://github.com/BepInEx/BepInEx) into the Nuclear Option folder.
 2. Install [Blueprinter](https://github.com/nikkorap/NOBlueprinter-Releases) (2.0.1 or newer) into `BepInEx/plugins`.
-3. Put `MiG-29 Fulcrum_0.8.0.nobp` and `MiG29Instruments.dll` (both in `MiG-29-Fulcrum_0.8.0.zip`) in
+3. Put `MiG-29 Fulcrum_0.8.1.nobp` and `MiG29Instruments.dll` (both in `MiG-29-Fulcrum_0.8.1.zip`) in
    `BepInEx/plugins/MiG-29_Fulcrum/`, or install the mod with a NOMNOM mod manager such as NOMM.
    Remove older `MiG-29 Fulcrum_*.nobp` files. The DLL makes the cockpit instruments work and gives the drop tanks their
    fuel; without it the MiG still flies, with the gauges parked and the drop tanks empty.
@@ -39,8 +39,9 @@ Multiplayer: everyone needs the same mod set (Blueprinter checks this).
   is close, so pop it as you turn across the missile's path.
 - **Airframe**: canopy opens from its rear hinge on the ground and ejects with the seat; nose and main gear doors open with
   the gear; parts break off and show scorch damage; hitboxes are the KR-67 part colliders scaled to the MiG.
-- **Cockpit** modelled from scratch: turquoise MiG-29 instrument panel with Russian-marked gauges, HUD, side consoles, twin
-  throttles, centre stick and a K-36-style seat. The tactical display is built into the panel as the radar screen.
+- **Cockpit** modelled from scratch: turquoise MiG-29 instrument panel with Russian-marked gauges, HUD, side consoles with real
+  3D toggles and knobs, circuit-breaker panels, twin throttles, centre stick, a K-36DM seat with harness, the windscreen bow with
+  three rear-view mirrors, and the equipment bay behind the seat. The tactical display is built into the panel as the radar screen.
 - **Every instrument works**: 20 needles, a rolling attitude ball, a turning compass card, a 24-light caution panel, the SPO-15
   radar warning receiver and gear lights, all driven by the aircraft's real state (see below).
 - **Cockpit damage display** and map icon drawn from the MiG itself.

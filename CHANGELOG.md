@@ -1,6 +1,7 @@
 # Changelog
 
-## Unreleased
+## 0.8.1
+**Interior polish.**
 - **Equipment bay behind the seat.** The space under the rear canopy, between the seat and the canopy's rear edge, was empty:
   looking over your shoulder you saw straight out of the aircraft. It is now a closed bay modelled for the mod:
   - A deck, side walls and canopy sills.
