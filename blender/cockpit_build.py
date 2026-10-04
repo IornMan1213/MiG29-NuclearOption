@@ -939,16 +939,29 @@ def bow_gap(theta):
 
 
 bow = []                              # per angle: outer/inner points at the rear (z0) and front (z1) edge, Unity frame
-for th in range(-88, 89, 4):
-    g = bow_gap(th)
-    if g is None:
-        continue
+gaps = [(th, bow_gap(th)) for th in range(-88, 89, 2)]
+gaps = [(th, g) for th, g in gaps if g is not None]
+# the slot's edges follow the glass triangulation and wobble: smooth them so the bow's edges run clean
+sm = []
+for i, (th, g) in enumerate(gaps):
+    nb = [gg for _, gg in gaps[max(0, i - 3):i + 4]]
+    sm.append((th, (min(x[0] for x in nb), max(x[1] for x in nb))))
+for th, g in sm:
     (h0, d), (h1, _) = glass_hit(th, g[0] - 0.008), glass_hit(th, g[1] + 0.008)
     if h0 is None or h1 is None:
         continue
     du = (d.x, d.z, d.y)               # Blender -> Unity direction
     def U(h, k): return (h.x - du[0] * k, h.z - du[1] * k, h.y - du[2] * k)
     bow.append((U(h0, 0.004), U(h0, 0.042), U(h1, 0.042), U(h1, 0.004), du))
+# the glass is faceted, so the hit radius wobbles from station to station: smooth every point along the arch
+def _smooth(seq, k):
+    out = []
+    for i in range(len(seq)):
+        nb = seq[max(0, i - k):i + k + 1]
+        out.append(tuple(sum(p[c] for p in nb) / len(nb) for c in range(3)))
+    return out
+cols = [_smooth([b[j] for b in bow], 3) for j in range(4)]
+bow = [(cols[0][i], cols[1][i], cols[2][i], cols[3][i], bow[i][4]) for i in range(len(bow))]
 for a, b in zip(bow, bow[1:]):
     o0a, i0a, i1a, o1a, da = a
     o0b, i0b, i1b, o1b, db = b
@@ -956,11 +969,16 @@ for a, b in zip(bow, bow[1:]):
     face_toward("tub", [i0a, i0b, i1b, i1a], inward, "dgrey")                 # inner face
     face_toward("tub", [o0a, o0b, i0b, i0a], (0, 0, -1), "dgrey")            # rear face (toward the pilot)
     face_toward("tub", [o1a, i1a, i1b, o1b], (0, 0, 1), "dgrey")             # front face
-for end, out in ((bow[0], -1), (bow[-1], 1)):                                # feet down onto the sills
+for end, out in ((bow[0], -1), (bow[-1], 1)):                                # feet: taper down and out onto the sills
     o0, i0, i1, o1, du = end
     foot_y = wall_top(BOW_Z) - 0.01
-    face_toward("tub", [i0, i1, (i1[0], foot_y, i1[2]), (i0[0], foot_y, i0[2])], (-out, 0, 0), "dgrey")
-    face_toward("tub", [o0, i0, (i0[0], foot_y, i0[2]), (o0[0], foot_y, o0[2])], (0, 0, -1), "dgrey")
+    zf0, zf1 = i0[2] - 0.015, i1[2] + 0.015
+    xo = out * (wall_x(foot_y, BOW_Z) - 0.004)
+    fi0, fi1, fo0, fo1 = (xo - out * 0.05, foot_y, zf0), (xo - out * 0.05, foot_y, zf1), (xo, foot_y, zf0), (xo, foot_y, zf1)
+    face_toward("tub", [i0, i1, fi1, fi0], (-out, 0.4, 0), "dgrey")              # inner slope
+    face_toward("tub", [o0, i0, fi0, fo0], (0, 0, -1), "dgrey")                  # rear (toward the pilot)
+    face_toward("tub", [o1, i1, fi1, fo1], (0, 0, 1), "dgrey")                   # front
+    face_toward("tub", [fi0, fi1, fo1, fo0], (0, 1, 0), "dgrey")                 # sole on the sill
 print(f"[cockpit] windscreen bow: {len(bow)} stations")
 
 
