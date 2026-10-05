@@ -82,7 +82,7 @@ namespace MiG29Instruments
                     }
                 }
             }
-            if (Time.unscaledTime >= nextStoresScan)   // every MiG (player and AI) gets the drop-tank and nozzle drivers
+            if (Time.unscaledTime >= nextStoresScan)   // every MiG (player and AI) gets the drop-tank, nozzle and gear-path drivers
             {
                 nextStoresScan = Time.unscaledTime + 2f;
                 try
@@ -92,6 +92,7 @@ namespace MiG29Instruments
                         {
                             if (a.GetComponent<StoresDriver>() == null) a.gameObject.AddComponent<StoresDriver>();
                             if (a.GetComponent<NozzleDriver>() == null) a.gameObject.AddComponent<NozzleDriver>();
+                            if (a.GetComponent<GearPathDriver>() == null) a.gameObject.AddComponent<GearPathDriver>();
                         }
                 }
                 catch (Exception e) { MiG29InstrumentsPlugin.Log.LogError(e); nextStoresScan = Time.unscaledTime + 10f; }

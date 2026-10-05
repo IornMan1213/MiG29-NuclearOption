@@ -66,30 +66,7 @@ namespace MiG29Tools
 
             HideBaseExterior(root);
             MoveGearAndEffects(root, data.info);
-            // landing light: the KR-67 hangs it on its front gear door, 3.6 m ahead of the MiG's nose gear. On the MiG it sits on the
-            // nose-gear strut, so it rides on the strut (retracting with it), just ahead of and above the wheel.
-            var landingLight = Find(root, "gearLight_F");
-            landingLight.SetParent(Find(root, "gear_F_sprung"), true);
-            // 0.55 m up the strut and 0.12 m ahead of it: the earlier 0.72 / 0.42 offset rotated down to the belly line when the leg
-            // swung 92 deg into the bay, and the lamp poked out of the closed doors just ahead of the intakes (user screenshot, v0.8.1).
-            // Folded either way, this spot stays inside the bay (stowed y >= +0.10 m, MiG frame).
-            landingLight.position = Find(root, "wheel_F").position + new Vector3(0f, 0.55f, 0.12f);
-            // The light itself (a 30 deg spot plus a glare sprite) sits on a child placed for the KR-67's door, which swings ~87 deg
-            // open and so aimed it forward; on the strut it kept the closed-door angle and shone straight down, flooding the ground and
-            // glaring in every direction. Aim it ahead and slightly down from the lamp, and halve the glare.
-            var beam = Find(landingLight, "gearLight_F_effects");
-            beam.SetPositionAndRotation(landingLight.position + new Vector3(0f, 0f, 0.03f), Quaternion.LookRotation(new Vector3(0f, -0.07f, 1f), Vector3.up));
-            foreach (var ps in beam.GetComponentsInChildren<ParticleSystem>(true))
-            {
-                var main = ps.main;
-                main.startSizeMultiplier *= 0.3f;      // the glare is a camera-facing sprite: kept small so it doesn't glow in every direction
-            }
             LogStowed(root, "wheel_F");
-            foreach (var l in beam.GetComponentsInChildren<Light>(true))
-            {
-                l.spotAngle = 24f;           // landing-light beam
-                l.intensity *= 0.5f;
-            }
 
             var visual = new GameObject("MiG29_visual").transform;
             visual.SetParent(root, false);
@@ -118,6 +95,7 @@ namespace MiG29Tools
             var doorsPart = data.parts.First(p => p.name == "gear_doors_closed");
             MiG29Polish.SetupGearDoors(go, ModelOffset, doorsPart.vertices, doorsPart.normals, doorsPart.uvs, doorsPart.triangles, materials.skin,
                 (m, path) => CreateOrReplace(m, path), (t, r) => AddDamageRenderer(t, r));
+            MiG29Wells.Build(root, ModelOffset, materials.skin, (o, path) => CreateOrReplace(o, path));
             var fm = MiG29FlightModel.Load();
             MiG29FlightModel.ApplyToPrefab(root, fm, (n, c) => CubeMesh("MiG29_col_" + n, c, 0.3f));
 
@@ -336,15 +314,21 @@ namespace MiG29Tools
                 MoveWorld(root, $"gear_{s}_armTarget", d);
             }
 
-            // stowed wheels: KR-67 gear folds into KR-67 bays and pokes out of the MiG skin. LandingGear lerps
-            // gearHinge.localPosition by hingeFoldMotion while folding, so translate each gear to a spot inside
-            // the MiG body (found by blender/gearbay.py; MiG frame).
-            StowGear(root, "wheel_L", new Vector3(-0.23f, -0.08f, 2.9f) + ModelOffset, MainGearExtraFold); // wheel mesh sits 0.27 m outboard of wheel_L
-            StowGear(root, "wheel_R", new Vector3(0.23f, -0.08f, 2.9f) + ModelOffset, MainGearExtraFold);
+            // Main legs. The KR-67 leg (0.85 m wheel) does not fit the MiG's own bays, which are only ~0.35 m deep under the wing-root
+            // glove, so it stows forward and inboard into the intake duct behind the intake blocker (hidden from every outside view).
+            // Before, the stow point sat 1.1 m inboard of the hinge, below the belly: the wheels hung out between the intakes and the
+            // legs swung through the fuselage (user screenshots, v0.9.0). Fold, strut twist and stow shift come from
+            // blender/analysis/main_gear_search.py (every leg vertex >= 6 cm inside the skin, intake ducts behind the blockers counted as
+            // hidden); the plugin's GearPathDriver lifts the leg into the bay opening before the final slide inboard.
+            SetMainStow(root, "wheel_L", MainFold, MainStrut, MainStowShift);
+            SetMainStow(root, "wheel_R", MainFold, MainStrut, Vector3.Scale(MainStowShift, new Vector3(-1f, 1f, 1f)));
+            TrimStrutTops(root);
+
+            PlaceLandingLight(root);
             // KR-67 nose wheel (0.66 m) fits the thin centre fuselage here: top 0.63 vs skin 0.66 at x 0.32 (blender ray scan).
             // Folded the stock 92 deg, the KR-67 strut slopes down toward its hinge and, once shifted so the wheel stows, its upper end
             // hung 15 cm below the closed bay doors (stowed check: y -0.32 at z 4.5-5.2; user screenshot, v0.8.1). The fold angle and
-            // stow point are now searched against the leg's real vertices (StowGear searchBay).
+            // stow point are searched against the leg's real vertices, landing light included (StowGear searchBay).
             StowGear(root, "wheel_F", new Vector3(0f, 0.30f, 3.5f) + ModelOffset, 0f, searchBay: true);
 
             // nozzles (thrust + afterburner effects) to the MiG nozzles
@@ -381,8 +365,98 @@ namespace MiG29Tools
             }
         }
 
-        // extra fold on the main legs so the KR-67 strut tips (stowed angled inboard) stay inside the belly tunnel
-        static readonly float MainGearExtraFold = float.TryParse(Environment.GetEnvironmentVariable("MIG29_MAINFOLD") ?? "12", System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var f) ? f : 12f;
+        // Main-leg stow (left leg, MiG frame; the right leg mirrors it): blender/analysis/main_gear_search.py. Keep in step with
+        // MiG29Instruments/GearPath.cs, which animates the retraction through a mid keyframe.
+        public const float MainFold = -74f, MainStrut = 165f;
+        public static readonly Vector3 MainStowShift = new Vector3(0.575f, -0.10f, 0.175f);
+
+        static void SetMainStow(Transform root, string wheelName, float fold, float strut, Vector3 shiftMiG)
+        {
+            var wheel = Find(root, wheelName);
+            foreach (var lg in root.GetComponentsInChildren(TypeByName("LandingGear"), true))
+            {
+                var so = new SerializedObject(lg);
+                var hinge = so.FindProperty("gearHinge").objectReferenceValue as Transform;
+                if (hinge == null || !wheel.IsChildOf(hinge)) continue;
+                var local = hinge.parent.InverseTransformVector(shiftMiG);
+                so.FindProperty("foldDegrees").floatValue = fold;
+                so.FindProperty("strutRotation").floatValue = strut;
+                so.FindProperty("hingeFoldMotion").vector3Value = local;
+                so.ApplyModifiedPropertiesWithoutUndo();
+                Debug.Log($"[MiG29] {wheelName}: fold {fold:F0} deg, strut {strut:F0} deg, stow shift {shiftMiG} (hinge-parent local {local:F3})");
+                return;
+            }
+            throw new Exception("[MiG29] no LandingGear drives " + wheelName);
+        }
+
+        // The KR-67 main strut top (hinge yoke) stands 0.46 m up, above the MiG's 0.28 m wing root, and showed through the upper skin
+        // as a U-shaped bracket even with the gear down (user screenshot, v0.9.0). Everything above y 0.24 (MiG frame, gear down) is
+        // inside the glove or above it, so it is cut from the visible strut mesh.
+        const float StrutTopCut = 0.24f;
+
+        static void TrimStrutTops(Transform root)
+        {
+            foreach (var s in new[] { "L", "R" })
+            {
+                var mf = Find(root, $"gear_{s}_sprung").GetComponent<MeshFilter>();
+                var src = mf.sharedMesh;
+                var m = UnityEngine.Object.Instantiate(src);
+                m.name = $"MiG29_gear_{s}_sprung_trimmed";
+                var w = mf.transform.localToWorldMatrix;
+                var high = src.vertices.Select(v => (w.MultiplyPoint3x4(v) - ModelOffset).y > StrutTopCut).ToArray();
+                int cut = 0;
+                for (int sm = 0; sm < src.subMeshCount; sm++)
+                {
+                    var t = src.GetTriangles(sm);
+                    var keep = new List<int>(t.Length);
+                    for (int i = 0; i < t.Length; i += 3)
+                    {
+                        if (high[t[i]] || high[t[i + 1]] || high[t[i + 2]]) { cut++; continue; }
+                        keep.Add(t[i]); keep.Add(t[i + 1]); keep.Add(t[i + 2]);
+                    }
+                    m.SetTriangles(keep, sm);
+                }
+                mf.sharedMesh = CreateOrReplace(m, $"{ModDir}/meshes/{m.name}.asset");
+                Debug.Log($"[MiG29] gear_{s}_sprung: {cut} triangles above y {StrutTopCut} trimmed");
+            }
+        }
+
+        // Landing light. The KR-67 hangs it on its front gear door, 3.6 m ahead of the MiG's nose gear; NavLights swaps its flat lamp
+        // panel to a glowing material whenever the gear is down. Moved to the strut, it kept the door's angle and hung beside the leg:
+        // a bright panel floating in the air that lit nothing (user screenshots, v0.9.0). Now the panel sits on the front of the nose
+        // strut facing ahead, the beam aimed 9 deg down to light the runway ahead, the glare sprite kept small.
+        static void PlaceLandingLight(Transform root)
+        {
+            var lamp = Find(root, "gearLight_F");
+            var sprung = Find(root, "gear_F_sprung");
+            lamp.SetParent(sprung, true);
+            var mf = lamp.GetComponent<MeshFilter>();
+            var lr = lamp.rotation;
+            var n0 = mf.sharedMesh.normals.Aggregate(Vector3.zero, (a, n) => a + lr * n);
+            if (n0.sqrMagnitude < 1e-6f) n0 = -lamp.up;
+            var face = new Vector3(0f, -Mathf.Sin(8f * Mathf.Deg2Rad), Mathf.Cos(8f * Mathf.Deg2Rad));
+            lamp.rotation = Quaternion.FromToRotation(n0.normalized, face) * lamp.rotation;
+            // strut front at lamp height (MiG frame y -0.45: on the sprung part, above the shock strut, below the bay)
+            const float y = -0.45f;
+            var sm = sprung.localToWorldMatrix;
+            var w = sprung.GetComponent<MeshFilter>().sharedMesh.vertices.Select(v => sm.MultiplyPoint3x4(v) - ModelOffset)
+                          .Where(p => Mathf.Abs(p.y - y) < 0.06f && Mathf.Abs(p.x) < 0.07f).ToList();
+            float front = w.Count > 0 ? w.Max(p => p.z) : Find(root, "wheel_F").position.z - ModelOffset.z + 0.15f;
+            var centre = lamp.TransformPoint(mf.sharedMesh.bounds.center);
+            var target = new Vector3(0f, y, front + 0.025f) + ModelOffset;
+            lamp.position += target - centre;
+            var beam = Find(lamp, "gearLight_F_effects");
+            var aim = new Vector3(0f, -Mathf.Sin(9f * Mathf.Deg2Rad), Mathf.Cos(9f * Mathf.Deg2Rad));
+            beam.SetPositionAndRotation(target + face * 0.03f, Quaternion.LookRotation(aim, Vector3.up));
+            foreach (var ps in beam.GetComponentsInChildren<ParticleSystem>(true))
+            {
+                var main = ps.main;
+                main.startSizeMultiplier *= 0.3f;      // the glare is a camera-facing sprite: kept small so it doesn't glow in every direction
+            }
+            foreach (var l in beam.GetComponentsInChildren<Light>(true))
+                l.spotAngle = 30f;
+            Debug.Log($"[MiG29] landing light on the nose strut front (z {front:F2}), lamp {lamp.position - ModelOffset:F3}, normal was {n0.normalized:F2}, {w.Count} strut verts at lamp height");
+        }
 
         // Poses a leg as LandingGear does when retracted (hinge + foldDegrees, + hingeFoldMotion) and logs where each visible piece
         // ends up, MiG frame, so a stowed leg poking out of the skin shows in the build log.

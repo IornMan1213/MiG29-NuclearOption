@@ -152,8 +152,14 @@ namespace MiG29Tools
                 var pivot = new GameObject("MiG29_door_" + name + "_hinge").transform;
                 pivot.SetParent(parent, false);
                 pivot.SetPositionAndRotation(hinge + modelOffset, Quaternion.identity);
-                var closed = pivot.localEulerAngles;
-                var open = (Quaternion.Inverse(parent.rotation) * Quaternion.Euler(0, 0, openZ)).eulerAngles;
+                // LandingGear.GearDoor lerps localEulerAngles component-wise and snaps doors to localEulerAngles zero once retracted, so
+                // closed must be zero and open a signed angle: as eulerAngles (0..360) the left doors opened to 270/280 deg and swung the
+                // long way round, up through the fuselage (user report, v0.9.0)
+                if (Quaternion.Angle(parent.rotation, Quaternion.identity) > 0.01f)
+                    throw new Exception($"[MiG29] door {name}: parent {parent.name} is rotated, door angles assume an aligned parent");
+                pivot.localRotation = Quaternion.identity;
+                var closed = Vector3.zero;
+                var open = new Vector3(0f, 0f, openZ);
 
                 var door = new GameObject("MiG29_door_" + name);
                 door.transform.SetParent(pivot, false);

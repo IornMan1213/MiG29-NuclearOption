@@ -10,9 +10,20 @@
 - **Nose gear stows cleanly.** The stowed strut hung 15 cm below the closed doors, just ahead of the intakes. The fold angle and
   stow point are now chosen at build time by testing the leg's real vertices against the bay's skin. Every piece now ends up
   at least 10 cm inside.
-- **Landing light.** It shone straight down from the nose strut with a large glare, so it looked like a bright light in every
-  direction. It now points ahead and slightly down with a narrower, softer beam and a small glare, and sits lower on the
-  strut so it stows inside the bay.
+- **Main gear retracts properly.**
+  - Before, the stowed wheels hung out of the belly between the intakes, and the legs swung through the fuselage on the way up.
+  - The legs now fold forward with the wheels twisting as they go, rise into the bay openings, then slide inboard behind the
+    closed doors. Every part of a stowed leg is at least 6 cm inside the skin.
+  - The MiG-29 Instruments plugin animates the swing, on AI MiGs too. Without it the legs still end up fully hidden.
+- **No more strut bracket on top of the wing.** The top of each main strut poked up through the wing-root skin as a U-shaped
+  bracket, even with the gear down. It is now trimmed off.
+- **Wheel wells.** The open gear bays were black holes. They now have walls and a ceiling in grey-green primer with frames and
+  stringers, and the gear doors have a painted inner side.
+- **Gear doors open the right way.** The left nose door and the left main door swung the long way round, up through the
+  fuselage. All doors now swing straight down.
+- **Landing light.** It used to look like a bright light shining in every direction, and later a glowing panel floating beside the
+  nose strut that lit nothing. The lamp now sits on the front of the nose strut facing ahead. Its beam is aimed slightly down to
+  light the runway, with a small glare, and it stows inside the bay.
 - **Navigation lights on the wingtips.** The red and green lights hung in the air off the wingtips. They now sit on the tip
   edges with lamp-sized glows; the wingtip vortex trails leave the trailing tip corners.
 
