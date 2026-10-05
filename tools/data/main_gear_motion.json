@@ -1,0 +1,19 @@
+{
+ "_comment": "MiG-29 main-gear motion, left leg, MiG frame. stow: blender/analysis/main_gear_search2.py (skewed hinge, game arc); path: main_gear_path3.py (MiG29Instruments GearPathDriver keyframe). Keep in step with MiG29Tools.MiG29MainGear and MiG29Instruments/GearPath.cs.",
+ "stow": {
+  "yaw": 25,
+  "fold": -76,
+  "strut": 135,
+  "T": [
+   0.0,
+   0.0,
+   0.0
+  ]
+ },
+ "path": {
+  "K": 0.8,
+  "yaw1": -10,
+  "fold1": -70,
+  "strut1": 0
+ }
+}

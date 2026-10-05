@@ -53,7 +53,7 @@ namespace MiG29Tools
                     foreach (var l in lg.GetComponentsInChildren<Light>(true))
                         Debug.Log($"[MiG29] light {l.name}: {l.type} intensity {l.intensity} range {l.range} angle {l.spotAngle} pos {l.transform.position - ModelOffset:F3} fwd {l.transform.forward:F2} active {l.gameObject.activeSelf}");
                     var sb = new StringBuilder();
-                    sb.Append($"[MiG29] gear {lg.name}: hinge {hinge?.name} (parent {hinge?.parent?.name}) base euler {hinge?.localEulerAngles:F1} pos {hinge?.localPosition:F3}, fold {fold:F1}, motion {motion:F3}, strut {strut:F1} on {srt?.name}");
+                    sb.Append($"[MiG29] gear {lg.name}: travel {so.FindProperty("suspensionTravel").floatValue:F3} wheelRadius {so.FindProperty("wheelRadius").floatValue:F3}, hinge {hinge?.name} (parent {hinge?.parent?.name}) base euler {hinge?.localEulerAngles:F1} pos {hinge?.localPosition:F3}, fold {fold:F1}, motion {motion:F3}, strut {strut:F1} on {srt?.name}");
                     var mp = so.FindProperty("movingParts");
                     for (int i = 0; i < mp.arraySize; i++)
                     {
@@ -75,6 +75,21 @@ namespace MiG29Tools
                         sb.Append($" | door {(e.FindPropertyRelative("transform").objectReferenceValue as Transform)?.name} closed {e.FindPropertyRelative("closedAngle").vector3Value:F1} open {e.FindPropertyRelative("openAngle").vector3Value:F1}");
                     }
                     Debug.Log(sb.ToString());
+                    // physics transforms (MiG frame): the suspension cast and the unsprung placement hang off these
+                    var tf = new StringBuilder($"[MiG29] gear {lg.name} transforms:");
+                    foreach (var pn in new[] { "castPoint", "bumpStop", "axle", "unsprung", "gearCollider" })
+                    {
+                        var o = so.FindProperty(pn).objectReferenceValue;
+                        var pt = o is Component c ? c.transform : o is GameObject g ? g.transform : null;
+                        if (pt != null) tf.Append($" | {pn} {pt.name} pos {V3(pt.position - ModelOffset)} up {V3(pt.up)} right {V3(pt.right)} parent {pt.parent?.name}");
+                    }
+                    var wh = so.FindProperty("wheels");
+                    for (int i = 0; i < wh.arraySize; i++)
+                        if (wh.GetArrayElementAtIndex(i).objectReferenceValue is Transform w)
+                            tf.Append($" | wheel {w.name} pos {V3(w.position - ModelOffset)} right {V3(w.right)} parent {w.parent?.name}");
+                    if (hinge != null)
+                        tf.Append($" | hinge local euler {hinge.localEulerAngles:F2} | mount {hinge.parent?.name} pos {V3(hinge.parent.position - ModelOffset)} euler {hinge.parent.eulerAngles:F2} scale {hinge.parent.lossyScale:F2}");
+                    Debug.Log(tf.ToString());
                 }
                 if (hinge != null)
                 {

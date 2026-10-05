@@ -32,6 +32,10 @@ python "$tools\missile_gen.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "missile
 python "$tools\nozzle_gen.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "nozzle_gen failed" }
 python "$tools\nose_bay.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "nose_bay failed" }
 python "$tools\gear_wells.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "gear_wells failed" }
+python "$tools\main_gear_gen.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "main_gear_gen failed" }
+python "$tools\main_bay_door.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "main_bay_door failed" }
+python "$tools\main_wells.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "main_wells failed" }
+python "$tools\bay_texture.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "bay_texture failed" }
 python "$tools\fm_export.py" "$src\fm_unity.json"; if ($LASTEXITCODE -ne 0) { throw "fm_export failed" }
 python "$tools\livery_desert.py" "$src\mig29_basecolor.png" "$src\mig29_mesh.json" "$src\mig29_basecolor_desert.png"; if ($LASTEXITCODE -ne 0) { throw "livery_desert failed" }
 python "$tools\livery_digital.py" "$src\mig29_basecolor.png" "$src\mig29_mesh.json" "$src\mig29_basecolor_digital.png"; if ($LASTEXITCODE -ne 0) { throw "livery_digital failed" }

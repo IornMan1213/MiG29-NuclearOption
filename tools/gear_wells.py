@@ -24,7 +24,7 @@ BAYS = {
 }
 RIM_LIFT = 0.006          # walls start just above the closed door surface
 CEIL_GAP = 0.03           # ceiling this far under the outer skin
-UVS = 0.6                 # metres per texture repeat
+UVS = 1.0                 # metres per texture repeat (tools/bay_texture.py: one tile per metre)
 
 cols = {}
 
@@ -99,7 +99,7 @@ for name, (rule, depth) in BAYS.items():
                   "uvs": np.round(np.array(uvs), 5).ravel().tolist(), "triangles": tris})
 json.dump({"parts": parts}, open(os.path.join(SRC, "gear_wells.json"), "w"))
 
-# primer-grey texture: one tile = UVS metres; frames every 0.15 m tile/4, stringers, rivet rows, light grime
+# (superseded by tools/bay_texture.py, which runs after this) primer-grey texture: one tile = UVS metres; frames every 0.15 m tile/4, stringers, rivet rows, light grime
 N = 512
 img = Image.new("RGB", (N, N), (150, 157, 148))
 dr = ImageDraw.Draw(img)

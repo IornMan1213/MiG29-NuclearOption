@@ -109,9 +109,20 @@ namespace MiG29Tools
         }
 
         // The MiG's own doors open with the gear (LandingGear.gearDoors: localEulerAngles lerp closed -> open).
-        public static void SetupGearDoors(GameObject go, Vector3 modelOffset, float[] verts, float[] norms, float[] uvs, int[] tris, Material mat,
-            Func<Mesh, string, Mesh> saveMesh, Action<Transform, Renderer> addDamage)
+        // The forward main-bay doors cut from the trunk skin (MiG29MainGear, tools/main_bay_door.py): hinged on their lower edge, they
+        // swing down and out to hang below the trunk, clear of the leg.
+        static IEnumerable<(string name, Vector3 hinge, float openZ, string wheel)> AllDoors()
         {
+            foreach (var d in Doors) yield return d;
+            var h = MiG29MainGear.DoorHingeL; float a = MiG29MainGear.DoorOpenDeg;
+            yield return ("fwd_L", h, a, "wheel_L");
+            yield return ("fwd_R", new Vector3(-h.x, h.y, h.z), -a, "wheel_R");
+        }
+
+        public static void SetupGearDoors(GameObject go, Vector3 modelOffset, float[] verts, float[] norms, float[] uvs, int[] tris, Material mat,
+            Func<Mesh, string, Mesh> saveMesh, Action<Transform, Renderer> addDamage, Func<Vector3, string> doorOf = null)
+        {
+            doorOf = doorOf ?? DoorOf;
             var root = go.transform;
             var lgType = T("LandingGear");
             int n = verts.Length / 3;
@@ -125,12 +136,12 @@ namespace MiG29Tools
             var groups = new Dictionary<string, List<int>>();
             for (int i = 0; i < tris.Length; i += 3)
             {
-                var d = DoorOf((V[tris[i]] + V[tris[i + 1]] + V[tris[i + 2]]) / 3f);
+                var d = doorOf((V[tris[i]] + V[tris[i + 1]] + V[tris[i + 2]]) / 3f);
                 if (d == null) continue;
                 if (!groups.TryGetValue(d, out var l)) groups[d] = l = new List<int>();
                 l.AddRange(new[] { tris[i], tris[i + 1], tris[i + 2] });
             }
-            foreach (var (name, hinge, openZ, wheel) in Doors)
+            foreach (var (name, hinge, openZ, wheel) in AllDoors())
             {
                 if (!groups.TryGetValue(name, out var t)) continue;
                 // mesh relative to the hinge

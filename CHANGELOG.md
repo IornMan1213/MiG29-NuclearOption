@@ -1,32 +1,33 @@
 # Changelog
 
-## Unreleased (0.9.0)
-- **New engine nozzles, modelled from scratch.** RD-33 convergent-divergent nozzles replace the model's lumpy, low-poly cans:
-  - each has 16 long shroud feathers with 16 seals and 16 inner petals, heat-tinted metal, and afterburner flame holders and
-    the turbine cone visible inside;
-  - they follow the engines' real 2 deg toe-out and droop;
-  - the petals move with the engine, as on the real jet: open with the engine off, partly closed at idle, closed down at full
-    power, wide open in afterburner. This works on AI MiGs too (MiG29Instruments plugin).
-- **Nose gear stows cleanly.** The stowed strut hung 15 cm below the closed doors, just ahead of the intakes. The fold angle and
-  stow point are now chosen at build time by testing the leg's real vertices against the bay's skin. Every piece now ends up
-  at least 10 cm inside.
-- **Main gear retracts properly.**
-  - Before, the stowed wheels hung out of the belly between the intakes, and the legs swung through the fuselage on the way up.
-  - The legs now fold forward with the wheels twisting as they go, rise into the bay openings, then slide inboard behind the
-    closed doors. Every part of a stowed leg is at least 6 cm inside the skin.
-  - The MiG-29 Instruments plugin animates the swing, on AI MiGs too. Without it the legs still end up fully hidden.
-- **No more strut bracket on top of the wing.** The top of each main strut poked up through the wing-root skin as a U-shaped
-  bracket, even with the gear down. It is now trimmed off.
-- **Wheel wells.** The open gear bays were black holes. They now have walls and a ceiling in grey-green primer with frames and
-  stringers, and the gear doors have a painted inner side.
-- **Gear doors open the right way.** The left nose door and the left main door swung the long way round, up through the
-  fuselage. All doors now swing straight down.
-- **Landing light.** It used to look like a bright light shining in every direction, and later a glowing panel floating beside the
-  nose strut that lit nothing. The lamp now sits on the front of the nose strut facing ahead. Its beam is aimed slightly down to
-  light the runway, with a small glare, and it stows inside the bay.
-- **Navigation lights on the wingtips.** The red and green lights hung in the air off the wingtips. They now sit on the tip
-  edges with lamp-sized glows; the wingtip vortex trails leave the trailing tip corners.
-
+## 0.8.5 (Update 8.5)
+**Landing gear rebuilt, new engine nozzles, R-27R fixed.** Everything fixed since 0.8.1:
+- **Main landing gear, rebuilt to work like the real MiG-29.**
+  - New main legs modelled from scratch: slim MiG-style legs with the wheel on the outboard side. Wheels, suspension and ground
+    handling are unchanged.
+  - The legs retract as on the real jet. Each leg swings forward and up beside the intake with the wheel edge-on, then the wheel
+    turns flat and tucks into the wing root above the intake. With the MiG-29 Instruments plugin installed the gear follows this
+    path, on AI MiGs too; without it the legs take a simpler arc that still ends fully hidden.
+  - New forward gear doors on the top of each intake side, as on the real jet, so the wheel no longer goes through solid skin.
+    They hang open below the intake while the gear moves.
+  - Stowed gear stays hidden whether it was raised in flight (wheels hanging at full suspension travel) or the aircraft spawned
+    with its gear up. Before, a main wheel raised in flight poked into the intake.
+  - No more strut bracket showing through the top of the wing.
+- **Wheel wells.** The gear bays were open holes you could see straight through. They are now closed wells shaped around the
+  gear, with a detailed texture (frames, rivets, hydraulic lines, wiring, stencils) and surface relief. The gear doors have a
+  painted inner side.
+- **Gear doors open the right way.** The left nose and main doors swung up through the fuselage; all doors now swing down.
+- **Nose gear stows cleanly.** The stowed nose strut hung 15 cm below the closed doors. Every part now ends up at least 10 cm
+  inside the bay.
+- **Landing light.** It was a bright light shining in every direction, later a glowing panel floating beside the strut. The lamp
+  now sits on the front of the nose strut, aimed ahead and slightly down to light the runway, and stows with the gear.
+- **Navigation lights** sit on the wingtip edges with lamp-sized glows instead of hanging in the air off the tips.
+- **New engine nozzles, modelled from scratch.** RD-33 nozzles replace the model's low-poly cans: feathered shrouds, inner
+  petals, heat-tinted metal, and afterburner flame holders inside. The petals move with the engine: open with the engine off,
+  partly closed at idle, closed at full power, wide open in afterburner (also on AI MiGs).
+- **R-27R fixed.** It exploded at the pylon when fired without a target, and the blast damaged the launching jet. It now leaves
+  the rail unarmed and arms itself after one second. Fired without a target it flies straight ahead and self-destructs after
+  its motor burns out; with a radar target it guides as before.
 ## 0.8.1
 **Interior polish.**
 - **Equipment bay behind the seat.** The space under the rear canopy, between the seat and the canopy's rear edge, was empty:

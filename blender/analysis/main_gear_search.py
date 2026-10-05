@@ -42,6 +42,13 @@ guess = pose(g, S, U, g["fold"], g["strut"], np.zeros(3))
 T = (up - guess).mean(0)
 res = np.abs(pose(g, S, U, g["fold"], g["strut"], T) - up).max()
 print(f"[search] posing check: translation {np.round(T, 3)}, max residual {res * 1000:.1f} mm  ({len(S)}+{len(U)} verts)")
+NEWLEG = os.environ.get("NEWLEG")     # tools/main_gear_gen.py leg in place of the KR-67 strut (KR-67 wheel kept)
+if NEWLEG:
+    mg = {p["name"]: np.array(p["vertices"]).reshape(-1, 3) for p in json.load(open(NEWLEG))["parts"]}
+    d0 = json.load(open(os.path.join(OUT, "gear_down.json")))
+    wheel = np.concatenate([np.array(p["v"]).reshape(-1, 3) for p in d0["parts"] if p["name"] == "wheel_L"])
+    S, U = mg["sprung"], np.concatenate([mg["unsprung"], wheel])
+    print(f"[search] new leg: {len(S)} sprung + {len(U)} unsprung verts (wheel included)")
 
 # hidden space around the right main bay (the intake ducts behind the blockers count as hidden: MiG29Builder.AddIntakeBlockers)
 t0 = time.time()
@@ -83,32 +90,39 @@ print(f"[search] {len(Ssub) + len(Usub)} sample verts")
 # the strut top (hinge yoke) stands above the upper skin even with the gear down and gets trimmed off: leave it out of the score
 roofcut = margin(pose(g, Ssub, Usub, 0, 0, np.zeros(3)))
 downP = pose(g, Ssub, Usub, 0, 0, np.zeros(3))
-yoke = (downP[:, 1] > 0.0) & (roofcut < 0.0)
+yoke = (downP[:, 1] > 0.0) & (roofcut < 0.0) & (not NEWLEG)
 print(f"[search] {yoke.sum()} yoke verts above the skin with the gear down (excluded)")
 
 
 CLIP_WEIGHT = float(os.environ.get("CLIP_WEIGHT", "0.3"))   # metres of margin traded per unit of mid-swing clipping fraction
 
 
-def best_T(P, span=(0.9, 0.3, 0.6), step=0.05, fold=0.0, strut=0.0, T0=np.zeros(3)):
+SPAN = tuple(float(v) for v in os.environ.get("SPAN", "0.9,0.3,0.6").split(","))
+MIN_MARGIN = float(os.environ.get("MIN_MARGIN", "0.03"))
+T_WEIGHT = float(os.environ.get("T_WEIGHT", "0.03"))                  # margin traded per metre of stow shift (a real leg barely shifts)
+FOLDS = [int(v) for v in os.environ.get("FOLDS", "-120,-55,5").split(",")]
+STRUTS = [int(v) for v in os.environ.get("STRUTS", "-180,180,15").split(",")]
+
+
+def best_T(P, span=SPAN, step=0.05, fold=0.0, strut=0.0, T0=np.zeros(3)):
     best = (-9, None)
     mids = [pose(g, Ssub, Usub, fold * t, strut * t, np.zeros(3)) for t in (0.25, 0.5, 0.75)]
     for dx in np.arange(-span[0], span[0] + 1e-6, step):
         for dy in np.arange(-span[1], span[1] + 1e-6, step):
             for dz in np.arange(-span[2], span[2] + 1e-6, step):
                 T = np.array([dx, dy, dz]); m = margin(P + T)[~yoke].min()
-                if m < 0.03: continue                       # must stow hidden first
+                if m < MIN_MARGIN: continue                       # must stow hidden first
                 Tt = T0 + T
                 clip = np.mean([clipping(Pm + Tt * t) for Pm, t in zip(mids, (0.25, 0.5, 0.75))])
-                sc = min(m, 0.08) - CLIP_WEIGHT * clip - 0.03 * np.linalg.norm(Tt)
+                sc = min(m, 0.08) - CLIP_WEIGHT * clip - T_WEIGHT * np.linalg.norm(Tt)
                 if sc > best[0]: best = (sc, T)
     return best
 
 
 results = []
 t0 = time.time()
-for fold in range(-120, -55, 5):  # noqa
-    for strut in range(-180, 180, 15):
+for fold in range(*FOLDS):
+    for strut in range(*STRUTS):
         P = pose(g, Ssub, Usub, fold, strut, np.zeros(3))
         m, T = best_T(P, step=0.1, fold=fold, strut=strut)
         results.append((m, fold, strut, T))
@@ -121,7 +135,7 @@ for m0, f0, s0, T0 in [r for r in results if r[3] is not None][:4]:
     for fold in range(f0 - 4, f0 + 5, 2):
         for strut in range(s0 - 10, s0 + 11, 5):
             P = pose(g, Ssub, Usub, fold, strut, T0)
-            m, dT = best_T(P, span=(0.1, 0.1, 0.1), step=0.025, fold=fold, strut=strut, T0=T0)
+            m, dT = best_T(P, span=tuple(min(0.1, v) for v in SPAN), step=0.025, fold=fold, strut=strut, T0=T0)
             if dT is not None: fine.append((m, fold, strut, T0 + dT))
 fine.sort(key=lambda r: -r[0])
 for m, f, s, T in fine[:6]:
@@ -129,7 +143,7 @@ for m, f, s, T in fine[:6]:
     clip = [clipping(pose(g, Ssub, Usub, f * t, s * t, T * t)) for t in (0.25, 0.5, 0.75)]
     print(f"[search] fine fold {f} strut {s} T {np.round(T, 3)}: min margin {mm.min() * 100:.1f} cm, mid-swing clipping {np.round(np.array(clip) * 100, 1)} %, wheel-ish centre {np.round(P[len(Ssub):].mean(0), 2)}")
 m, f, s, T = fine[0]
-json.dump({"fold": f, "strut": s, "T": T.tolist()}, open(os.path.join(OUT, "main_gear_search.json"), "w"))
+json.dump({"fold": f, "strut": s, "T": T.tolist()}, open(os.path.join(OUT, os.environ.get("RESULT", "main_gear_search.json")), "w"))
 
 # which pieces stick out at the chosen pose
 d = json.load(open(os.path.join(OUT, "gear_down.json")))

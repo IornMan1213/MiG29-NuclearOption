@@ -24,8 +24,10 @@ namespace MiG29Tools
             if (!AssetDatabase.IsValidFolder(Dir)) AssetDatabase.CreateFolder(ModDir, "wells");
             var mat = (Material)save(BayMaterial(skinTemplate), $"{Dir}/MiG29_bay.mat");
             var dump = JsonUtility.FromJson<Dump>(File.ReadAllText(Path.Combine(SourceDir, "gear_wells.json")));
+            // main wells: shaped around the leg's swept space inside the glove (tools/main_wells.py) in place of the door-outline prisms
+            var main = JsonUtility.FromJson<Dump>(File.ReadAllText(Path.Combine(SourceDir, "main_wells.json")));
             var all = root.GetComponentsInChildren<Transform>(true);
-            foreach (var p in dump.parts)
+            foreach (var p in dump.parts.Where(q => !q.name.StartsWith("main")).Concat(main.parts))
             {
                 // the well hangs from its doors' parent (nose: both nose doors share one)
                 var doorName = p.name == "nose" ? "MiG29_door_nose_L_hinge" : $"MiG29_door_{p.name}_hinge";
@@ -95,7 +97,7 @@ namespace MiG29Tools
             var atlas = ImportTex("bay_atlas.png", true, false);
             var m = new Material(skinTemplate) { name = "MiG29_bay" };
             m.SetTexture("_Basecolor", atlas); m.SetTexture("_Livery", atlas); m.SetTexture("_BasecolorDmg", atlas);
-            var nrm = ImportTex("flat_normal.png", false, true);
+            var nrm = ImportTex("bay_normal.png", false, true);          // frames, lines and rivets in relief (tools/bay_texture.py)
             m.SetTexture("_Normal", nrm); m.SetTexture("_NormalDmg", nrm);
             m.SetTexture("_Metallic", ImportTex("bay_metallic.png", false, false));
             m.SetTexture("_AO", null);

@@ -5,7 +5,9 @@ import json, os, sys
 import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 OUT = sys.argv[1]
-R = json.load(open(os.path.join(OUT, "main_gear_search.json")))
+R = json.load(open(os.path.join(OUT, os.environ.get("RESULT", "main_gear_search.json"))))
+NEWLEG = os.environ.get("NEWLEG")
+NEW = {p["name"]: p for p in json.load(open(NEWLEG))["parts"]} if NEWLEG else None
 # optional keyframes [[t, fold, strut, [Tx, Ty, Tz]], ...] (plugin GearPathDriver); default: the game's straight path
 KF = json.loads(os.environ["MAIN_KF"]) if "MAIN_KF" in os.environ else [[0, 0, 0, [0, 0, 0]], [1, R["fold"], R["strut"], R["T"]]]
 
@@ -28,7 +30,10 @@ for name, t, doors_from in (("down", 0, "down"), ("q1", 0.35, "mid"), ("mid", 0.
     for p in down["parts"]:
         if "gearHinge_L" not in p["path"]: continue
         V = np.array(p["v"]).reshape(-1, 3); Tr = np.array(p["t"]).reshape(-1, 3)
-        if p["name"] == "gear_L_sprung":
+        if NEW and p["name"] in ("gear_L_sprung", "gear_L_unsprung"):
+            q = NEW["sprung" if p["name"] == "gear_L_sprung" else "unsprung"]
+            V = np.array(q["vertices"]).reshape(-1, 3); Tr = np.array(q["triangles"]).reshape(-1, 3)
+        elif p["name"] == "gear_L_sprung":
             # yoke: triangles above y 0.18 with the gear down stand above the wing root skin
             Tr = Tr[~np.any(V[Tr][:, :, 1] > 0.18, axis=1)]
         f, st, T = at(t)

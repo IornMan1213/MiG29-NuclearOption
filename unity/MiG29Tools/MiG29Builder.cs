@@ -21,7 +21,7 @@ namespace MiG29Tools
 
         public const string JsonKey = "mig29_Fulcrum";
         public const string DisplayName = "MiG-29 Fulcrum";
-        public const string Version = "0.9.0";
+        public const string Version = "0.8.5";
 
         // MiG model frame -> aircraft root. Puts MiG main wheels on the KR-67 main gear and MiG wheels on KR-67 ground line.
         static readonly Vector3 ModelOffset = new Vector3(0f, -0.44f, -2.655f);
@@ -43,9 +43,11 @@ namespace MiG29Tools
         public static void BuildAssets()
         {
             var data = JsonUtility.FromJson<MeshDump>(File.ReadAllText(Path.Combine(SourceDir, "mig29_mesh.json")));
-            // the model's nozzle cans give way to the from-scratch RD-33 nozzles (MiG29Nozzles.Build below)
+            // the forward main-bay doors are cut out of the trunk skin (tools/main_bay_door.py, original triangle order), then the
+            // model's nozzle cans give way to the from-scratch RD-33 nozzles (MiG29Nozzles.Build below)
             foreach (var p in data.parts.Where(p => p.name == "body"))
             {
+                MiG29MainGear.CutBodySkin(ref p.vertices, ref p.normals, ref p.uvs, ref p.triangles);
                 p.triangles = MiG29Nozzles.StripModelNozzles(p.vertices, p.triangles, out int stripped);
                 Debug.Log($"[MiG29] nozzles: {stripped} model nozzle triangles stripped");
             }
@@ -66,6 +68,7 @@ namespace MiG29Tools
 
             HideBaseExterior(root);
             MoveGearAndEffects(root, data.info);
+            MiG29MainGear.Setup(root, ModelOffset, materials.skin, TypeByName("LandingGear"), (o, path) => CreateOrReplace(o, path));
             LogStowed(root, "wheel_F");
 
             var visual = new GameObject("MiG29_visual").transform;
@@ -95,6 +98,9 @@ namespace MiG29Tools
             var doorsPart = data.parts.First(p => p.name == "gear_doors_closed");
             MiG29Polish.SetupGearDoors(go, ModelOffset, doorsPart.vertices, doorsPart.normals, doorsPart.uvs, doorsPart.triangles, materials.skin,
                 (m, path) => CreateOrReplace(m, path), (t, r) => AddDamageRenderer(t, r));
+            var fwd = MiG29MainGear.DoorMeshes();
+            MiG29Polish.SetupGearDoors(go, ModelOffset, fwd.v, fwd.n, fwd.uv, fwd.t, materials.skin,
+                (m, path) => CreateOrReplace(m, path), (t, r) => AddDamageRenderer(t, r), c => c.x < 0 ? "fwd_L" : "fwd_R");
             MiG29Wells.Build(root, ModelOffset, materials.skin, (o, path) => CreateOrReplace(o, path));
             var fm = MiG29FlightModel.Load();
             MiG29FlightModel.ApplyToPrefab(root, fm, (n, c) => CubeMesh("MiG29_col_" + n, c, 0.3f));
@@ -314,15 +320,7 @@ namespace MiG29Tools
                 MoveWorld(root, $"gear_{s}_armTarget", d);
             }
 
-            // Main legs. The KR-67 leg (0.85 m wheel) does not fit the MiG's own bays, which are only ~0.35 m deep under the wing-root
-            // glove, so it stows forward and inboard into the intake duct behind the intake blocker (hidden from every outside view).
-            // Before, the stow point sat 1.1 m inboard of the hinge, below the belly: the wheels hung out between the intakes and the
-            // legs swung through the fuselage (user screenshots, v0.9.0). Fold, strut twist and stow shift come from
-            // blender/analysis/main_gear_search.py (every leg vertex >= 6 cm inside the skin, intake ducts behind the blockers counted as
-            // hidden); the plugin's GearPathDriver lifts the leg into the bay opening before the final slide inboard.
-            SetMainStow(root, "wheel_L", MainFold, MainStrut, MainStowShift);
-            SetMainStow(root, "wheel_R", MainFold, MainStrut, Vector3.Scale(MainStowShift, new Vector3(-1f, 1f, 1f)));
-            TrimStrutTops(root);
+            // main legs, their stow and their doors: MiG29MainGear (called after this)
 
             PlaceLandingLight(root);
             // KR-67 nose wheel (0.66 m) fits the thin centre fuselage here: top 0.63 vs skin 0.66 at x 0.32 (blender ray scan).
@@ -362,62 +360,6 @@ namespace MiG29Tools
                 nav.position = new Vector3(sx * 5.55f, -0.045f, -0.70f) + ModelOffset;
                 foreach (var ps in nav.GetComponentsInChildren<ParticleSystem>(true)) { var main = ps.main; main.startSizeMultiplier *= 0.45f; }
                 SetWorld(root, "wingtipvortex_" + s, new Vector3(sx * 5.56f, -0.05f, -1.65f) + ModelOffset);
-            }
-        }
-
-        // Main-leg stow (left leg, MiG frame; the right leg mirrors it): blender/analysis/main_gear_search.py. Keep in step with
-        // MiG29Instruments/GearPath.cs, which animates the retraction through a mid keyframe.
-        public const float MainFold = -74f, MainStrut = 165f;
-        public static readonly Vector3 MainStowShift = new Vector3(0.575f, -0.10f, 0.175f);
-
-        static void SetMainStow(Transform root, string wheelName, float fold, float strut, Vector3 shiftMiG)
-        {
-            var wheel = Find(root, wheelName);
-            foreach (var lg in root.GetComponentsInChildren(TypeByName("LandingGear"), true))
-            {
-                var so = new SerializedObject(lg);
-                var hinge = so.FindProperty("gearHinge").objectReferenceValue as Transform;
-                if (hinge == null || !wheel.IsChildOf(hinge)) continue;
-                var local = hinge.parent.InverseTransformVector(shiftMiG);
-                so.FindProperty("foldDegrees").floatValue = fold;
-                so.FindProperty("strutRotation").floatValue = strut;
-                so.FindProperty("hingeFoldMotion").vector3Value = local;
-                so.ApplyModifiedPropertiesWithoutUndo();
-                Debug.Log($"[MiG29] {wheelName}: fold {fold:F0} deg, strut {strut:F0} deg, stow shift {shiftMiG} (hinge-parent local {local:F3})");
-                return;
-            }
-            throw new Exception("[MiG29] no LandingGear drives " + wheelName);
-        }
-
-        // The KR-67 main strut top (hinge yoke) stands 0.46 m up, above the MiG's 0.28 m wing root, and showed through the upper skin
-        // as a U-shaped bracket even with the gear down (user screenshot, v0.9.0). Everything above y 0.24 (MiG frame, gear down) is
-        // inside the glove or above it, so it is cut from the visible strut mesh.
-        const float StrutTopCut = 0.24f;
-
-        static void TrimStrutTops(Transform root)
-        {
-            foreach (var s in new[] { "L", "R" })
-            {
-                var mf = Find(root, $"gear_{s}_sprung").GetComponent<MeshFilter>();
-                var src = mf.sharedMesh;
-                var m = UnityEngine.Object.Instantiate(src);
-                m.name = $"MiG29_gear_{s}_sprung_trimmed";
-                var w = mf.transform.localToWorldMatrix;
-                var high = src.vertices.Select(v => (w.MultiplyPoint3x4(v) - ModelOffset).y > StrutTopCut).ToArray();
-                int cut = 0;
-                for (int sm = 0; sm < src.subMeshCount; sm++)
-                {
-                    var t = src.GetTriangles(sm);
-                    var keep = new List<int>(t.Length);
-                    for (int i = 0; i < t.Length; i += 3)
-                    {
-                        if (high[t[i]] || high[t[i + 1]] || high[t[i + 2]]) { cut++; continue; }
-                        keep.Add(t[i]); keep.Add(t[i + 1]); keep.Add(t[i + 2]);
-                    }
-                    m.SetTriangles(keep, sm);
-                }
-                mf.sharedMesh = CreateOrReplace(m, $"{ModDir}/meshes/{m.name}.asset");
-                Debug.Log($"[MiG29] gear_{s}_sprung: {cut} triangles above y {StrutTopCut} trimmed");
             }
         }
 

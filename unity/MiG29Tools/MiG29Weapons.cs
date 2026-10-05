@@ -454,9 +454,13 @@ namespace MiG29Tools
                 // a NullReferenceException at launch and on every physics tick (v0.5.0 bug, R-27R and R-27T)
                 sso.FindProperty("missile").objectReferenceValue = go.GetComponent(T("Missile"));
                 sso.ApplyModifiedPropertiesWithoutUndo();
-                // the airframe donor (AAM2) is active-radar; take the seeker donor's mode (passive SARH / IR)
+                // the airframe donor (AAM2) is active-radar and spawns ARMED; take the seeker donor's mode (passive SARH / IR) and its
+                // warhead arming state. SARHSeeker arms the warhead itself after armDelay and detonates an armed missile that has no
+                // target on its first tick: with the AAM2's armed spawn the R-27R blew up at the pylon (user report, v0.9.0).
                 var mso = new SerializedObject(go.GetComponent(T("Missile")));
-                mso.FindProperty("seekerMode").enumValueIndex = new SerializedObject(donor.GetComponent(T("Missile"))).FindProperty("seekerMode").enumValueIndex;
+                var dso = new SerializedObject(donor.GetComponent(T("Missile")));
+                mso.FindProperty("seekerMode").enumValueIndex = dso.FindProperty("seekerMode").enumValueIndex;
+                mso.FindProperty("warhead.Armed").boolValue = dso.FindProperty("warhead.Armed").boolValue;
                 mso.ApplyModifiedPropertiesWithoutUndo();
             }
             return go;
