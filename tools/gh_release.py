@@ -1,6 +1,6 @@
 """Create a GitHub release for a version and attach its .nobp, using the token from git's credential helper.
 
-python tools/gh_release.py 0.6.0 [--prerelease]
+python tools/gh_release.py 0.6.0 [--prerelease] [--name="Update 8.5"]
 Notes come from that version's CHANGELOG.md section. The token is never printed.
 """
 import json, os, re, subprocess, sys, urllib.request
@@ -34,7 +34,7 @@ def main():
     tok = token()
     sha = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, cwd=ROOT).stdout.strip()
     rel = api("POST", f"https://api.github.com/repos/{REPO}/releases", tok, json.dumps(
-        {"tag_name": f"v{ver}", "target_commitish": sha, "name": f"v{ver}", "body": notes, "prerelease": pre, "make_latest": "true"}).encode())
+        {"tag_name": f"v{ver}", "target_commitish": sha, "name": next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--name=")), f"v{ver}"), "body": notes, "prerelease": pre, "make_latest": "true"}).encode())
     print("release:", rel["html_url"])
     base = rel["upload_url"].split("{")[0]
     # the all-in-one zip must be the first asset (NOMNOM / NOMM use assets[0]); GitHub lists assets by name, and
