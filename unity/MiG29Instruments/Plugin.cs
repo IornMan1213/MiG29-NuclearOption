@@ -16,11 +16,15 @@ namespace MiG29Instruments
     public class MiG29InstrumentsPlugin : BaseUnityPlugin
     {
         // same as MiG29Builder.Version (build_mig29.ps1 checks): mod managers match the release version against this DLL's version
-        public const string ModVersion = "0.8.6";
+        public const string ModVersion = "0.8.7";
         internal static ManualLogSource Log;
         internal static BepInEx.Configuration.ConfigEntry<float> PanelLighting;
         internal static BepInEx.Configuration.ConfigEntry<BepInEx.Configuration.KeyboardShortcut> JettisonKey;
         internal static BepInEx.Configuration.ConfigEntry<bool> AutoDropEmpty;
+        internal static BepInEx.Configuration.ConfigEntry<bool> HideGlassHud;
+        internal static BepInEx.Configuration.ConfigEntry<bool> KeepCombatReadouts;
+        internal static BepInEx.Configuration.ConfigEntry<bool> FoldMirrors;
+        internal static BepInEx.Configuration.ConfigEntry<BepInEx.Configuration.KeyboardShortcut> MirrorFoldKey;
 
         void Awake()
         {
@@ -32,11 +36,22 @@ namespace MiG29Instruments
                 "Drops all drop tanks at once (they can also be selected and fired like any store)");
             AutoDropEmpty = Config.Bind("Drop tanks", "Drop empty tanks automatically", false,
                 "Release your drop tanks by themselves once they run dry (AI-flown MiGs always do)");
+            HideGlassHud = Config.Bind("HUD", "Hide flight HUD", false,
+                "While flying the MiG-29, hide the on-screen flight HUD (speed, altitude, climb, AoA, g, fuel and other readouts, pitch ladder, " +
+                "compass, velocity vector) and fly by the analog gauges. The map, target markers, mouse-aim cursor and other mods' overlays stay.");
+            KeepCombatReadouts = Config.Bind("HUD", "Keep weapon and damage readouts", true,
+                "With the flight HUD hidden, still show the selected weapon and ammo, countermeasures and the damage display");
+            FoldMirrors = Config.Bind("Cockpit", "Fold mirrors", true,
+                "Fold the three rear-view mirrors flat along the inside of the canopy, out of the way of the forward view");
+            MirrorFoldKey = Config.Bind("Cockpit", "Mirror fold key", new BepInEx.Configuration.KeyboardShortcut(KeyCode.M, KeyCode.LeftControl),
+                "Folds or unfolds the mirrors in flight (flips \"Fold mirrors\")");
             // some games destroy BepInEx's manager object on scene loads: scan from an object of our own
             var go = new GameObject("MiG29InstrumentsScanner");
             DontDestroyOnLoad(go);
             go.hideFlags = HideFlags.HideAndDontSave;
             go.AddComponent<Scanner>();
+            go.AddComponent<GlassHudHider>();
+            go.AddComponent<MirrorFolder>();
             Log.LogInfo("MiG-29 instruments ready");
         }
     }

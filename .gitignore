@@ -24,3 +24,6 @@ __pycache__/
 # plugin build output
 unity/MiG29Instruments/bin/
 unity/MiG29Instruments/obj/
+
+# hand-painted livery work files (blender/livery_edit.py)
+blender/livery/

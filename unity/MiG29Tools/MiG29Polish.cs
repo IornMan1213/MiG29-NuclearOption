@@ -412,6 +412,9 @@ namespace MiG29Tools
             var desert = Livery("MiG29_livery_desert", ImportColor("mig29_basecolor_desert.png"), new Color32(196, 172, 128, 255));
             var digital = Livery("MiG29_livery_digital", ImportColor("mig29_basecolor_digital.png"), new Color32(150, 160, 170, 255));
             var display = Livery("MiG29_livery_display", ImportColor("mig29_basecolor_display.png"), new Color32(40, 70, 140, 255));
+            // hand-painted in Blender (blender/livery_edit.py), copied into MiG29Source by build_mig29.ps1 when it exists
+            string custom = File.Exists(Path.Combine("MiG29Source", "mig29_basecolor_custom.png"))
+                ? Livery("MiG29_livery_custom", ImportColor("mig29_basecolor_custom.png"), new Color32(170, 178, 178, 255)) : null;
 
             var liveries = pso.FindProperty("liveries");
             var factions = new List<(UnityEngine.Object faction, bool pala)>();
@@ -422,12 +425,24 @@ namespace MiG29Tools
                 if (factions.Any(x => x.faction == f)) continue;
                 factions.Add((f, e.FindPropertyRelative("name").stringValue.ToUpperInvariant().Contains("PALA")));
             }
-            liveries.arraySize = factions.Count * 4;
+            // schemes after profile drawings (tools/livery_profiles.py)
+            var profiles = new List<(string, string)>
+            {
+                ("Fulcrum 29+20 Special", Livery("MiG29_livery_german", ImportColor("mig29_basecolor_german.png"), new Color32(30, 30, 32, 255))),
+                ("Fulcrum Tricolour Digital 741", Livery("MiG29_livery_tricolour", ImportColor("mig29_basecolor_digital741.png"), new Color32(235, 236, 238, 255))),
+                ("Fulcrum OVT Splinter 917", Livery("MiG29_livery_ovt", ImportColor("mig29_basecolor_ovt.png"), new Color32(150, 178, 214, 255))),
+                ("Fulcrum White 44", Livery("MiG29_livery_white44", ImportColor("mig29_basecolor_white44.png"), new Color32(235, 236, 238, 255))),
+                ("Fulcrum LII Gromov 84", Livery("MiG29_livery_lii", ImportColor("mig29_basecolor_lii.png"), new Color32(190, 194, 198, 255))),
+            };
+            int perFaction = 4 + profiles.Count + (custom != null ? 1 : 0);
+            liveries.arraySize = factions.Count * perFaction;
             int k = 0;
             foreach (var (faction, pala) in factions)
             {
-                var order = pala ? new[] { ("Fulcrum Desert Tan", desert), ("Fulcrum Two-Tone Grey", grey), ("Fulcrum Digital Grey", digital), ("Fulcrum Display Blue", display) }
-                                 : new[] { ("Fulcrum Two-Tone Grey", grey), ("Fulcrum Desert Tan", desert), ("Fulcrum Digital Grey", digital), ("Fulcrum Display Blue", display) };
+                var order = (pala ? new[] { ("Fulcrum Desert Tan", desert), ("Fulcrum Two-Tone Grey", grey), ("Fulcrum Digital Grey", digital), ("Fulcrum Display Blue", display) }
+                                  : new[] { ("Fulcrum Two-Tone Grey", grey), ("Fulcrum Desert Tan", desert), ("Fulcrum Digital Grey", digital), ("Fulcrum Display Blue", display) }).ToList();
+                order.AddRange(profiles);
+                if (custom != null) order.Add(("Fulcrum Custom", custom));
                 foreach (var (name, guid) in order)
                 {
                     var e = liveries.GetArrayElementAtIndex(k++);

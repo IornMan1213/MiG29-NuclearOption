@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.8.7 (Update 8.7)
+**More weapons, five new liveries, an option to hide the HUD, folding mirrors.**
+- **More base-game weapons.**
+  - Inner pylons, on top of what they had: IRM-S2 (single and pair), IRM-S1 pair, AGM-48 (pair and triple), AGM-68, ARAD-45,
+    AGM-99, PAB-125 (pair and quad), PAB-250, PAB-250LR, PAB-80LR pair, AGR-18 rocket pods (single and triple), the 20 mm gun pod,
+    ECM and radar jamming pods, and the GPO-N 1.5 kt nuclear bomb.
+  - Middle pylons: the same lighter set, single stores only. Side-by-side racks on both the inner and middle pylons touched.
+  - Outer pylons: IRM-S2, MMR-S3, IRM-S1, AGM-48, an AGR-18 pod, ECM pod, smoke and flare pods.
+  - The centreline station now takes weapons, not just the drop tank: GPO-500, GBM-500LR, PAB-250 (single and triple),
+    PAB-125 quad, CBO-400, GPO-2P Auger, AGM-68, both GPO-N nuclear bombs, the 20 mm gun pod, and jamming, ECM and smoke pods.
+- **Five new liveries**, after MiG-29 profile drawings: 29+20 Special (yellow, red and black), Tricolour Digital 741, OVT Splinter
+  917, White 44 and LII Gromov 84. Each has its own numbers and fin markings.
+- **Hide flight HUD option** (Configuration Manager, MiG-29 Instruments > HUD). While flying the MiG it hides the on-screen
+  flight readouts, pitch ladder, compass and velocity vector, so you fly by the cockpit gauges. The map, target markers, mouse-aim
+  cursor and other mods' overlays stay. A second option keeps the weapon, countermeasure and damage readouts.
+- **Folding mirrors.** The three rear-view mirrors fold up against the canopy, out of the forward view (on by default). Ctrl+M
+  folds and unfolds them in flight; both are in Configuration Manager under MiG-29 Instruments > Cockpit.
+- **Livery editor for modders**: blender/livery_edit.py opens the MiG in Blender, ready to paint a livery on the model; the build
+  ships the result as "Fulcrum Custom".
+
 ## 0.8.6 (Update 8.6)
 **Round afterburner, gun fixed.**
 - **Afterburner.** The afterburner glow came from the donor jet's flat 2D nozzles and showed as a glowing rectangle inside the

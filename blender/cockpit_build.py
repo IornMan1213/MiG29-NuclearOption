@@ -17,7 +17,7 @@ Blender frame: X = Unity x (right), Y = Unity z (forward), Z = Unity y (up). All
 through P() so they read like the rest of the project.
 """
 import bpy, bmesh, json, math, os, sys
-from mathutils import Vector, Matrix
+from mathutils import Vector, Matrix, Quaternion
 from mathutils.bvhtree import BVHTree
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -990,21 +990,76 @@ def look_matrix(pos, target):
     return Matrix((x, n, zup)).transposed()
 
 
-def mirror(theta, w, h, stalk=0.05):
+def mirror(gid, theta, w, h, stalk=0.05):
+    """A rear-view mirror on its own hinge (part ins_mirror_<gid>): the plugin folds it away. The mount looks aft (z = -MiG z) with
+    y toward the arch centre and x along the bow, so a positive turn about x swings the stalk from down-and-aft to straight aft
+    (about 60 deg), laying the mirror flat along the inside of the canopy."""
     o0, i0, i1, o1, du = min(bow, key=lambda b: abs(math.degrees(math.atan2(b[4][0], b[4][1])) - theta))
     base = tuple((i0[k] + i1[k]) / 2 for k in range(3))
     pos = tuple(base[k] - du[k] * stalk for k in range(3))
     pos = (pos[0], pos[1], pos[2] - 0.03)
-    tube("tub", [base, pos], 0.007, "black", 8)
+    pid = part("ins_mirror_" + gid)
+    tube(pid, [base, pos], 0.007, "black", 8)
     m = look_matrix(pos, EYE)
-    box("tub", pos, (w, h, 0.022), "black", 0.006, rot=m)
+    box(pid, pos, (w, h, 0.022), "black", 0.006, rot=m)
     n = (Vector(EYE) - Vector(pos)).normalized()
-    box("tub", tuple(pos[k] + n[k] * 0.012 for k in range(3)), (w - 0.012, h - 0.012, 0.003), "metal", 0.001, rot=m)
+    box(pid, tuple(pos[k] + n[k] * 0.012 for k in range(3)), (w - 0.012, h - 0.012, 0.003), "metal", 0.001, rot=m)
+    INS[pid] = (Vector(base), Vector((0.0, 0.0, 1.0)), Vector((-du[0], -du[1], -du[2])))
 
 
-mirror(0, 0.20, 0.055, stalk=0.045)        # centre rear-view mirror at the top of the bow
-mirror(-42, 0.11, 0.065)                   # side mirrors on the bow's upper corners
-mirror(42, 0.11, 0.065)
+mirror("c", 0, 0.20, 0.055, stalk=0.045)   # centre rear-view mirror at the top of the bow
+mirror("l", -42, 0.11, 0.065)              # side mirrors on the bow's upper corners
+mirror("r", 42, 0.11, 0.065)
+
+# Folded pose per mirror, tucked against the canopy. At a fixed 60 deg about the hinge they still hung below the bow (user video,
+# v0.8.7), and the side mirrors meet the curved glass at 66 deg. Searched: a fold about the hinge (mount x, either way) then a twist
+# about the stalk's resting direction; every vertex must stay 6 mm inside the glass all along the swing; the pose that protrudes
+# least from the glass (deepest vertex) wins. Exported as a quaternion in the mount frame (x along the bow, y toward the arch centre,
+# z aft; Unity components), which the plugin slerps to.
+FOLD = {}
+
+
+def _inside_clear(q):
+    """q: Unity-frame point. True if at least 6 mm inside the canopy glass; also returns its distance from the glass."""
+    hit = glass_bvh.find_nearest(P(q.x, q.y, q.z))
+    if hit[0] is None:
+        return False, 0.0
+    h = Vector((hit[0].x, hit[0].z, hit[0].y))                       # Blender -> Unity
+    axis_pt = Vector((BOW_C[0], BOW_C[1], q.z))
+    inside = (h - q).dot(h - axis_pt) > 0                            # the glass lies beyond the point, seen from the arch centre
+    return inside and hit[3] >= 0.006, hit[3]
+
+
+for pid in ("ins_mirror_c", "ins_mirror_l", "ins_mirror_r"):
+    base, _, up = INS[pid]
+    B = Vector(base)
+    Y = Vector(up).normalized(); Z = Vector((0.0, 0.0, -1.0)); X = Y.cross(Z)
+    raw = [Vector((v.co.x, v.co.z, v.co.y)) - B for v in PARTS[pid].bm.verts]
+    pts = [Vector((r.dot(X), r.dot(Y), r.dot(Z))) for r in raw[::2]]  # mount frame, every other vertex
+    stalk = sum(pts, Vector()).normalized()
+    best, best_depth = Quaternion(), max(_inside_clear(B + X * p.x + Y * p.y + Z * p.z)[1] for p in pts)
+    rest_depth = best_depth
+    for a in range(-150, 152, 3):
+        qa = Quaternion(Vector((1, 0, 0)), math.radians(a))
+        for b in range(-90, 91, 6):
+            q = Quaternion(stalk, math.radians(b)) @ qa
+            ok, depth = True, 0.0
+            for k in (0.25, 0.5, 0.75, 1.0):                         # the swing must stay clear, not just the end pose
+                qk = Quaternion().slerp(q, k)
+                for p in pts:
+                    r = qk @ p
+                    clear, dist = _inside_clear(B + X * r.x + Y * r.y + Z * r.z)
+                    if not clear:
+                        ok = False; break
+                    if k == 1.0:
+                        depth = max(depth, dist)
+                if not ok:
+                    break
+            if ok and depth < best_depth:
+                best, best_depth = q, depth
+    FOLD[pid] = [best.x, best.y, best.z, best.w]
+    print(f"[cockpit] {pid}: folded pose sticks out {best_depth * 100:.1f} cm from the glass (out: {rest_depth * 100:.1f} cm), "
+          f"{math.degrees(best.angle):.0f} deg")
 
 # ------------------------------------------------------------------------------------------------ the MiG model's own frames
 def frames_part():
@@ -1088,6 +1143,8 @@ for name in sorted(k for k in PARTS if k.startswith("ins_") or k.startswith("lam
     if name in INS:
         piv, ax, upv = INS[name]
         o["pivot"] = list(piv); o["axis"] = list(ax); o["up"] = list(upv)
+    if name in FOLD:
+        o["fold"] = FOLD[name]
     parts_out.append(o); meshes[name] = me
 parts_out.append(frames_part())
 json.dump({"parts": parts_out, "eye": list(EYE)}, open(os.path.join(SRC, "cockpit_mesh.json"), "w"))

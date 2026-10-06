@@ -1,7 +1,7 @@
 {
   "id": "MiG29Fulcrum",
   "displayName": "MiG-29 Fulcrum",
-  "description": "A flyable MiG-29 (9.12) with its own flight model tuned to real-world data, a cockpit modelled from scratch where every instrument works (20 needles, a rolling attitude ball, HSI, 24-light caution panel, SPO-15 radar warning receiver, gear lights), R-27R / R-27T / R-73 / R-60M missiles, the GSh-30-1 cannon, droppable PTB-1500 / PTB-1150 fuel tanks, flares and radar chaff from its own tail-boom dispensers, a working canopy and gear doors, its own damage display and four liveries.",
+  "description": "A flyable MiG-29 (9.12) with its own flight model tuned to real-world data, a cockpit modelled from scratch where every instrument works (20 needles, a rolling attitude ball, HSI, 24-light caution panel, SPO-15 radar warning receiver, gear lights), R-27R / R-27T / R-73 / R-60M missiles, the GSh-30-1 cannon, droppable PTB-1500 / PTB-1150 fuel tanks, flares and radar chaff from its own tail-boom dispensers, a working canopy and gear doors, its own damage display and nine liveries.",
   "tags": [
     "mod",
     "aircraft",
@@ -25,6 +25,19 @@
   "githubRepoName": "MiG29-NuclearOption",
   "autoUpdateArtifacts": "True",
   "artifacts": [
+    {
+      "fileName": "MiG-29-Fulcrum_0.8.7.zip",
+      "version": "0.8.7",
+      "category": "release",
+      "type": "addon",
+      "gameVersion": "0.34.2",
+      "downloadUrl": "https://github.com/IornMan1213/MiG29-NuclearOption/releases/download/v0.8.7/MiG-29-Fulcrum_0.8.7.zip",
+      "hash": "sha256:eb00d1afcdf2f69062f837a29262c7c47f16f4e3471d3940ae33c7c4d7ef4cf4",
+      "extends": {
+        "id": "com.nikkorap.blueprinter",
+        "version": "2.0.1"
+      }
+    },
     {
       "fileName": "MiG-29-Fulcrum_0.8.6.zip",
       "version": "0.8.6",

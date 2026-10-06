@@ -40,6 +40,13 @@ python "$tools\fm_export.py" "$src\fm_unity.json"; if ($LASTEXITCODE -ne 0) { th
 python "$tools\livery_desert.py" "$src\mig29_basecolor.png" "$src\mig29_mesh.json" "$src\mig29_basecolor_desert.png"; if ($LASTEXITCODE -ne 0) { throw "livery_desert failed" }
 python "$tools\livery_digital.py" "$src\mig29_basecolor.png" "$src\mig29_mesh.json" "$src\mig29_basecolor_digital.png"; if ($LASTEXITCODE -ne 0) { throw "livery_digital failed" }
 python "$tools\livery_display.py" "$src\mig29_basecolor.png" "$src\mig29_mesh.json" "$src\mig29_basecolor_display.png"; if ($LASTEXITCODE -ne 0) { throw "livery_display failed" }
+python "$tools\livery_profiles.py" "$src\mig29_basecolor.png" "$src\mig29_mesh.json" "$src"; if ($LASTEXITCODE -ne 0) { throw "livery_profiles failed" }
+# hand-painted livery (blender/livery_edit.py) when there is one
+$custom = Join-Path (Split-Path $PSScriptRoot) "blender\livery\mig29_livery_custom.png"
+Remove-Item "$src\mig29_basecolor_custom.png" -ErrorAction SilentlyContinue
+if ((Test-Path $custom) -and (Get-FileHash $custom).Hash -ne (Get-FileHash "$src\mig29_basecolor.png").Hash) {   # not until it has been painted
+    Copy-Item $custom "$src\mig29_basecolor_custom.png" -Force
+}
 # cockpit: texture atlas, then the from-scratch interior modelled in Blender (fitted to mig29_mesh.json)
 python "$tools\cockpit_atlas.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "cockpit_atlas failed" }
 $ckOld = if (Test-Path "$src\cockpit_mesh.json") { (Get-Item "$src\cockpit_mesh.json").LastWriteTime } else { [datetime]::MinValue }

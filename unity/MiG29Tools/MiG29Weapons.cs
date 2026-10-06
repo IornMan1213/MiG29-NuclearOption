@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEditor;
@@ -599,6 +600,49 @@ namespace MiG29Tools
         public static readonly Vector3 MiddlePylon = new Vector3(3.10f, -0.29f, 0.66f);
         public static readonly Vector3 OuterPylon = new Vector3(3.73f, -0.40f, 0.28f);
 
+        // Base-game stores added on top of the MiG weapons and the KR-67's own pylon options (which the inner and middle sets keep).
+        // Inner and middle: lighter missiles, small bombs, rocket pods, the 20 mm gun pod, jammers, the tactical nuke. Outer (thin pylons): light
+        // stores only. Centreline (belly between the nacelles): bombs, nukes, gun pods, jammers; no long missiles, which would reach the
+        // nose gear and the intakes.
+        static readonly string[] InnerExtra =
+        {
+            "AAM3_single", "AAM3_double", "IRMS1_double", "AGM1_double", "AGM1_triple", "AGM_heavy_single", "ARM2_single", "AShM2_single",
+            "bomb_125_double", "bomb_125_quad", "bomb_250_single", "bomb_250_glide_single", "bomb_glide1_double", "RocketPod1_single",
+            "RocketPod1_triple", "gun_20mm_pod", "ECMPod1", "JammingPod1", "nuclearBomb1_external",
+        };
+        static readonly string[] MiddleExtra =
+        {
+            "AAM3_single", "AAM3_double", "IRMS1_double", "AGM1_single", "AGM1_double", "AGM_heavy_single", "ARM2_single",
+            "bomb_125_single", "bomb_125_double", "bomb_250_single", "bomb_250_glide_single", "bomb_glide1_single", "bomb_glide1_double",
+            "RocketPod1_single", "gun_20mm_pod", "ECMPod1", "nuclearBomb1_external",
+        };
+        static readonly string[] OuterExtra =
+        {
+            "AAM3_single", "AAM1_single", "IRMS1_single", "AGM1_single", "RocketPod1_single", "ECMPod1", "SpecialSmokePod", "SpecialFlarePod",
+        };
+        static readonly string[] CentrelineExtra =
+        {
+            "bomb_500_single", "bomb_500_glide_single", "bomb_250_single", "bomb_250_triple", "bomb_125_quad", "bomb_cluster1_single",
+            "bomb_penetrator1", "AGM_heavy_single", "nuclearBomb1_external", "nuclearBomb1_strategic_external",
+            "gun_20mm_pod", "JammingPod1", "ECMPod1", "SpecialSmokePod",
+        };
+
+        // appends base-game mounts to a hardpoint set's options, skipping any it already has
+        static void AddStock(SerializedProperty set, string[] names)
+        {
+            var opts = set.FindPropertyRelative("weaponOptions");
+            var have = new HashSet<UnityEngine.Object>();
+            for (int i = 0; i < opts.arraySize; i++) have.Add(opts.GetArrayElementAtIndex(i).objectReferenceValue);
+            foreach (var n in names)
+            {
+                var m = AssetDatabase.LoadAssetAtPath<ScriptableObject>(MB + n + "_PLACEHOLDER.asset");
+                if (m == null) { Debug.LogWarning("[MiG29] weapon mount not found: " + n); continue; }
+                if (!have.Add(m)) continue;
+                opts.arraySize++;
+                opts.GetArrayElementAtIndex(opts.arraySize - 1).objectReferenceValue = m;
+            }
+        }
+
         // Returns the index of the new outer pylon set (loadouts need a slot there).
         public static int SetupPylons(GameObject go, Vector3 modelOffset, Result w)
         {
@@ -632,8 +676,18 @@ namespace MiG29Tools
             }
             sets.GetArrayElementAtIndex(inner).FindPropertyRelative("name").stringValue = "Inner Pylons";
             AddOptions(inner, w.r27Mount, w.r27tMount, w.r73Mount, w.r60Mount, w.ptb1150Mount);
+            AddStock(sets.GetArrayElementAtIndex(inner), InnerExtra);
             sets.GetArrayElementAtIndex(middle).FindPropertyRelative("name").stringValue = "Middle Pylons";
             AddOptions(middle, w.r73Mount, w.r60Mount);
+            AddStock(sets.GetArrayElementAtIndex(middle), MiddleExtra);
+            // The middle pylons are 0.74 m outboard of the inner ones: side-by-side racks (GPO-500 x2 is 0.8 m wide) on both touched
+            // (user screenshot, v0.8.7). The middle pylons take single stores, as on the real jet; the inner keep the racks.
+            var mo = sets.GetArrayElementAtIndex(middle).FindPropertyRelative("weaponOptions");
+            for (int i = mo.arraySize - 1; i >= 0; i--)
+            {
+                var o = mo.GetArrayElementAtIndex(i).objectReferenceValue;
+                if (o != null && new[] { "_double", "_triple", "_quad" }.Any(s => o.name.Contains(s))) mo.DeleteArrayElementAtIndex(i);
+            }
 
             // new outer pair (R-73 / R-60M), inserted right after the middle pylons
             int outer = middle + 1;
@@ -645,6 +699,7 @@ namespace MiG29Tools
             oo.GetArrayElementAtIndex(0).objectReferenceValue = null;
             oo.GetArrayElementAtIndex(1).objectReferenceValue = w.r73Mount;
             oo.GetArrayElementAtIndex(2).objectReferenceValue = w.r60Mount;
+            AddStock(os, OuterExtra);
             var hps = os.FindPropertyRelative("hardpoints");
             var upType = T("UnitPart");
             for (int i = 0; i < hps.arraySize && i < 2; i++)
@@ -690,6 +745,7 @@ namespace MiG29Tools
             opts.arraySize = 2;
             opts.GetArrayElementAtIndex(0).objectReferenceValue = null;
             opts.GetArrayElementAtIndex(1).objectReferenceValue = w.ptb1500Mount;
+            AddStock(set, CentrelineExtra);
             var hps = set.FindPropertyRelative("hardpoints");
             hps.arraySize = 1;
             var hp = hps.GetArrayElementAtIndex(0);

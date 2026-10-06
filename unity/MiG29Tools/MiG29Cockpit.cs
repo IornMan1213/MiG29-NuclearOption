@@ -25,7 +25,7 @@ namespace MiG29Tools
                                               "canopyFrame_F_int_simple", "canopyFrame_R_int_simple" };
 
         [Serializable] class Dump { public Part[] parts; }
-        [Serializable] class Part { public string name, material; public float[] vertices, normals, uvs, pivot, axis, up; public int[] triangles; }
+        [Serializable] class Part { public string name, material; public float[] vertices, normals, uvs, pivot, axis, up; public int[] triangles; public float[] fold; }
 
         public static void Build(GameObject go, Transform cockpitPart, Vector3 modelOffset, Material skin, Material glass, List<Renderer> exterior,
                                  Func<UnityEngine.Object, string, UnityEngine.Object> save, Action<Transform, Renderer> addDamage)
@@ -111,6 +111,12 @@ namespace MiG29Tools
                                           $"{ModDir}/meshes/MiG29_ck_{p.name}.asset");
                     needle.gameObject.AddComponent<MeshFilter>().sharedMesh = mesh;
                     needle.gameObject.AddComponent<MeshRenderer>().sharedMaterial = mat;
+                    if (p.fold != null && p.fold.Length == 4)   // folding mirrors: the folded pose for the plugin (cockpit_build.py finds it against the glass)
+                    {
+                        var folded = new GameObject("folded").transform;
+                        folded.SetParent(mount, false);
+                        folded.localRotation = new Quaternion(p.fold[0], p.fold[1], p.fold[2], p.fold[3]);
+                    }
                     var id = p.name.Substring(4);
                     if (MiG29InstrumentMath.Pose(id, rest, out var lp, out var lr)) { needle.localPosition = lp; needle.localRotation = lr; }
                     else needle.localRotation = id == "adi_ball" ? MiG29InstrumentMath.Ball(rest)
