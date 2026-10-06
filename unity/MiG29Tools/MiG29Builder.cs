@@ -21,7 +21,7 @@ namespace MiG29Tools
 
         public const string JsonKey = "mig29_Fulcrum";
         public const string DisplayName = "MiG-29 Fulcrum";
-        public const string Version = "0.8.5";
+        public const string Version = "0.8.6";
 
         // MiG model frame -> aircraft root. Puts MiG main wheels on the KR-67 main gear and MiG wheels on KR-67 ground line.
         static readonly Vector3 ModelOffset = new Vector3(0f, -0.44f, -2.655f);
@@ -112,6 +112,7 @@ namespace MiG29Tools
             MiG29Cockpit.Build(go, cockpitPart, ModelOffset, materials.skin, materials.glass, exterior, (o, path) => CreateOrReplace(o, path), (t, r) => AddDamageRenderer(t, r));
             AppendExteriorRenderers(go, exterior);
             TuneToMiG(root);
+            MiG29Nozzles.RoundAfterburners(root, (o, path) => CreateOrReplace(o, path));
             bayIndices = BayIndices(go);
             RemoveInternalBays(go);
             var centreSet = MiG29Weapons.SetupCentreline(go, ModelOffset, weapons);

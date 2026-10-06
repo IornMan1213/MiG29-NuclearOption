@@ -274,7 +274,8 @@ namespace MiG29Tools
             var upType = T("UnitPart");
             var parts = go.GetComponentsInChildren(upType, true).ToList();
             var tris = new List<(Vector3 a, Vector3 b, Vector3 c, int part)>();
-            foreach (var r in go.GetComponentsInChildren<MeshRenderer>(true).Where(r => r.name.StartsWith("MiG29_")))
+            // (not the afterburner flames: they trail 8.8 m behind the nozzles and drew spikes off the tail, user report v0.8.6)
+            foreach (var r in go.GetComponentsInChildren<MeshRenderer>(true).Where(r => r.name.StartsWith("MiG29_") && !r.name.StartsWith("MiG29_abflame")))
             {
                 if (!r.TryGetComponent<MeshFilter>(out var mf) || mf.sharedMesh == null) continue;
                 var part = r.GetComponentInParent(upType);

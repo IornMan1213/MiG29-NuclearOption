@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.6 (Update 8.6)
+**Round afterburner, gun fixed.**
+- **Afterburner.** The afterburner glow came from the donor jet's flat 2D nozzles and showed as a glowing rectangle inside the
+  round RD-33 nozzles. It is now round and sits inside the nozzle. The afterburner flame was missing entirely (and was set
+  0.73 m above the nozzle); there is now a round flame trailing from each nozzle exit, growing with afterburner.
+- **GSh-30-1 cannon.** Rounds left the jet from inside the wing root, about 4.5 m behind the gun. They now leave from the gun
+  port on the left side of the forward fuselage, beside the cockpit.
+
 ## 0.8.5 (Update 8.5)
 **Landing gear rebuilt, new engine nozzles, R-27R fixed.** Everything fixed since 0.8.1:
 - **Main landing gear, rebuilt to work like the real MiG-29.**

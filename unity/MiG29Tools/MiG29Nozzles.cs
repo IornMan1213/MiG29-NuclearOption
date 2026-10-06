@@ -96,6 +96,79 @@ namespace MiG29Tools
             Debug.Log($"[MiG29] nozzles: 2 RD-33 nozzles, {petals} hinged petals, rest exit radius {L.exit_rest:F3} m");
         }
 
+        // The afterburner comes from the KR-67's JetNozzle: a flame mesh on thrustTransform and a nozzle-interior glow, both shaped for
+        // its flat 2D nozzles (1.3 x 0.7 m), so the MiG showed a glowing rectangle in its round nozzles (user screenshots, v0.8.5). The
+        // flame also rode thrustTransform up to CG height, 0.73 m above the nozzle. Both meshes are remapped to a round cross-section
+        // (square-to-disc, UVs and shading kept) and hung on the MiG nozzle frame: the glow inside the duct ahead of the throat, the flame
+        // from the exit plane. Call after the nozzles and thrust transforms are in place.
+        public static void RoundAfterburners(Transform root, Func<UnityEngine.Object, string, UnityEngine.Object> save)
+        {
+            var jetNozzle = AppDomain.CurrentDomain.GetAssemblies().Where(a => a.GetName().Name == "Assembly-CSharp").Select(a => a.GetType("JetNozzle")).First(t => t != null);
+            float exitZ = -L.l_flap * Mathf.Cos(Mathf.Asin((L.r_root - 0.472f) / L.l_flap));   // exit plane, petals wide open (afterburner)
+            int done = 0;
+            foreach (var nz in root.GetComponentsInChildren(jetNozzle, true))
+            {
+                var so = new SerializedObject(nz);
+                var abs = so.FindProperty("afterburners");
+                for (int i = 0; i < abs.arraySize; i++)
+                {
+                    var ab = abs.GetArrayElementAtIndex(i);
+                    var flameP = ab.FindPropertyRelative("flameRenderer");
+                    var glowP = ab.FindPropertyRelative("nozzleGlowRenderer");
+                    var glow = (Renderer)glowP.objectReferenceValue;
+                    var flame = (Renderer)flameP.objectReferenceValue;
+                    if (glow == null || flame == null) continue;
+                    string s = glow.name.EndsWith("_R") ? "R" : "L";
+                    var frame = root.GetComponentsInChildren<Transform>(true).First(t => t.name == "MiG29_nozzle_" + s);
+
+                    // glow: aft end at the throat, inside the duct
+                    var gm = Disc(glow.GetComponent<MeshFilter>().sharedMesh, L.r_throat - 0.01f, -L.z_throat + 0.02f, aftAnchor: true, zScale: 1f);
+                    glow.GetComponent<MeshFilter>().sharedMesh = (Mesh)save(gm, $"{Dir}/MiG29_abglow_{s}.asset");
+                    glow.transform.SetParent(frame, false);
+                    glow.transform.localPosition = Vector3.zero; glow.transform.localRotation = Quaternion.identity; glow.transform.localScale = Vector3.one;
+
+                    // flame: new renderer on the nozzle frame (JetNozzle rescales the flame transform every frame, so the KR-67's
+                    // 1.3 length scale is baked into the mesh); the old one stays off
+                    // (HideBaseExterior nulls the mesh on thrustTransform, so the MiG had no flame at all: take it from the asset)
+                    var flameSrc = flame.GetComponent<MeshFilter>().sharedMesh
+                        ?? AssetDatabase.LoadAssetAtPath<Mesh>("Assets/Blueprinter/_donotship/Mesh/multirole1_afterburner_flame_PLACEHOLDER.asset");
+                    var fm = Disc(flameSrc, 0.45f, exitZ, aftAnchor: false, zScale: 1.3f);
+                    var fo = new GameObject("MiG29_abflame_" + s);
+                    fo.transform.SetParent(frame, false);
+                    fo.AddComponent<MeshFilter>().sharedMesh = (Mesh)save(fm, $"{Dir}/MiG29_abflame_{s}.asset");
+                    var fr = fo.AddComponent<MeshRenderer>();
+                    fr.sharedMaterials = flame.sharedMaterials;
+                    fr.shadowCastingMode = flame.shadowCastingMode; fr.receiveShadows = flame.receiveShadows;
+                    fr.enabled = false;
+                    flame.enabled = false;
+                    flameP.objectReferenceValue = fr;
+                    done++;
+                }
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
+            Debug.Log($"[MiG29] afterburners: {done} round flames + glows on the RD-33 nozzles");
+        }
+
+        // Copy of a flat-nozzle effect mesh (+z forward) with its cross-section mapped square-to-disc onto radius r, recentred on the
+        // axis, and shifted so its forward end (flame: z 0 = nozzle exit) or aft end (glow) sits at z0.
+        static Mesh Disc(Mesh src, float r, float z0, bool aftAnchor, float zScale)
+        {
+            var b = src.bounds;
+            var v = src.vertices;
+            float zRef = aftAnchor ? b.min.z : b.max.z;
+            for (int i = 0; i < v.Length; i++)
+            {
+                float u = Mathf.Clamp((v[i].x - b.center.x) / b.extents.x, -1f, 1f);
+                float w = Mathf.Clamp((v[i].y - b.center.y) / b.extents.y, -1f, 1f);
+                v[i] = new Vector3(r * u * Mathf.Sqrt(1f - w * w / 2f), r * w * Mathf.Sqrt(1f - u * u / 2f), (v[i].z - zRef) * zScale + z0);
+            }
+            var m = UnityEngine.Object.Instantiate(src);
+            m.name = src.name + "_round";
+            m.vertices = v;
+            m.RecalculateNormals(); m.RecalculateBounds();
+            return m;
+        }
+
         static void Add(Transform parent, string name, Mesh mesh, Material mat, Vector3 localPos, Quaternion localRot)
         {
             var o = new GameObject(name);

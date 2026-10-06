@@ -279,8 +279,11 @@ namespace MiG29Tools
 
         // ---------------- GSh-30-1 ----------------
 
-        // MiG frame: muzzle inside the left LERX root, level with the rear of the canopy (blender ray cast: LERX y -0.02..0.24 at x -1.1, z 5.0)
-        public static readonly Vector3 GunMuzzle = new Vector3(-1.10f, 0.11f, 5.0f);
+        // MiG frame: the gun port on the left LERX root beside the cockpit (the model's port opening). The muzzle used to land at
+        // z 2.76, 4.5 m behind it in the wing root, because the mount assumed the muzzle 3 m ahead of the hardpoint (user report, v0.8.5).
+        public static readonly Vector3 GunMuzzle = new Vector3(-0.597f, 0.051f, 7.24f);
+        // muzzle flash (where rounds leave) relative to the hardpoint in the gun_27mm_internal prefab
+        static readonly Vector3 MuzzleInPrefab = new Vector3(0f, 0.038f, 0.764f);
 
         static ScriptableObject BuildGun()
         {
@@ -320,7 +323,7 @@ namespace MiG29Tools
             return m;
         }
 
-        // Internal cannon: the GSh-30-1 mount replaces the 27 mm; the hardpoint moves so the muzzle (3 m ahead of it in the gun prefab) is at GunMuzzle.
+        // Internal cannon: the GSh-30-1 mount replaces the 27 mm; the hardpoint moves so the muzzle (MuzzleInPrefab) is at GunMuzzle.
         public static UnityEngine.Object SetupGun(GameObject go, Vector3 modelOffset, Result w)
         {
             var so = new SerializedObject(go.GetComponentInChildren(T("WeaponManager"), true));
@@ -340,7 +343,7 @@ namespace MiG29Tools
                     }
                 var hp = set.FindPropertyRelative("hardpoints").GetArrayElementAtIndex(0);
                 var t = (Transform)hp.FindPropertyRelative("transform").objectReferenceValue;
-                t.position = GunMuzzle + modelOffset - new Vector3(0, 0.038f, 3.0f);
+                t.position = GunMuzzle + modelOffset - t.rotation * MuzzleInPrefab;
             }
             so.ApplyModifiedPropertiesWithoutUndo();
             if (old == null) throw new Exception("[MiG29] internal cannon set not found");
