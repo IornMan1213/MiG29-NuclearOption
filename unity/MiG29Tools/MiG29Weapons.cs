@@ -598,7 +598,11 @@ namespace MiG29Tools
         // MiG-frame pylon shoe positions, measured from the model (blender/pylon_pos.py)
         public static readonly Vector3 InnerPylon = new Vector3(2.36f, -0.27f, 1.31f);
         public static readonly Vector3 MiddlePylon = new Vector3(3.10f, -0.29f, 0.66f);
-        public static readonly Vector3 OuterPylon = new Vector3(3.73f, -0.40f, 0.28f);
+        public static readonly Vector3 OuterPylon = new Vector3(3.73f, -0.368f, 0.28f);
+        // The model's outer pylon fairing slopes: its underside runs 2.5 deg nose-down (y -0.33 at z -0.4 to -0.40 at z +1.0). A level
+        // rail touched it only at the front and hung up to 10 cm below it further back (user screenshots, v0.8.8): the outer station sits
+        // on that line, pitched to match.
+        public const float OuterPylonPitch = 2.5f;
 
         // Base-game stores added on top of the MiG weapons and the KR-67's own pylon options (which the inner and middle sets keep).
         // Inner and middle: lighter missiles, small bombs, rocket pods, the 20 mm gun pod, jammers, the tactical nuke. Outer (thin pylons): light
@@ -710,7 +714,7 @@ namespace MiG29Tools
                 var wing = Child(root, left ? "wing2_L" : "wing2_R");
                 var t = new GameObject(left ? "hardpoint_pylon_L3" : "hardpoint_pylon_R3").transform;
                 t.SetParent(wing, false);
-                t.SetPositionAndRotation(P(OuterPylon, left ? -1 : 1), oldT != null ? oldT.rotation : Quaternion.identity);
+                t.SetPositionAndRotation(P(OuterPylon, left ? -1 : 1), Quaternion.Euler(OuterPylonPitch, 0f, 0f) * (oldT != null ? oldT.rotation : Quaternion.identity));
                 hp.FindPropertyRelative("transform").objectReferenceValue = t;
                 hp.FindPropertyRelative("part").objectReferenceValue = wing.GetComponent(upType);
                 hp.FindPropertyRelative("pylonOptions").arraySize = 0;

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.9 (unreleased)
+- **Missiles no longer float under the pylons.** The R-27's AKU-470 rail was 3.15 m long under a 2.1 m pylon fairing, so its
+  ends hung in the air; it is now 2.1 m and sits fully under the fairing. The outer pylon fairing slopes 2.5 degrees nose-down and
+  the level rail touched it only at the front (up to 10 cm gap further back): the outer station now follows the fairing.
+
 ## 0.8.8 (Update 8.8)
 **Working mirrors, carrier take-off.**
 - **Working rear-view mirrors** with the [NO Mirrors](https://github.com/IornMan1213/NuclearOption-Mirrors) plugin (0.0.2 or
