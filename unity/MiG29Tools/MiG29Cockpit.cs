@@ -25,7 +25,7 @@ namespace MiG29Tools
                                               "canopyFrame_F_int_simple", "canopyFrame_R_int_simple" };
 
         [Serializable] class Dump { public Part[] parts; }
-        [Serializable] class Part { public string name, material; public float[] vertices, normals, uvs, pivot, axis, up; public int[] triangles; public float[] fold; }
+        [Serializable] class Part { public string name, material; public float[] vertices, normals, uvs, pivot, axis, up; public int[] triangles; public float[] fold, glass; }
 
         public static void Build(GameObject go, Transform cockpitPart, Vector3 modelOffset, Material skin, Material glass, List<Renderer> exterior,
                                  Func<UnityEngine.Object, string, UnityEngine.Object> save, Action<Transform, Renderer> addDamage)
@@ -34,6 +34,7 @@ namespace MiG29Tools
             var dump = JsonUtility.FromJson<Dump>(File.ReadAllText(Path.Combine(SourceDir, "cockpit_mesh.json")));
             var parts = dump.parts.ToDictionary(p => p.name);
             var mat = (Material)save(CockpitMaterial(skin), ModDir + "/materials/MiG29_cockpit.mat");
+            mirrorGrey = null;
 
             // MiG canopy + windscreen glass show in both views
             int glassCount = exterior.RemoveAll(r => r != null && (r.name.StartsWith("MiG29_canopy") || r.name.Contains("windscreen")));
@@ -63,7 +64,7 @@ namespace MiG29Tools
             // layer closer than ~1 m to the eye is clipped away. Everything new in the cockpit goes on that layer.
             int layer = root.GetComponentsInChildren<Transform>(true).First(t => t.name == "cockpit_int").gameObject.layer;
             int moved = 0;
-            foreach (var t in cockpitPart.GetComponentsInChildren<Transform>(true).Where(t => t.name.StartsWith("MiG29_ck_") || t.name.StartsWith("MiG29_ins_") || t.name.StartsWith("MiG29_lamp_") || t.name == "needle"))
+            foreach (var t in cockpitPart.GetComponentsInChildren<Transform>(true).Where(t => t.name.StartsWith("MiG29_ck_") || t.name.StartsWith("MiG29_ins_") || t.name.StartsWith("MiG29_lamp_") || t.name == "needle" || t.name.StartsWith("NOMirror_")))
             { t.gameObject.layer = layer; moved++; }
             // The main (outside) camera does not draw that layer: an exterior copy of the interior on the default layer, which the
             // game hides in the cockpit view (exterior renderer), keeps the cockpit visible through the canopy from outside.
@@ -117,6 +118,8 @@ namespace MiG29Tools
                         folded.SetParent(mount, false);
                         folded.localRotation = new Quaternion(p.fold[0], p.fold[1], p.fold[2], p.fold[3]);
                     }
+                    if (p.glass != null && p.glass.Length == 11)
+                        MirrorGlass(needle, p, modelOffset, mat, save);
                     var id = p.name.Substring(4);
                     if (MiG29InstrumentMath.Pose(id, rest, out var lp, out var lr)) { needle.localPosition = lp; needle.localRotation = lr; }
                     else needle.localRotation = id == "adi_ball" ? MiG29InstrumentMath.Ball(rest)
@@ -185,6 +188,42 @@ namespace MiG29Tools
             imp.textureCompression = TextureImporterCompression.CompressedHQ;
             imp.SaveAndReimport();
             return AssetDatabase.LoadAssetAtPath<Texture2D>(dst);
+        }
+
+        // A mirror's reflecting face for the NO Mirrors plugin (github.com/IornMan1213/NuclearOption-Mirrors): a quad named
+        // "NOMirror_<c|l|r>" on the mirror's folding part, local Z its normal, X across, Y up, UVs 0..1 as seen from the front. With
+        // the plugin it shows the reflection; without it, plain mirror grey.
+        static Material mirrorGrey;
+
+        static void MirrorGlass(Transform needle, Part p, Vector3 modelOffset, Material cockpit, Func<UnityEngine.Object, string, UnityEngine.Object> save)
+        {
+            var g = p.glass;
+            var n = new Vector3(g[3], g[4], g[5]); var up = new Vector3(g[6], g[7], g[8]);
+            float w = g[9], h = g[10];
+            string id = p.name.Substring("ins_mirror_".Length);
+            var o = new GameObject($"NOMirror_{id}_res320_fov{(id == "c" ? "2.5" : "3")}");   // convex: a flat mirror this size shows ~10-20 deg
+            o.transform.SetParent(needle, false);
+            o.transform.SetPositionAndRotation(new Vector3(g[0], g[1], g[2]) + modelOffset, Quaternion.LookRotation(-n, up));  // Z away from the eye
+
+            var mesh = new Mesh { name = "MiG29_mirror_glass_" + id };
+            mesh.vertices = new[] { new Vector3(-w / 2, -h / 2, 0), new Vector3(-w / 2, h / 2, 0), new Vector3(w / 2, h / 2, 0), new Vector3(w / 2, -h / 2, 0) };
+            mesh.uv = new[] { new Vector2(0, 0), new Vector2(0, 1), new Vector2(1, 1), new Vector2(1, 0) };
+            mesh.normals = Enumerable.Repeat(Vector3.back, 4).ToArray();
+            mesh.triangles = new[] { 0, 1, 2, 0, 2, 3 };   // clockwise as seen from the eye
+            mesh.RecalculateBounds(); mesh.RecalculateTangents();
+            o.AddComponent<MeshFilter>().sharedMesh = (Mesh)save(mesh, $"{ModDir}/meshes/MiG29_mirror_glass_{id}.asset");
+
+            if (mirrorGrey == null)
+            {
+                var tex = new Texture2D(4, 4, TextureFormat.RGBA32, false) { name = "MiG29_mirror_grey" };
+                tex.SetPixels(Enumerable.Repeat(new Color(0.55f, 0.58f, 0.62f), 16).ToArray()); tex.Apply();
+                tex = (Texture2D)save(tex, $"{ModDir}/materials/MiG29_mirror_grey.asset");
+                var m = new Material(cockpit) { name = "MiG29_mirror" };
+                m.SetTexture("_Basecolor", tex); m.SetTexture("_Livery", tex); m.SetTexture("_BasecolorDmg", tex);
+                m.SetTexture("_Metallic", null);
+                mirrorGrey = (Material)save(m, $"{ModDir}/materials/MiG29_mirror.mat");
+            }
+            o.AddComponent<MeshRenderer>().sharedMaterial = mirrorGrey;
         }
 
         static Material CockpitMaterial(Material skin)

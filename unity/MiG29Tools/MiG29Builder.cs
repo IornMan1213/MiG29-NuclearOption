@@ -21,7 +21,7 @@ namespace MiG29Tools
 
         public const string JsonKey = "mig29_Fulcrum";
         public const string DisplayName = "MiG-29 Fulcrum";
-        public const string Version = "0.8.7";
+        public const string Version = "0.8.8";
 
         // MiG model frame -> aircraft root. Puts MiG main wheels on the KR-67 main gear and MiG wheels on KR-67 ground line.
         static readonly Vector3 ModelOffset = new Vector3(0f, -0.44f, -2.655f);
@@ -51,6 +51,7 @@ namespace MiG29Tools
                 p.triangles = MiG29Nozzles.StripModelNozzles(p.vertices, p.triangles, out int stripped);
                 Debug.Log($"[MiG29] nozzles: {stripped} model nozzle triangles stripped");
             }
+            MoveStabWicks(data);
             AssetDatabase.DeleteAsset(ModDir + "/meshes"); // no stale meshes in the bundle
             EnsureFolder(ModDir); EnsureFolder(ModDir + "/meshes"); EnsureFolder(ModDir + "/textures"); EnsureFolder(ModDir + "/materials");
 
@@ -291,6 +292,75 @@ namespace MiG29Tools
                 hidden++;
             }
             Debug.Log($"[MiG29] hid {hidden} KR-67 exterior meshes");
+        }
+
+        // The static dischargers on the stabilator trailing edges (two per side, a base and a thin needle each, 12-20 cm) are loose
+        // pieces of the model's body mesh, so they stayed put while the stabilators moved (user screenshot, v0.8.7). Small separate
+        // body pieces inside a stabilator's bounds, out past the fuselage, go into that stabilator's mesh (stored about its pivot).
+        static void MoveStabWicks(MeshDump data)
+        {
+            var body = data.parts.First(p => p.name == "body");
+            var V = body.vertices; var T = body.triangles;
+            int nv = V.Length / 3;
+            Vector3 Vert(int i) => new Vector3(V[i * 3], V[i * 3 + 1], V[i * 3 + 2]);
+
+            // connected pieces: union-find over welded positions
+            var weld = new Dictionary<Vector3Int, int>(); var canon = new int[nv];
+            for (int i = 0; i < nv; i++)
+            {
+                var v = Vert(i); var k = new Vector3Int(Mathf.RoundToInt(v.x * 1e4f), Mathf.RoundToInt(v.y * 1e4f), Mathf.RoundToInt(v.z * 1e4f));
+                if (!weld.TryGetValue(k, out canon[i])) { weld[k] = i; canon[i] = i; }
+            }
+            var parent = Enumerable.Range(0, nv).ToArray();
+            int Root(int x) { while (parent[x] != x) { parent[x] = parent[parent[x]]; x = parent[x]; } return x; }
+            for (int t = 0; t < T.Length; t += 3)
+            {
+                int a = Root(canon[T[t]]);
+                parent[Root(canon[T[t + 1]])] = a; parent[Root(canon[T[t + 2]])] = a;
+            }
+            var pieces = new Dictionary<int, List<int>>();   // root -> triangle starts
+            for (int t = 0; t < T.Length; t += 3)
+            {
+                int r = Root(canon[T[t]]);
+                if (!pieces.TryGetValue(r, out var l)) pieces[r] = l = new List<int>();
+                l.Add(t);
+            }
+
+            var removed = new HashSet<int>();
+            foreach (var side in new[] { "L", "R" })
+            {
+                var stab = data.parts.First(p => p.name == "stab_" + side);
+                var piv = new Vector3(stab.pivot[0], stab.pivot[1], stab.pivot[2]);
+                var sb = new Bounds(new Vector3(stab.vertices[0], stab.vertices[1], stab.vertices[2]) + piv, Vector3.zero);
+                for (int i = 0; i < stab.vertices.Length; i += 3) sb.Encapsulate(new Vector3(stab.vertices[i], stab.vertices[i + 1], stab.vertices[i + 2]) + piv);
+                sb.Expand(0.4f);
+                var sv = stab.vertices.ToList(); var sn = stab.normals.ToList(); var su = stab.uvs.ToList(); var st = stab.triangles.ToList();
+                int moved = 0;
+                foreach (var tris in pieces.Values)
+                {
+                    if (tris.Count > 100) continue;
+                    var pb = new Bounds(Vert(T[tris[0]]), Vector3.zero);
+                    foreach (var t in tris) for (int k = 0; k < 3; k++) pb.Encapsulate(Vert(T[t + k]));
+                    if (pb.size.magnitude > 0.3f || !sb.Contains(pb.center) || Mathf.Abs(pb.center.x) < 2.5f) continue;
+                    foreach (var t in tris)
+                    {
+                        for (int k = 0; k < 3; k++)
+                        {
+                            int vi = T[t + k];
+                            st.Add(sv.Count / 3);
+                            var p = Vert(vi) - piv;
+                            sv.Add(p.x); sv.Add(p.y); sv.Add(p.z);
+                            sn.Add(body.normals[vi * 3]); sn.Add(body.normals[vi * 3 + 1]); sn.Add(body.normals[vi * 3 + 2]);
+                            su.Add(body.uvs[vi * 2]); su.Add(body.uvs[vi * 2 + 1]);
+                        }
+                        removed.Add(t);
+                    }
+                    moved++;
+                }
+                stab.vertices = sv.ToArray(); stab.normals = sn.ToArray(); stab.uvs = su.ToArray(); stab.triangles = st.ToArray();
+                Debug.Log($"[MiG29] stab_{side}: {moved} static discharger pieces moved from the body");
+            }
+            body.triangles = Enumerable.Range(0, T.Length / 3).Where(i => !removed.Contains(i * 3)).SelectMany(i => new[] { T[i * 3], T[i * 3 + 1], T[i * 3 + 2] }).ToArray();
         }
 
         static Transform Find(Transform root, string name)
@@ -894,6 +964,8 @@ namespace MiG29Tools
                 new Blueprinter.OpAddAircraftToHangars.HangarTarget { hangarUnitJsonKey = "hangar_med", hangarNames = new List<string> { "hangar_med" } },
                 new Blueprinter.OpAddAircraftToHangars.HangarTarget { hangarUnitJsonKey = "shelter1", hangarNames = new List<string> { "shelter1" } },
                 new Blueprinter.OpAddAircraftToHangars.HangarTarget { hangarUnitJsonKey = "revetment1", hangarNames = new List<string> { "revetment1" } },
+                // Hyperion Class Carrier: the three aft deck hangars that carry the KR-67 (hangar_F is helicopters only)
+                new Blueprinter.OpAddAircraftToHangars.HangarTarget { hangarUnitJsonKey = "FleetCarrier1", hangarNames = new List<string> { "hangar_R1", "hangar_R2", "hangar_R3" } },
             };
             EditorUtility.SetDirty(op);
         }

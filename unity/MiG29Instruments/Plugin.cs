@@ -16,7 +16,7 @@ namespace MiG29Instruments
     public class MiG29InstrumentsPlugin : BaseUnityPlugin
     {
         // same as MiG29Builder.Version (build_mig29.ps1 checks): mod managers match the release version against this DLL's version
-        public const string ModVersion = "0.8.7";
+        public const string ModVersion = "0.8.8";
         internal static ManualLogSource Log;
         internal static BepInEx.Configuration.ConfigEntry<float> PanelLighting;
         internal static BepInEx.Configuration.ConfigEntry<BepInEx.Configuration.KeyboardShortcut> JettisonKey;
@@ -41,8 +41,9 @@ namespace MiG29Instruments
                 "compass, velocity vector) and fly by the analog gauges. The map, target markers, mouse-aim cursor and other mods' overlays stay.");
             KeepCombatReadouts = Config.Bind("HUD", "Keep weapon and damage readouts", true,
                 "With the flight HUD hidden, still show the selected weapon and ammo, countermeasures and the damage display");
-            FoldMirrors = Config.Bind("Cockpit", "Fold mirrors", true,
-                "Fold the three rear-view mirrors flat along the inside of the canopy, out of the way of the forward view");
+            FoldMirrors = Config.Bind("Cockpit", "Fold mirrors", false,
+                "Fold the three rear-view mirrors flat along the inside of the canopy, out of the way of the forward view. " +
+                "With the NO Mirrors plugin installed they reflect; without it they are plain grey");
             MirrorFoldKey = Config.Bind("Cockpit", "Mirror fold key", new BepInEx.Configuration.KeyboardShortcut(KeyCode.M, KeyCode.LeftControl),
                 "Folds or unfolds the mirrors in flight (flips \"Fold mirrors\")");
             // some games destroy BepInEx's manager object on scene loads: scan from an object of our own

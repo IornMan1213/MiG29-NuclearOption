@@ -990,26 +990,34 @@ def look_matrix(pos, target):
     return Matrix((x, n, zup)).transposed()
 
 
-def mirror(gid, theta, w, h, stalk=0.05):
+def mirror(gid, theta, w, h, view, stalk=0.05):
     """A rear-view mirror on its own hinge (part ins_mirror_<gid>): the plugin folds it away. The mount looks aft (z = -MiG z) with
-    y toward the arch centre and x along the bow, so a positive turn about x swings the stalk from down-and-aft to straight aft
-    (about 60 deg), laying the mirror flat along the inside of the canopy."""
+    y toward the arch centre and x along the bow. The glass is angled to show `view` (the reflected line of sight from the eye,
+    Unity frame): its normal is halfway between the direction to the eye and that view. Aimed straight at the eye, the side
+    mirrors showed the opposite side and the sky (user screenshots, NO Mirrors 0.0.1)."""
     o0, i0, i1, o1, du = min(bow, key=lambda b: abs(math.degrees(math.atan2(b[4][0], b[4][1])) - theta))
     base = tuple((i0[k] + i1[k]) / 2 for k in range(3))
     pos = tuple(base[k] - du[k] * stalk for k in range(3))
     pos = (pos[0], pos[1], pos[2] - 0.03)
     pid = part("ins_mirror_" + gid)
     tube(pid, [base, pos], 0.007, "black", 8)
-    m = look_matrix(pos, EYE)
+    n = ((Vector(EYE) - Vector(pos)).normalized() + Vector(view).normalized()).normalized()
+    m = look_matrix(pos, tuple(Vector(pos) + n))
     box(pid, pos, (w, h, 0.022), "black", 0.006, rot=m)
-    n = (Vector(EYE) - Vector(pos)).normalized()
-    box(pid, tuple(pos[k] + n[k] * 0.012 for k in range(3)), (w - 0.012, h - 0.012, 0.003), "metal", 0.001, rot=m)
     INS[pid] = (Vector(base), Vector((0.0, 0.0, 1.0)), Vector((-du[0], -du[1], -du[2])))
+    # the reflecting face: a quad built in Unity (MiG29Cockpit) as "NOMirror_<gid>" for the NO Mirrors plugin, on the housing's face
+    up = Vector((0.0, 1.0, 0.0)); up = (up - n * up.dot(n)).normalized()
+    c = Vector(pos) + n * 0.0115
+    MGLASS[pid] = [c.x, c.y, c.z, n.x, n.y, n.z, up.x, up.y, up.z, w - 0.012, h - 0.012]
 
 
-mirror("c", 0, 0.20, 0.055, stalk=0.045)   # centre rear-view mirror at the top of the bow
-mirror("l", -42, 0.11, 0.065)              # side mirrors on the bow's upper corners
-mirror("r", 42, 0.11, 0.065)
+MGLASS = {}   # mirror glass frames, Unity MiG frame: centre, normal (toward the eye), up, width, height
+
+
+# views: straight back over the spine; the side mirrors back and out past each side of the canopy; all a little below level
+mirror("c", 0, 0.20, 0.055, view=(0.0, -0.05, -1.0), stalk=0.045)   # centre rear-view mirror at the top of the bow
+mirror("l", -42, 0.11, 0.065, view=(-0.35, -0.05, -1.0))           # side mirrors on the bow's upper corners
+mirror("r", 42, 0.11, 0.065, view=(0.35, -0.05, -1.0))
 
 # Folded pose per mirror, tucked against the canopy. At a fixed 60 deg about the hinge they still hung below the bow (user video,
 # v0.8.7), and the side mirrors meet the curved glass at 66 deg. Searched: a fold about the hinge (mount x, either way) then a twist
@@ -1145,6 +1153,8 @@ for name in sorted(k for k in PARTS if k.startswith("ins_") or k.startswith("lam
         o["pivot"] = list(piv); o["axis"] = list(ax); o["up"] = list(upv)
     if name in FOLD:
         o["fold"] = FOLD[name]
+    if name in MGLASS:
+        o["glass"] = MGLASS[name]
     parts_out.append(o); meshes[name] = me
 parts_out.append(frames_part())
 json.dump({"parts": parts_out, "eye": list(EYE)}, open(os.path.join(SRC, "cockpit_mesh.json"), "w"))
