@@ -188,10 +188,11 @@ def apu73():
 
 
 def aku470():
-    """AKU-470 ejector launcher for the R-27."""
+    """AKU-470 ejector launcher for the R-27. 2.1 m long, to fit under the model's inner pylon fairing (flat underside from 1.17 m
+    behind to 0.90 m ahead of the hardpoint): at 3.15 m its ends hung in the air past the fairing (user screenshots, v0.8.8)."""
     m = Mesh()
-    m.box(-0.06, 0.06, -0.14, 0.0, -1.70, 1.45, "camo", nose_taper=0.35)
-    m.box(-0.03, 0.03, -0.155, -0.14, -1.60, 1.30, "metal")
+    m.box(-0.06, 0.06, -0.14, 0.0, -1.15, 0.95, "camo", nose_taper=0.30)
+    m.box(-0.03, 0.03, -0.155, -0.14, -1.05, 0.85, "metal")
     return m
 
 
