@@ -41,7 +41,7 @@ Multiplayer: everyone needs the same mod set (Blueprinter checks this).
   the gear; parts break off and show scorch damage; hitboxes are the KR-67 part colliders scaled to the MiG.
 - **Cockpit** modelled from scratch: turquoise MiG-29 instrument panel with Russian-marked gauges, HUD, side consoles with real
   3D toggles and knobs, circuit-breaker panels, twin throttles, centre stick, a K-36DM seat with harness, the windscreen bow with
-  three rear-view mirrors, and the equipment bay behind the seat. The tactical display is built into the panel as the radar screen.
+  three rear-view mirrors (working, with the [NO Mirrors](https://github.com/IornMan1213/NuclearOption-Mirrors) plugin; they fold with Ctrl+M), and the equipment bay behind the seat. The tactical display is built into the panel as the radar screen.
 - **Every instrument works**: 20 needles, a rolling attitude ball, a turning compass card, a 24-light caution panel, the SPO-15
   radar warning receiver and gear lights, all driven by the aircraft's real state (see below).
 - **Cockpit damage display** and map icon drawn from the MiG itself.
