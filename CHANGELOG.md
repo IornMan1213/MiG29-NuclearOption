@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.8 (unreleased)
+**Working mirrors, carrier take-off.**
+- **Working rear-view mirrors** with the [NO Mirrors](https://github.com/IornMan1213/NuclearOption-Mirrors) plugin (0.0.2 or
+  later): the three canopy mirrors reflect for real, the centre one straight back over the spine, the side ones back past each side
+  of the canopy. They are slightly convex for a useful field of view. Without the plugin they are plain grey glass.
+- Mirrors now start unfolded (Ctrl+M still folds them; the option is in Configuration Manager under MiG-29 Instruments > Cockpit).
+- **Carrier spawning.** The MiG can be picked from the Hyperion class carrier's hangars, as the KR-67 can.
+- The tailplane's static-discharge wicks were left floating behind the stabilators; they now sit on them and move with them.
 ## 0.8.7 (Update 8.7)
 **More weapons, five new liveries, an option to hide the HUD, folding mirrors.**
 - **More base-game weapons.**
