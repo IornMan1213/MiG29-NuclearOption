@@ -171,29 +171,67 @@ def r60m():
     return m
 
 
+def launcher(z0, z1, half_w, depth, nose, tail, rail_depth, rail_half_w, cell="lgrey", seg=6):
+    """Streamlined launcher beam as on the real APU-73 / APU-60 / AKU-470 (user reference photo, v0.8.9): flat top against the
+    pylon fairing, rounded sides, an ogive nose and a shorter tapered tail, with a metal guide rail and hanger shoes underneath.
+    Spans z0..z1 (z1 forward), top at y = 0, beam bottom at -depth, rail bottom at -depth - rail_depth (where the missile touches)."""
+    m = Mesh()
+    L = z1 - z0
+    zs = [z0 + L * k / 40 for k in range(41)]
+
+    def scale(z):
+        if z > z1 - nose:   # ogive nose: full size to a blunt point
+            t = (z - (z1 - nose)) / nose; return max(0.18, math.cos(t * math.pi / 2) ** 0.7)
+        if z < z0 + tail:   # tail taper
+            t = ((z0 + tail) - z) / tail; return max(0.35, 1 - 0.65 * t ** 1.5)
+        return 1.0
+
+    # cross-section: flat top, sides rounding into the bottom (a half super-ellipse)
+    def section(s):
+        pts = [(-half_w * s, 0.0)]
+        for i in range(seg + 1):
+            a = math.pi * i / seg
+            x = -math.cos(a) * half_w * s
+            y = -(math.sin(a) ** 0.6) * depth * (0.55 + 0.45 * s)
+            pts.append((x, y))
+        pts.append((half_w * s, 0.0))
+        return pts
+
+    rings = [[(x, y, z) for x, y in section(scale(z))] for z in zs]
+    for a, b in zip(rings, rings[1:]):
+        for i in range(len(a) - 1):
+            p0, p1, q1, q0 = a[i], a[i + 1], b[i + 1], b[i]
+            mid = np.mean([p0, p1, q0, q1], axis=0)
+            outward = np.array([mid[0], mid[1] + depth * 0.4, 0.0])
+            m.quad(p0, p1, q1, q0, cell, outward if np.linalg.norm(outward) > 1e-6 else np.array([0, -1.0, 0]))
+    for a, b in zip(rings, rings[1:]):                              # flat top (against the fairing; seen at the tapered ends)
+        m.quad(a[0], a[-1], b[-1], b[0], cell, np.array([0, 1.0, 0]))
+    for ring, nz in ((rings[0], -1.0), (rings[-1], 1.0)):          # end caps
+        c = np.mean(ring, axis=0)
+        for i in range(len(ring) - 1):
+            m.tri(c, ring[i], ring[i + 1], cell, np.array([0, 0, nz]))
+    # guide rail and two hanger shoes (the missile hangs from these)
+    rz0, rz1 = z0 + tail * 0.6, z1 - nose * 0.9
+    m.box(-rail_half_w, rail_half_w, -depth - rail_depth, -depth + 0.005, rz0, rz1, "metal")
+    for zc in (rz0 + 0.25 * (rz1 - rz0), rz0 + 0.75 * (rz1 - rz0)):
+        m.box(-rail_half_w * 1.6, rail_half_w * 1.6, -depth - rail_depth, -depth - rail_depth * 0.4, zc - 0.05, zc + 0.05, "dgrey")
+    return m
+
+
 def apu60():
     """APU-60 rail launcher for the R-60M: missile body top touches the rail underside at y = -0.08."""
-    m = Mesh()
-    m.box(-0.035, 0.035, -0.08, 0.0, -0.95, 0.80, "camo", nose_taper=0.2)
-    m.box(-0.018, 0.018, -0.092, -0.08, -0.90, 0.72, "metal")
-    return m
+    return launcher(-0.95, 0.80, 0.035, 0.08, nose=0.40, tail=0.25, rail_depth=0.012, rail_half_w=0.016)
 
 
 def apu73():
     """APU-73 rail launcher: missile body top touches the rail underside at y = -0.10."""
-    m = Mesh()
-    m.box(-0.045, 0.045, -0.10, 0.0, -1.25, 1.05, "camo", nose_taper=0.25)
-    m.box(-0.022, 0.022, -0.115, -0.10, -1.20, 0.95, "metal")
-    return m
+    return launcher(-1.25, 1.05, 0.045, 0.10, nose=0.50, tail=0.30, rail_depth=0.015, rail_half_w=0.020)
 
 
 def aku470():
     """AKU-470 ejector launcher for the R-27. 2.1 m long, to fit under the model's inner pylon fairing (flat underside from 1.17 m
     behind to 0.90 m ahead of the hardpoint): at 3.15 m its ends hung in the air past the fairing (user screenshots, v0.8.8)."""
-    m = Mesh()
-    m.box(-0.06, 0.06, -0.14, 0.0, -1.15, 0.95, "camo", nose_taper=0.30)
-    m.box(-0.03, 0.03, -0.155, -0.14, -1.05, 0.85, "metal")
-    return m
+    return launcher(-1.15, 0.95, 0.06, 0.14, nose=0.50, tail=0.30, rail_depth=0.015, rail_half_w=0.028)
 
 
 def tank_profile(L, R, nose, tail, tail_r, n=10):
