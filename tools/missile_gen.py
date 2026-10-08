@@ -171,6 +171,19 @@ def r60m():
     return m
 
 
+def levelled(m, z1, depth, deg):
+    """The pylon stations follow their fairings, which slope `deg` nose-down; the missile must stay parallel to the fuselage (user
+    reference photo, v0.8.9). In the station frame a level line rises toward the nose, so the beam's bottom and the rail are tilted by
+    `deg` about the launcher's nose (z1): slim at the front, deeper at the back, filling the wedge as on the real launchers. The top
+    stays flat against the fairing."""
+    k = math.tan(math.radians(deg))
+    for v in m.v:
+        s = (v[2] - z1) * k                          # <= 0: lower toward the back
+        if v[1] <= -depth + 0.006: v[1] += s         # rail, shoes, beam bottom
+        elif v[1] < 0: v[1] += s * (-v[1] / depth)  # beam sides: blend from the flat top
+    return m
+
+
 def launcher(z0, z1, half_w, depth, nose, tail, rail_depth, rail_half_w, cell="lgrey", seg=6):
     """Streamlined launcher beam as on the real APU-73 / APU-60 / AKU-470 (user reference photo, v0.8.9): flat top against the
     pylon fairing, rounded sides, an ogive nose and a shorter tapered tail, with a metal guide rail and hanger shoes underneath.
@@ -218,20 +231,20 @@ def launcher(z0, z1, half_w, depth, nose, tail, rail_depth, rail_half_w, cell="l
     return m
 
 
-def apu60():
+def apu60(deg=2.5):
     """APU-60 rail launcher for the R-60M: missile body top touches the rail underside at y = -0.08."""
-    return launcher(-0.95, 0.80, 0.035, 0.08, nose=0.40, tail=0.25, rail_depth=0.012, rail_half_w=0.016)
+    return levelled(launcher(-0.95, 0.80, 0.035, 0.08, nose=0.40, tail=0.25, rail_depth=0.012, rail_half_w=0.016), 0.80, 0.08, deg)
 
 
-def apu73():
+def apu73(deg=2.5):
     """APU-73 rail launcher: missile body top touches the rail underside at y = -0.10."""
-    return launcher(-1.25, 1.05, 0.045, 0.10, nose=0.50, tail=0.30, rail_depth=0.015, rail_half_w=0.020)
+    return levelled(launcher(-1.25, 1.05, 0.045, 0.10, nose=0.50, tail=0.30, rail_depth=0.015, rail_half_w=0.020), 1.05, 0.10, deg)
 
 
-def aku470():
+def aku470(deg=2.5):
     """AKU-470 ejector launcher for the R-27. 2.1 m long, to fit under the model's inner pylon fairing (flat underside from 1.17 m
     behind to 0.90 m ahead of the hardpoint): at 3.15 m its ends hung in the air past the fairing (user screenshots, v0.8.8)."""
-    return launcher(-1.15, 0.95, 0.06, 0.14, nose=0.50, tail=0.30, rail_depth=0.015, rail_half_w=0.028)
+    return levelled(launcher(-1.15, 0.95, 0.06, 0.14, nose=0.50, tail=0.30, rail_depth=0.015, rail_half_w=0.028), 0.95, 0.14, deg)
 
 
 def tank_profile(L, R, nose, tail, tail_r, n=10):
@@ -296,6 +309,7 @@ if __name__ == "__main__":
     textures()
     parts = [r73().dump("R73"), r27r().dump("R27R"), r27t().dump("R27T"), r60m().dump("R60M"),
              apu73().dump("APU73"), aku470().dump("AKU470"), apu60().dump("APU60"),
+             apu73(5.0).dump("APU73_O"), apu60(5.0).dump("APU60_O"),   # outer pylons: their fairing slopes 5 deg
              ptb1500().dump("PTB1500"), ptb1150().dump("PTB1150"),
              ptb_pylon(0.08, 1.9, 0.12).dump("PTB_PYLON_C"), ptb_pylon(0.10, 1.6, 0.10).dump("PTB_PYLON_W")]
     json.dump({"parts": parts}, open(OUT + "/missiles.json", "w"))

@@ -6,7 +6,9 @@
   the level rail touched it only at the front (up to 10 cm gap further back): the outer station now follows the fairing. The inner
   and middle fairings slope the same way and sat about 4 cm above their rails (10 cm at the back): those stations now follow them too.
 - **Missile launchers reshaped** after the real APU-73, APU-60 and AKU-470: streamlined beams with a pointed nose, tapered tail,
-  rounded sides and a guide rail with hanger shoes, instead of flat boxes.
+  rounded sides and a guide rail with hanger shoes, instead of flat boxes. Every MiG missile now points along the fuselage, as on
+  the real jet (they were tilted 2.5 to 5 degrees nose-down with the sloped pylons); each launcher fills the wedge between its
+  sloped fairing and the level missile.
 - **Fixed the main gear breaking on landing after the gear had been raised and lowered.** When the legs locked down, the
   retraction-path code kept holding one or both of them about a degree short of fully down; the game reads that as a bent leg and
   broke it on touchdown. Spawned jets were never affected, which is why it only showed after a takeoff.

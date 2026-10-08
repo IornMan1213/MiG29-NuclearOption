@@ -27,7 +27,7 @@ namespace MiG29Tools
         [Serializable] class PartDump { public string name; public float[] vertices, normals, uvs; public int[] triangles; }
         [Serializable] class Dump { public PartDump[] parts; }
 
-        public class Result { public ScriptableObject r73Mount, r27Mount, r27tMount, r60Mount, gunMount, ptb1500Mount, ptb1150Mount; }
+        public class Result { public ScriptableObject r73Mount, r27Mount, r27tMount, r60Mount, gunMount, ptb1500Mount, ptb1150Mount, r73OuterMount, r60OuterMount; }
 
         public delegate T Saver<T>(T obj, string path) where T : UnityEngine.Object;
 
@@ -113,9 +113,9 @@ namespace MiG29Tools
 
             // ---------- launchers / mounts ----------
             var r73MountPrefab = MakeMount("AAM1_single", "mig29_R73_APU73", "pylon", "aam1", meshes["APU73"], meshes["R73"], mat,
-                missileY: -0.10f - 0.085f, r73Info, 2.90f, 0.085f, $"{Dir}/mig29_R73_APU73.prefab");
+                missileY: -0.10f - 0.085f, r73Info, 2.90f, 0.085f, $"{Dir}/mig29_R73_APU73.prefab", InnerSlope, 1.05f);
             var r27MountPrefab = MakeMount("AAM2_single", "mig29_R27R_AKU470", "pylon", "aam2", meshes["AKU470"], meshes["R27R"], mat,
-                missileY: -0.14f - 0.115f, r27Info, 4.08f, 0.115f, $"{Dir}/mig29_R27R_AKU470.prefab");
+                missileY: -0.14f - 0.115f, r27Info, 4.08f, 0.115f, $"{Dir}/mig29_R27R_AKU470.prefab", InnerSlope, 0.95f);
 
             var r73Mount = CloneMount("AAM1_single", "mig29_R73_mount", r73MountPrefab, r73Info, "mig29_R73_single", "R-73", mass: 145f, emptyMass: 40f, drag: 0.04f);
             var r27Mount = CloneMount("AAM2_single", "mig29_R27R_mount", r27MountPrefab, r27Info, "mig29_R27R_single", "R-27R", mass: 333f, emptyMass: 80f, drag: 0.07f);
@@ -147,7 +147,7 @@ namespace MiG29Tools
                 "Medium-range infrared missile. Fire-and-forget; lock the target's heat signature before launch.",
                 minRange: 800f, maxRange: 30000f, minAlignment: 25f, cost: 0.60f, massPerRound: 245f);
             var r27tMountPrefab = MakeMount("AAM2_single", "mig29_R27T_AKU470", "pylon", "aam2", meshes["AKU470"], meshes["R27T"], mat,
-                missileY: -0.14f - 0.115f, r27tInfo, 3.80f, 0.115f, $"{Dir}/mig29_R27T_AKU470.prefab");
+                missileY: -0.14f - 0.115f, r27tInfo, 3.80f, 0.115f, $"{Dir}/mig29_R27T_AKU470.prefab", InnerSlope, 0.95f);
             var r27tMount = CloneMount("AAM2_single", "mig29_R27T_mount", r27tMountPrefab, r27tInfo, "mig29_R27T_single", "R-27T", mass: 325f, emptyMass: 80f, drag: 0.07f);
 
             // ---------- R-60M: small dogfight missile ----------
@@ -176,8 +176,16 @@ namespace MiG29Tools
                 "Light short-range infrared missile. Very agile; best inside 6 km.",
                 minRange: 200f, maxRange: 8000f, minAlignment: 30f, cost: 0.12f, massPerRound: 44f);
             var r60MountPrefab = MakeMount("AAM1_single", "mig29_R60M_APU60", "pylon", "aam1", meshes["APU60"], meshes["R60M"], mat,
-                missileY: -0.08f - 0.06f, r60Info, 2.09f, 0.06f, $"{Dir}/mig29_R60M_APU60.prefab");
+                missileY: -0.08f - 0.06f, r60Info, 2.09f, 0.06f, $"{Dir}/mig29_R60M_APU60.prefab", InnerSlope, 0.80f);
             var r60Mount = CloneMount("AAM1_single", "mig29_R60M_mount", r60MountPrefab, r60Info, "mig29_R60M_single", "R-60M", mass: 66f, emptyMass: 22f, drag: 0.025f);
+
+            // outer pylons: steeper fairing, own launchers (same missiles, same names in the loadout menu)
+            var r73OuterPrefab = MakeMount("AAM1_single", "mig29_R73_APU73_outer", "pylon", "aam1", meshes["APU73_O"], meshes["R73"], mat,
+                missileY: -0.10f - 0.085f, r73Info, 2.90f, 0.085f, $"{Dir}/mig29_R73_APU73_outer.prefab", OuterSlope, 1.05f);
+            var r73OuterMount = CloneMount("AAM1_single", "mig29_R73_outer_mount", r73OuterPrefab, r73Info, "mig29_R73_outer", "R-73", mass: 145f, emptyMass: 40f, drag: 0.04f);
+            var r60OuterPrefab = MakeMount("AAM1_single", "mig29_R60M_APU60_outer", "pylon", "aam1", meshes["APU60_O"], meshes["R60M"], mat,
+                missileY: -0.08f - 0.06f, r60Info, 2.09f, 0.06f, $"{Dir}/mig29_R60M_APU60_outer.prefab", OuterSlope, 0.80f);
+            var r60OuterMount = CloneMount("AAM1_single", "mig29_R60M_outer_mount", r60OuterPrefab, r60Info, "mig29_R60M_outer", "R-60M", mass: 66f, emptyMass: 22f, drag: 0.025f);
 
             var gunMount = BuildGun();
 
@@ -190,6 +198,7 @@ namespace MiG29Tools
                 desc: "PTB-1150 wing drop tanks: 1,150 litres (about 905 kg) of fuel each, used before the internal fuel. Select them and fire to drop them, or press the jettison key (Ctrl+J by default).");
             Debug.Log("[MiG29] weapons built: R-73, R-27R, R-27T, R-60M, GSh-30-1, PTB-1500, PTB-1150");
             return new Result { r73Mount = r73Mount, r27Mount = r27Mount, r27tMount = r27tMount, r60Mount = r60Mount, gunMount = gunMount,
+                r73OuterMount = r73OuterMount, r60OuterMount = r60OuterMount,
                 ptb1500Mount = ptb1500Mount, ptb1150Mount = ptb1150Mount };
         }
 
@@ -545,7 +554,7 @@ namespace MiG29Tools
         }
 
         static GameObject MakeMount(string basePrefab, string name, string pylonChild, string missileChild, Mesh launcher, Mesh missile, Material mat,
-            float missileY, ScriptableObject info, float length, float radius, string path)
+            float missileY, ScriptableObject info, float length, float radius, string path, float levelDeg = 0f, float railNoseZ = 0f)
         {
             var go = Instance(basePrefab, name);
             var rootMf = go.GetComponent<MeshFilter>();
@@ -564,7 +573,10 @@ namespace MiG29Tools
             }
 
             var msl = Child(go.transform, missileChild);
-            msl.localPosition = new Vector3(0, missileY - 0.015f, 0); msl.localRotation = Quaternion.identity; msl.localScale = Vector3.one; // 1.5 cm below the rail
+            // 1.5 cm below the rail. The station is pitched levelDeg nose-down to follow its fairing; the missile is pitched back up so it
+            // stays parallel to the fuselage, under the rail that tools/missile_gen.py tilts about the launcher's nose (railNoseZ).
+            float drop = -railNoseZ * Mathf.Tan(levelDeg * Mathf.Deg2Rad);
+            msl.localPosition = new Vector3(0, missileY - 0.015f + drop, 0); msl.localRotation = Quaternion.Euler(-levelDeg, 0f, 0f); msl.localScale = Vector3.one;
             msl.GetComponent<MeshFilter>().sharedMesh = missile;
             msl.GetComponent<MeshRenderer>().sharedMaterials = new[] { mat };
             foreach (var c in msl.GetComponents<CapsuleCollider>()) { c.radius = radius; c.height = length; c.center = Vector3.zero; c.direction = 2; }
@@ -605,6 +617,10 @@ namespace MiG29Tools
         // rail touched it only at the front and hung up to 10 cm below it further back (user screenshots, v0.8.8): the outer station sits
         // on that line, pitched to match.
         public const float OuterPylonPitch = 2.5f;
+        // The fairings slope nose-down (inner and middle 2.5 deg; outer 5: the KR-67 hardpoint it reuses was already pitched 2.5) and the
+        // stations follow them so every store sits flush; the MiG launchers then level their missiles (MakeMount, missile_gen.levelled),
+        // so all of them point along the fuselage like the real jet (user reference photo, v0.8.9).
+        const float InnerSlope = 2.5f, OuterSlope = 5f;
 
         // Base-game stores added on top of the MiG weapons and the KR-67's own pylon options (which the inner and middle sets keep).
         // Inner and middle: lighter missiles, small bombs, rocket pods, the 20 mm gun pod, jammers, the tactical nuke. Outer (thin pylons): light
@@ -706,8 +722,8 @@ namespace MiG29Tools
             var oo = os.FindPropertyRelative("weaponOptions");
             oo.arraySize = 3;
             oo.GetArrayElementAtIndex(0).objectReferenceValue = null;
-            oo.GetArrayElementAtIndex(1).objectReferenceValue = w.r73Mount;
-            oo.GetArrayElementAtIndex(2).objectReferenceValue = w.r60Mount;
+            oo.GetArrayElementAtIndex(1).objectReferenceValue = w.r73OuterMount;
+            oo.GetArrayElementAtIndex(2).objectReferenceValue = w.r60OuterMount;
             AddStock(os, OuterExtra);
             var hps = os.FindPropertyRelative("hardpoints");
             var upType = T("UnitPart");
@@ -788,13 +804,13 @@ namespace MiG29Tools
         public static void SetLoadouts(SerializedObject pso, Result w)
         {
             UnityEngine.Object Stock(string n) => AssetDatabase.LoadAssetAtPath<ScriptableObject>(MB + n + "_PLACEHOLDER.asset");
-            var airSup = new UnityEngine.Object[] { w.gunMount, null, w.r27Mount, w.r73Mount, w.r73Mount, null };
+            var airSup = new UnityEngine.Object[] { w.gunMount, null, w.r27Mount, w.r73Mount, w.r73OuterMount, null };
             var presets = new (string name, float fuel, UnityEngine.Object[] weapons)[]
             {
                 ("Air Superiority (R-27R / R-73)", 0.8f, airSup),
-                ("Long-Range CAP (PTB-1500 / R-27R / R-73)", 1.0f, new UnityEngine.Object[] { w.gunMount, w.ptb1500Mount, w.r27Mount, w.r73Mount, w.r73Mount, null }),
-                ("Dogfight (R-27T / R-73 / R-60M)", 0.6f, new UnityEngine.Object[] { w.gunMount, null, w.r27tMount, w.r73Mount, w.r60Mount, null }),
-                ("Strike (FAB-500 / rockets / R-73)", 0.7f, new UnityEngine.Object[] { w.gunMount, null, Stock("bomb_500_single"), Stock("Rocket2_4Pod"), w.r73Mount, null }),
+                ("Long-Range CAP (PTB-1500 / R-27R / R-73)", 1.0f, new UnityEngine.Object[] { w.gunMount, w.ptb1500Mount, w.r27Mount, w.r73Mount, w.r73OuterMount, null }),
+                ("Dogfight (R-27T / R-73 / R-60M)", 0.6f, new UnityEngine.Object[] { w.gunMount, null, w.r27tMount, w.r73Mount, w.r60OuterMount, null }),
+                ("Strike (FAB-500 / rockets / R-73)", 0.7f, new UnityEngine.Object[] { w.gunMount, null, Stock("bomb_500_single"), Stock("Rocket2_4Pod"), w.r73OuterMount, null }),
                 ("Ferry (3 drop tanks / R-73)", 1.0f, new UnityEngine.Object[] { w.gunMount, w.ptb1500Mount, w.ptb1150Mount, w.r73Mount, null, null }),
             };
             void Fill(SerializedProperty weapons, UnityEngine.Object[] src)
