@@ -21,7 +21,7 @@ namespace MiG29Instruments
             fFoldAmount = typeof(LandingGear).GetField("foldAmount", F), fStrutT = typeof(LandingGear).GetField("strutRotationTransform", F),
             fUnsprung = typeof(LandingGear).GetField("unsprung", F);
 
-        class Leg { public LandingGear gear; public Transform hinge, parent, strut; }
+        class Leg { public LandingGear gear; public Transform hinge, parent, strut; public float lastT = -1f; }
 
         Aircraft ac;
         readonly List<Leg> legs = new List<Leg>();
@@ -72,11 +72,17 @@ namespace MiG29Instruments
                 Find();
                 return;
             }
+            // Only while the gear moves. When a leg latches down the game snaps its hinge straight but leaves foldAmount at its last
+            // in-between value (~0.01): steering on that held the leg ~1 degree short of down, its hinge read x ~359 > 10, and the
+            // game broke the wheel on touchdown after any gear cycle (user video, v0.8.9).
+            bool moving = ac.gearState == LandingGear.GearState.Extending || ac.gearState == LandingGear.GearState.Retracting;
             foreach (var leg in legs)
             {
                 if (leg.gear == null || leg.hinge == null || leg.hinge.parent != leg.parent) continue;   // broken off
                 float t = (float)fFoldAmount.GetValue(leg.gear);
-                if (t <= 0.001f || t >= 0.999f) continue;
+                bool legMoving = moving && t != leg.lastT;   // a leg that has latched stops changing even if the other is still moving
+                leg.lastT = t;
+                if (!legMoving || t <= 0.001f || t >= 0.999f) continue;
                 Sample(t, out var rot, out float strut);
                 leg.hinge.localRotation = rot;
                 if (leg.strut != null) leg.strut.localEulerAngles = new Vector3(0f, strut, 0f);

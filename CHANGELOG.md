@@ -3,7 +3,11 @@
 ## 0.8.9 (unreleased)
 - **Missiles no longer float under the pylons.** The R-27's AKU-470 rail was 3.15 m long under a 2.1 m pylon fairing, so its
   ends hung in the air; it is now 2.1 m and sits fully under the fairing. The outer pylon fairing slopes 2.5 degrees nose-down and
-  the level rail touched it only at the front (up to 10 cm gap further back): the outer station now follows the fairing.
+  the level rail touched it only at the front (up to 10 cm gap further back): the outer station now follows the fairing. The inner
+  and middle fairings slope the same way and sat about 4 cm above their rails (10 cm at the back): those stations now follow them too.
+- **Fixed the main gear breaking on landing after the gear had been raised and lowered.** When the legs locked down, the
+  retraction-path code kept holding one or both of them about a degree short of fully down; the game reads that as a bent leg and
+  broke it on touchdown. Spawned jets were never affected, which is why it only showed after a takeoff.
 
 ## 0.8.8 (Update 8.8)
 **Working mirrors, carrier take-off.**

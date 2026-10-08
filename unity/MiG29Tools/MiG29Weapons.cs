@@ -596,8 +596,10 @@ namespace MiG29Tools
         // ---------------- MiG pylons: inner / middle / outer per wing ----------------
 
         // MiG-frame pylon shoe positions, measured from the model (blender/pylon_pos.py)
-        public static readonly Vector3 InnerPylon = new Vector3(2.36f, -0.27f, 1.31f);
-        public static readonly Vector3 MiddlePylon = new Vector3(3.10f, -0.29f, 0.66f);
+        // Inner and middle: their fairings slope 2.5 deg nose-down too, and their undersides sat 4.3 / 3.8 cm above the level rails at
+        // the hardpoint, 10 cm at the back (in-game orthographic side views, user screenshots v0.8.9): raised to the fairing and pitched.
+        public static readonly Vector3 InnerPylon = new Vector3(2.36f, -0.228f, 1.31f);
+        public static readonly Vector3 MiddlePylon = new Vector3(3.10f, -0.253f, 0.66f);
         public static readonly Vector3 OuterPylon = new Vector3(3.73f, -0.368f, 0.28f);
         // The model's outer pylon fairing slopes: its underside runs 2.5 deg nose-down (y -0.33 at z -0.4 to -0.40 at z +1.0). A level
         // rail touched it only at the front and hung up to 10 cm below it further back (user screenshots, v0.8.8): the outer station sits
@@ -652,10 +654,13 @@ namespace MiG29Tools
         {
             Transform root = go.transform;
             Vector3 P(Vector3 v, float side) => new Vector3(side * v.x, v.y, v.z) + modelOffset;
-            Child(root, "hardpoint_pylon_L1").position = P(InnerPylon, -1);
-            Child(root, "hardpoint_pylon_R1").position = P(InnerPylon, 1);
-            Child(root, "hardpoint_pylon_L2").position = P(MiddlePylon, -1);
-            Child(root, "hardpoint_pylon_R2").position = P(MiddlePylon, 1);
+            void Station(string n, Vector3 v, float side)
+            {
+                var t = Child(root, n);
+                t.SetPositionAndRotation(P(v, side), Quaternion.Euler(OuterPylonPitch, 0f, 0f) * t.rotation);
+            }
+            Station("hardpoint_pylon_L1", InnerPylon, -1); Station("hardpoint_pylon_R1", InnerPylon, 1);
+            Station("hardpoint_pylon_L2", MiddlePylon, -1); Station("hardpoint_pylon_R2", MiddlePylon, 1);
 
             var so = new SerializedObject(go.GetComponentInChildren(T("WeaponManager"), true));
             var sets = so.FindProperty("hardpointSets");
