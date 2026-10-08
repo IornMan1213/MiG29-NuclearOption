@@ -6,8 +6,6 @@ cannon, droppable PTB-1500 / PTB-1150 fuel tanks, flares and radar chaff from it
 doors, a custom cockpit damage display, and nine liveries. Its three rear-view mirrors reflect with the
 [NO Mirrors](https://github.com/IornMan1213/NuclearOption-Mirrors) plugin.
 
-This mod was made with the assistance of AI (Anthropic's Claude), which helped write the code, tools and documentation.
-
 [![Latest release](https://img.shields.io/github/v/release/IornMan1213/MiG29-NuclearOption?include_prereleases&label=release)](https://github.com/IornMan1213/MiG29-NuclearOption/releases)
 [![Licence: code MIT, model CC BY-NC-SA 4.0](https://img.shields.io/badge/licence-MIT%20%2B%20CC%20BY--NC--SA%204.0-blue)](#licence)
 [![Nuclear Option + Blueprinter](https://img.shields.io/badge/Nuclear%20Option-Blueprinter%202.0.1%2B-red)](https://github.com/nikkorap/NOBlueprinter-Releases)
@@ -81,3 +79,4 @@ dumped from the built prefab (`tools/aero_reference.json`, refreshed with `MiG29
   the same licence: it is free, non-commercial, and requires credit. Renders of the model in `docs/img/` and `assets/` are also covered by CC BY-NC-SA 4.0.
 - Nuclear Option is by Shockfront. This is an unofficial fan mod with no affiliation to Shockfront. It uses the game's own
   KR-67 systems at runtime through Blueprinter and does not redistribute any game files.
+- This mod was made with the assistance of AI (Anthropic's Claude), which helped write the code, tools and documentation.
