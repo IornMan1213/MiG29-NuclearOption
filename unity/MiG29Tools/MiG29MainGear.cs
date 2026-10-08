@@ -35,22 +35,29 @@ namespace MiG29Tools
         static DoorDump doorDump;
         static DoorDump Doors => doorDump ?? (doorDump = JsonUtility.FromJson<DoorDump>(File.ReadAllText(Path.Combine(SourceDir, "main_bay_door.json"))));
 
-        // Cuts the forward bay doors out of the body skin (the original body triangle order): the cut triangles go, the pieces of
-        // them outside the door outline come back as new skin triangles.
+        // Cuts the forward bay doors and the airbrake panels (MiG29Airbrakes) out of the body skin, both indexed in the original body
+        // triangle order: the cut triangles go, the pieces of them outside the outlines come back as new skin triangles.
         public static void CutBodySkin(ref float[] vertices, ref float[] normals, ref float[] uvs, ref int[] triangles)
         {
             var d = Doors;
             var gone = new HashSet<int>(d.remove);
+            int doors = gone.Count;
+            gone.UnionWith(MiG29Airbrakes.RemovedTriangles);
             var tris = new List<int>(triangles.Length);
             for (int i = 0; i < triangles.Length / 3; i++)
                 if (!gone.Contains(i)) tris.AddRange(new[] { triangles[i * 3], triangles[i * 3 + 1], triangles[i * 3 + 2] });
-            int baseV = vertices.Length / 3;
-            tris.AddRange(d.skin.triangles.Select(t => t + baseV));
-            vertices = vertices.Concat(d.skin.vertices).ToArray();
-            normals = normals.Concat(d.skin.normals).ToArray();
-            uvs = uvs.Concat(d.skin.uvs).ToArray();
+            var ab = MiG29Airbrakes.SkinPieces;
+            foreach (var (pv, pn, pu, pt) in new[] { (d.skin.vertices, d.skin.normals, d.skin.uvs, d.skin.triangles), ab })
+            {
+                int baseV = vertices.Length / 3;
+                tris.AddRange(pt.Select(t => t + baseV));
+                vertices = vertices.Concat(pv).ToArray();
+                normals = normals.Concat(pn).ToArray();
+                uvs = uvs.Concat(pu).ToArray();
+            }
             triangles = tris.ToArray();
-            Debug.Log($"[MiG29] forward main-bay doors cut from the skin: {gone.Count} triangles out, {d.skin.triangles.Length / 3} pieces back");
+            Debug.Log($"[MiG29] skin cuts: forward main-bay doors {doors} triangles out, {d.skin.triangles.Length / 3} pieces back; " +
+                      $"airbrakes {gone.Count - doors} out, {ab.t.Length / 3} pieces back");
         }
 
         // The forward doors' meshes (MiG frame), as MiG29Polish.SetupGearDoors takes them.

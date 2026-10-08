@@ -24,6 +24,12 @@ namespace MiG29Tools
 
     public static class MiG29InstrumentMath
     {
+        // Intake FOD doors (MiG29Builder.AddIntakeBlockers builds them open): closed = the hinge turned this far about its x axis, from
+        // lying along the duct roof to sealing the duct down to its floor. Closed on the ground below 200 km/h with an engine running,
+        // like the cockpit's ПЗУ light.
+        public const float FodClosedDeg = -56.4f;
+        public static bool FodClosed(bool onGround, float iasKmh, float rpmL, float rpmR) => onGround && iasKmh < 200f && (rpmL > 40f || rpmR > 40f);
+
         static float Lin(float v, float lo, float hi, float a0, float a1) => a0 + Mathf.Clamp01((v - lo) / (hi - lo)) * (a1 - a0);
 
         // vertical speed: 0/50/100/200/300 m/s at 0/40/80/120/160 deg from 9 o'clock
@@ -105,7 +111,7 @@ namespace MiG29Tools
             C("ptb", s.ptbEmpty);   // drop tanks carried but dry: drop them
             C("flaps", s.gearDown && !s.gearMoving && s.airborne);
             C("brake", s.brake > 0.1f);
-            C("fod", s.onGround && s.iasKmh < 200 && (s.rpmL > 40 || s.rpmR > 40));
+            C("fod", FodClosed(s.onGround, s.iasKmh, s.rpmL, s.rpmR));
             C("ab", s.throttle > 0.9f && (s.rpmL > 90 || s.rpmR > 90));
             bool anyWarn = on.Count > 0 && !(on.Count == 1 && (on.Contains("cau_brake") || on.Contains("cau_fod") || on.Contains("cau_ab") || on.Contains("cau_flaps")));
             C("master", anyWarn && (s.airborne || s.fireL || s.fireR) && s.blink);

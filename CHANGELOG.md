@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.9.0 (Update 9.0)
+**Airbrakes, brake chute and intake doors, like the real jet.**
+- **Airbrakes.** The MiG-29's two speed-brake panels on the tail between the engines, one on top opening up and one underneath
+  opening down, are cut out of the skin and open with the throttle at idle, as on the game's other fighters (drag and the stock
+  airbrake sound included). Shallow wells under them close the holes when they are open.
+- **Brake chute.** After touchdown, with the throttle at idle above about 110 km/h, the cross-shaped brake chute streams from
+  its housing at the tip of the tail and shortens the landing roll. It is dropped once the jet slows below about 30 km/h, or if
+  the pilot opens the throttle to go around, and falls to the runway. Once per landing.
+- **Intake FOD doors.** On the ground with an engine running, below 200 km/h, the doors in the roof of each intake duct swing
+  down and seal it, as on the real MiG-29 (the cockpit's ПЗУ light already showed this); they open on the take-off roll.
+- The mod's own readme (in the download) brought up to date, and a guide for weapon modders (`WEAPON_MODS.md`).
+
 ## 0.8.9 (Update 8.9)
 **Missiles sit right on the pylons, landing gear fixed.**
 - **Missiles no longer float under the pylons.** The R-27's AKU-470 rail was 3.15 m long under a 2.1 m pylon fairing, so its

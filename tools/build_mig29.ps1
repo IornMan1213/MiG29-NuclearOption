@@ -34,6 +34,7 @@ python "$tools\nose_bay.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "nose_bay f
 python "$tools\gear_wells.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "gear_wells failed" }
 python "$tools\main_gear_gen.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "main_gear_gen failed" }
 python "$tools\main_bay_door.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "main_bay_door failed" }
+python "$tools\airbrake_cut.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "airbrake_cut failed" }
 python "$tools\main_wells.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "main_wells failed" }
 python "$tools\bay_texture.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "bay_texture failed" }
 python "$tools\fm_export.py" "$src\fm_unity.json"; if ($LASTEXITCODE -ne 0) { throw "fm_export failed" }

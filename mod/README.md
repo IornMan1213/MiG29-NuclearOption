@@ -1,17 +1,21 @@
-# MiG-29 Fulcrum for Nuclear Option (v0.8.7)
+# MiG-29 Fulcrum for Nuclear Option (v0.9.0)
 
 A flyable MiG-29 (9.12) with its own flight model, R-27R / R-27T / R-73 / R-60M missiles, the GSh-30-1 cannon, droppable fuel
-tanks, flares and chaff, working canopy and gear doors, its own damage display, nine liveries and loading screens.
+tanks, flares and chaff, airbrakes, a brake chute, intake FOD doors, working canopy and gear doors, working rear-view mirrors,
+its own damage display, nine liveries and loading screens.
 
 ## Install
 1. Install [BepInEx 5](https://github.com/BepInEx/BepInEx) into the Nuclear Option folder.
 2. Install [Blueprinter](https://github.com/nikkorap/NOBlueprinter-Releases) (2.0.1 or newer) into `BepInEx/plugins`.
-3. Put `MiG-29 Fulcrum_0.8.7.nobp` and `MiG29Instruments.dll` (both in `MiG-29-Fulcrum_0.8.7.zip`) in
+3. Put `MiG-29 Fulcrum_0.9.0.nobp` and `MiG29Instruments.dll` (both in `MiG-29-Fulcrum_0.9.0.zip`) in
    `BepInEx/plugins/MiG-29_Fulcrum/`, or install the mod with a NOMNOM mod manager such as NOMM.
-   Remove older `MiG-29 Fulcrum_*.nobp` files. The DLL makes the cockpit instruments work and gives the drop tanks their
-   fuel; without it the MiG still flies, with the gauges parked and the drop tanks empty.
+   Remove older `MiG-29 Fulcrum_*.nobp` files. The DLL makes the cockpit instruments work, gives the drop tanks their fuel and
+   works the brake chute, intake doors, nozzles and gear path; without it the MiG still flies, with the gauges parked, the drop
+   tanks empty, no brake chute and the intake doors always open.
+4. Optional: [NO Mirrors](https://github.com/IornMan1213/NuclearOption-Mirrors) makes the three rear-view mirrors reflect.
 
-The MiG-29 appears in medium hangars, shelters and revetments on land bases, and in the Encyclopedia.
+The MiG-29 appears in medium hangars, shelters and revetments on land bases, in the Hyperion carrier's hangars, and in the
+Encyclopedia.
 Multiplayer: everyone needs the same mod set (Blueprinter checks this).
 
 ## Features
@@ -25,8 +29,12 @@ Multiplayer: everyone needs the same mod set (Blueprinter checks this).
   - R-73 (AA-11 Archer): all-aspect infrared, thrust vectoring, 45 deg off-boresight.
   - R-60M (AA-8 Aphid): light, agile infrared missile, ~8 km.
   - GSh-30-1: 30 mm cannon in the left wing root, 150 rounds at ~1,650 rpm. Fire short bursts.
-  - Three pylons per wing: inner (R-27R / R-27T / R-73 / R-60M / PTB-1150 tank / stock stores), middle (R-73 / R-60M /
-    stock stores), outer (R-73 / R-60M); and a centreline station under the belly for the PTB-1500 tank.
+  - Three pylons per wing, on launchers modelled after the real APU-73, APU-60 and AKU-470, with every missile pointing along
+    the fuselage: inner (R-27R / R-27T / R-73 / R-60M / PTB-1150 tank, plus base-game missiles, bombs, racks, rocket and gun
+    pods, jammers and the GPO-N), middle (R-73 / R-60M and the lighter base-game stores, single stores only), outer (R-73 /
+    R-60M, short-range AAMs, AGM-48, a rocket pod, ECM, smoke and flare pods); and a centreline station under the belly for the
+    PTB-1500 tank, bombs, nuclear bombs, the gun pod and jamming pods.
+  - Weapon modders: see `WEAPON_MODS.md` in the source repository to make your weapons selectable on the MiG.
   - Default loadout: gun, 2x R-27R, 4x R-73. Preset loadouts (also used by AI MiGs): air superiority, long-range CAP
     (PTB-1500 / R-27R / R-73), dogfight (R-27T / R-73 / R-60M), strike (FAB-500 / rockets / R-73), ferry (three tanks / R-73).
 - **Drop tanks**: PTB-1500 centreline tank (1,500 L, ~1,180 kg of fuel) and PTB-1150 wing tanks (1,150 L, ~905 kg each).
@@ -37,11 +45,18 @@ Multiplayer: everyone needs the same mod set (Blueprinter checks this).
   30 radar chaff cartridges (60 in all, as on the real jet), plus the Radar ECM jammer. Cycle countermeasures to choose.
   Chaff decoys radar-guided missiles (active and semi-active). It works best when the missile sees you side-on (beam it) and
   is close, so pop it as you turn across the missile's path.
+- **Airbrakes**: the upper and lower speed-brake panels on the tail between the engines open with the throttle at idle (the
+  HUD throttle's bottom detent), as on the game's other fighters.
+- **Brake chute**: after touchdown, with the throttle at idle above ~110 km/h, the cross-shaped chute streams from its housing at
+  the tip of the tail and slows the landing roll; it is dropped below ~30 km/h, or if you open the throttle to go around.
+- **Intake FOD doors**: on the ground with the engines running, below 200 km/h, the doors in the intake ducts close to keep debris
+  out (the ПЗУ light is on); they open on the take-off roll.
 - **Airframe**: canopy opens from its rear hinge on the ground and ejects with the seat; nose and main gear doors open with
-  the gear; parts break off and show scorch damage; hitboxes are the KR-67 part colliders scaled to the MiG.
+  the gear, and the main legs fold into the wing roots along the real path; the RD-33 nozzles open and close with power; parts
+  break off and show scorch damage; hitboxes are the KR-67 part colliders scaled to the MiG.
 - **Cockpit** modelled from scratch: turquoise MiG-29 instrument panel with Russian-marked gauges, HUD, side consoles with real
   3D toggles and knobs, circuit-breaker panels, twin throttles, centre stick, a K-36DM seat with harness, the windscreen bow with
-  three rear-view mirrors (working, with the [NO Mirrors](https://github.com/IornMan1213/NuclearOption-Mirrors) plugin; they fold with Ctrl+M), and the equipment bay behind the seat. The tactical display is built into the panel as the radar screen.
+  three rear-view mirrors (working, with the [NO Mirrors](https://github.com/IornMan1213/NuclearOption-Mirrors) plugin; Ctrl+M folds them), and the equipment bay behind the seat. The tactical display is built into the panel as the radar screen.
 - **Every instrument works**: 20 needles, a rolling attitude ball, a turning compass card, a 24-light caution panel, the SPO-15
   radar warning receiver and gear lights, all driven by the aircraft's real state (see below).
 - **Cockpit damage display** and map icon drawn from the MiG itself.
@@ -80,14 +95,16 @@ The rudder pedals move with your rudder input and the gear lever with the gear. 
 drop-tank `Jettison key` and `Drop empty tanks automatically`).
 
 ## Troubleshooting
-- **The MiG-29 isn't in the aircraft list.** It spawns from medium hangars, shelters and revetments on land bases (not carriers).
+- **The MiG-29 isn't in the aircraft list.** It spawns from medium hangars, shelters and revetments on land bases, and from the
+  Hyperion carrier's hangars.
   Check that `BepInEx/LogOutput.log` has the line `Loaded mig29 x.y.z`, and that only one `MiG-29 Fulcrum_*.nobp` is installed.
 - **Can't join a multiplayer server.** Every player needs the same mod set and the same MiG-29 version; Blueprinter compares
   them when you join.
 - **R-27R misses.** It's semi-active: keep the target locked on your radar until impact. For fire-and-forget at medium range,
   use the R-27T (infrared; lock its seeker before launch).
 - **The gun runs dry fast.** The GSh-30-1 has 150 rounds, about five and a half seconds of fire. Short bursts.
-- **Drop tanks don't feed fuel / Ctrl+J does nothing.** Both come from `MiG29Instruments.dll`; check it is installed (below).
+- **Drop tanks don't feed fuel / Ctrl+J does nothing / no brake chute.** These come from `MiG29Instruments.dll`; check it is
+  installed (below). The chute needs the throttle at idle after touchdown, and is used once per landing.
   Tanks can't be released with the gear down.
 - **Gauges don't move.** `MiG29Instruments.dll` must be in `BepInEx/plugins` (next to the .nobp is fine);
   `BepInEx/LogOutput.log` then shows `MiG-29 instruments on MiG29`.

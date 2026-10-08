@@ -21,7 +21,7 @@ namespace MiG29Tools
 
         public const string JsonKey = "mig29_Fulcrum";
         public const string DisplayName = "MiG-29 Fulcrum";
-        public const string Version = "0.8.9";
+        public const string Version = "0.9.0";
 
         // MiG model frame -> aircraft root. Puts MiG main wheels on the KR-67 main gear and MiG wheels on KR-67 ground line.
         static readonly Vector3 ModelOffset = new Vector3(0f, -0.44f, -2.655f);
@@ -103,6 +103,7 @@ namespace MiG29Tools
             MiG29Polish.SetupGearDoors(go, ModelOffset, fwd.v, fwd.n, fwd.uv, fwd.t, materials.skin,
                 (m, path) => CreateOrReplace(m, path), (t, r) => AddDamageRenderer(t, r), c => c.x < 0 ? "fwd_L" : "fwd_R");
             MiG29Wells.Build(root, ModelOffset, materials.skin, (o, path) => CreateOrReplace(o, path));
+            MiG29Airbrakes.Build(go, ModelOffset, materials.skin, (o, path) => CreateOrReplace(o, path), (t, r) => AddDamageRenderer(t, r));
             var fm = MiG29FlightModel.Load();
             MiG29FlightModel.ApplyToPrefab(root, fm, (n, c) => CubeMesh("MiG29_col_" + n, c, 0.3f));
 
@@ -642,6 +643,8 @@ namespace MiG29Tools
         {
             var mat = AssetDatabase.LoadAssetAtPath<Material>(ModDir + "/weapons/MiG29_missiles.mat");
             var mesh = CreateOrReplace(AtlasBox("MiG29_intake_blocker", new Vector3(0.56f, 0.58f, 0.02f), 0.625f, 0.375f), ModDir + "/meshes/MiG29_intake_blocker.asset"); // atlas black
+            float fodLen = (FodOpenEnd(1f) - FodHinge(1f)).magnitude + 0.006f;
+            var fodMesh = CreateOrReplace(AtlasBox("MiG29_fod_door", new Vector3(0.52f, 0.015f, fodLen), 0.375f, 0.875f), ModDir + "/meshes/MiG29_fod_door.asset"); // atlas light grey
             foreach (var side in new[] { -1f, 1f })
             {
                 var part = Find(root, side < 0 ? "intake_L" : "intake_R");
@@ -650,8 +653,27 @@ namespace MiG29Tools
                 t.SetPositionAndRotation(new Vector3(side * 0.70f, -0.59f, 3.6f) + ModelOffset, Quaternion.identity);
                 t.gameObject.AddComponent<MeshFilter>().sharedMesh = mesh;
                 t.gameObject.AddComponent<MeshRenderer>().sharedMaterial = mat;
+
+                // FOD door: on the real jet a hinged panel in the roof of each duct swings down on the ground and seals the intake
+                // (the engines then breathe through the louvres on top of the wing roots). Built open, lying along the duct roof
+                // (y -0.27..-0.32) from its hinge just behind the lower lip; the MiG29Instruments plugin closes it on the ground by
+                // turning the hinge MiG29InstrumentMath.FodClosedDeg down to the duct floor (y -0.85 at z 3.80).
+                var hinge = new GameObject(side < 0 ? "MiG29_fod_L" : "MiG29_fod_R").transform;
+                hinge.SetParent(part, false);
+                hinge.SetPositionAndRotation(FodHinge(side) + ModelOffset, Quaternion.identity);
+                var dir = FodOpenEnd(side) - FodHinge(side);
+                var door = new GameObject("MiG29_fod_door").transform;
+                door.SetParent(hinge, false);
+                door.localRotation = Quaternion.LookRotation(dir.normalized, Vector3.up);
+                door.localPosition = dir * 0.5f - door.up * 0.008f;
+                door.gameObject.AddComponent<MeshFilter>().sharedMesh = fodMesh;
+                door.gameObject.AddComponent<MeshRenderer>().sharedMaterial = mat;
             }
         }
+
+        // MiG frame, duct centre x 0.70 (blender ray scan of the duct: roof -0.27..-0.32, floor -0.83..-0.87 at z 3.4..4.1, lower lip z 4.15)
+        static Vector3 FodHinge(float side) => new Vector3(side * 0.70f, -0.295f, 4.15f);
+        static Vector3 FodOpenEnd(float side) => new Vector3(side * 0.70f, -0.31f, 3.50f);
 
         // Box mesh centred on the origin, every vertex mapped to one flat-colour cell of the missile atlas (0.625, 0.875 = dgrey).
         static Mesh AtlasBox(string name, Vector3 size, float u, float v)
