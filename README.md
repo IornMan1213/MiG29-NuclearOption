@@ -6,6 +6,8 @@ cannon, droppable PTB-1500 / PTB-1150 fuel tanks, flares and radar chaff from it
 doors, a custom cockpit damage display, and nine liveries. Its three rear-view mirrors reflect with the
 [NO Mirrors](https://github.com/IornMan1213/NuclearOption-Mirrors) plugin.
 
+This mod was made with the assistance of AI (Anthropic's Claude), which helped write the code, tools and documentation.
+
 [![Latest release](https://img.shields.io/github/v/release/IornMan1213/MiG29-NuclearOption?include_prereleases&label=release)](https://github.com/IornMan1213/MiG29-NuclearOption/releases)
 [![Licence: code MIT, model CC BY-NC-SA 4.0](https://img.shields.io/badge/licence-MIT%20%2B%20CC%20BY--NC--SA%204.0-blue)](#licence)
 [![Nuclear Option + Blueprinter](https://img.shields.io/badge/Nuclear%20Option-Blueprinter%202.0.1%2B-red)](https://github.com/nikkorap/NOBlueprinter-Releases)
@@ -24,6 +26,9 @@ doors, a custom cockpit damage display, and nine liveries. Its three rear-view m
    `BepInEx/plugins/MiG-29_Fulcrum/`. Delete any older versions first. The DLL makes the cockpit instruments work and feeds the drop tanks' fuel.
 
 See [mod/README.md](mod/README.md) for the full feature list and known limitations.
+
+**Weapon modders:** [WEAPON_MODS.md](WEAPON_MODS.md) has everything needed to make your weapons selectable on the MiG
+(its aircraft key, hardpoint sets and pylon clearances).
 
 ![In flight: the from-scratch cockpit with working instruments](docs/img/cockpit_flight.jpg)
 
