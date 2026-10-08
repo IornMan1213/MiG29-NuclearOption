@@ -1,12 +1,13 @@
 # Changelog
 
-## 0.8.9 (unreleased)
+## 0.8.9 (Update 8.9)
+**Missiles sit right on the pylons, landing gear fixed.**
 - **Missiles no longer float under the pylons.** The R-27's AKU-470 rail was 3.15 m long under a 2.1 m pylon fairing, so its
   ends hung in the air; it is now 2.1 m and sits fully under the fairing. The outer pylon fairing slopes 2.5 degrees nose-down and
   the level rail touched it only at the front (up to 10 cm gap further back): the outer station now follows the fairing. The inner
   and middle fairings slope the same way and sat about 4 cm above their rails (10 cm at the back): those stations now follow them too.
-- **Missile launchers reshaped** after the real APU-73, APU-60 and AKU-470: streamlined beams with a pointed nose, tapered tail,
-  rounded sides and a guide rail with hanger shoes, instead of flat boxes. Every MiG missile now points along the fuselage, as on
+- **Missile launchers reshaped** after the real APU-73, APU-60 and AKU-470: box-section beams as wide as the pylon fairing, with
+  a wedge nose and tail, a guide rail and hanger shoes the missile hangs from, instead of flat boxes. Every MiG missile now points along the fuselage, as on
   the real jet (they were tilted 2.5 to 5 degrees nose-down with the sloped pylons); each launcher fills the wedge between its
   sloped fairing and the level missile.
 - **Fixed the main gear breaking on landing after the gear had been raised and lowered.** When the legs locked down, the
