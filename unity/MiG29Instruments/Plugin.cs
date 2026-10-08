@@ -140,6 +140,8 @@ namespace MiG29Instruments
                     System.IO.File.WriteAllText(System.IO.Path.Combine(BepInEx.Paths.BepInExRootPath, "mig29_dump.txt"), sb.ToString());
                 }
                 if (ac.GetComponent<InstrumentDriver>() != null) return;
+                // only the MiG-29 itself: other mods (the MiG-29SMT fork) may carry similarly named instruments
+                if (((Unit)ac).definition == null || ((Unit)ac).definition.jsonKey != MiG29Key) return;
                 foreach (var t in InstrumentDriver.Root(ac).GetComponentsInChildren<Transform>(true))
                     if (t.name == "MiG29_ins_asi_kmh")
                     {
