@@ -192,30 +192,39 @@ def launcher(z0, z1, half_w, depth, nose, tail, rail_depth, rail_half_w, cell="l
     L = z1 - z0
     zs = [z0 + L * k / 40 for k in range(41)]
 
-    def scale(z):
-        if z > z1 - nose:   # ogive nose: full size to a blunt point
-            t = (z - (z1 - nose)) / nose; return max(0.18, math.cos(t * math.pi / 2) ** 0.7)
-        if z < z0 + tail:   # tail taper
-            t = ((z0 + tail) - z) / tail; return max(0.35, 1 - 0.65 * t ** 1.5)
+    # Box-section beam the width of the fairing's underside, flat sides, rounded lower corners; the nose and tail taper in height
+    # only (a wedge, as on the real launchers). Front views showed the earlier pointed, V-section beam meeting the fairing at a
+    # point (user, v0.8.9).
+    def height(z):
+        if z > z1 - nose:
+            t = (z - (z1 - nose)) / nose; return 1 - 0.72 * t ** 1.3
+        if z < z0 + tail:
+            t = ((z0 + tail) - z) / tail; return 1 - 0.55 * t ** 1.3
         return 1.0
 
-    # cross-section: flat top, sides rounding into the bottom (a half super-ellipse)
-    def section(s):
-        pts = [(-half_w * s, 0.0)]
-        for i in range(seg + 1):
-            a = math.pi * i / seg
-            x = -math.cos(a) * half_w * s
-            y = -(math.sin(a) ** 0.6) * depth * (0.55 + 0.45 * s)
-            pts.append((x, y))
-        pts.append((half_w * s, 0.0))
+    r = half_w * 0.45                                # lower corner radius
+
+    def section(h):
+        d = depth * h; rr = min(r, d * 0.6)
+        pts = [(-half_w, 0.0), (-half_w, -d + rr)]
+        for i in range(1, seg):                      # left lower corner
+            a = math.pi / 2 * i / seg
+            pts.append((-half_w + rr * (1 - math.cos(a)), -d + rr * (1 - math.sin(a))))
+        pts += [(-half_w + rr, -d), (half_w - rr, -d)]
+        for i in range(1, seg):                      # right lower corner
+            a = math.pi / 2 * i / seg
+            pts.append((half_w - rr * (1 - math.sin(a)), -d + rr * (1 - math.cos(a))))
+        pts += [(half_w, -d + rr), (half_w, 0.0)]
         return pts
+
+    def scale(z): return height(z)
 
     rings = [[(x, y, z) for x, y in section(scale(z))] for z in zs]
     for a, b in zip(rings, rings[1:]):
         for i in range(len(a) - 1):
             p0, p1, q1, q0 = a[i], a[i + 1], b[i + 1], b[i]
             mid = np.mean([p0, p1, q0, q1], axis=0)
-            outward = np.array([mid[0], mid[1] + depth * 0.4, 0.0])
+            outward = np.array([mid[0], min(mid[1] + depth * 0.5, 0.0), 0.0])
             m.quad(p0, p1, q1, q0, cell, outward if np.linalg.norm(outward) > 1e-6 else np.array([0, -1.0, 0]))
     for a, b in zip(rings, rings[1:]):                              # flat top (against the fairing; seen at the tapered ends)
         m.quad(a[0], a[-1], b[-1], b[0], cell, np.array([0, 1.0, 0]))
@@ -223,28 +232,30 @@ def launcher(z0, z1, half_w, depth, nose, tail, rail_depth, rail_half_w, cell="l
         c = np.mean(ring, axis=0)
         for i in range(len(ring) - 1):
             m.tri(c, ring[i], ring[i + 1], cell, np.array([0, 0, nz]))
-    # guide rail and two hanger shoes (the missile hangs from these)
-    rz0, rz1 = z0 + tail * 0.6, z1 - nose * 0.9
+    # guide rail under the full-height part of the beam, and three hanger shoes reaching down to the missile's top (it hangs 1.5 cm
+    # below the rail), so it visibly hangs from them
+    rz0, rz1 = z0 + tail * 0.8, z1 - nose * 0.8
     m.box(-rail_half_w, rail_half_w, -depth - rail_depth, -depth + 0.005, rz0, rz1, "metal")
-    for zc in (rz0 + 0.25 * (rz1 - rz0), rz0 + 0.75 * (rz1 - rz0)):
-        m.box(-rail_half_w * 1.6, rail_half_w * 1.6, -depth - rail_depth, -depth - rail_depth * 0.4, zc - 0.05, zc + 0.05, "dgrey")
+    for f in (0.12, 0.5, 0.88):
+        zc = rz0 + f * (rz1 - rz0)
+        m.box(-rail_half_w * 1.3, rail_half_w * 1.3, -depth - rail_depth - 0.016, -depth - rail_depth * 0.3, zc - 0.045, zc + 0.045, "dgrey")
     return m
 
 
-def apu60(deg=2.5):
+def apu60(deg=2.5, half_w=0.045):
     """APU-60 rail launcher for the R-60M: missile body top touches the rail underside at y = -0.08."""
-    return levelled(launcher(-0.95, 0.80, 0.035, 0.08, nose=0.40, tail=0.25, rail_depth=0.012, rail_half_w=0.016), 0.80, 0.08, deg)
+    return levelled(launcher(-0.95, 0.80, half_w, 0.08, nose=0.40, tail=0.25, rail_depth=0.012, rail_half_w=0.016), 0.80, 0.08, deg)
 
 
-def apu73(deg=2.5):
+def apu73(deg=2.5, half_w=0.05):
     """APU-73 rail launcher: missile body top touches the rail underside at y = -0.10."""
-    return levelled(launcher(-1.25, 1.05, 0.045, 0.10, nose=0.50, tail=0.30, rail_depth=0.015, rail_half_w=0.020), 1.05, 0.10, deg)
+    return levelled(launcher(-1.25, 1.05, half_w, 0.10, nose=0.50, tail=0.30, rail_depth=0.015, rail_half_w=0.020), 1.05, 0.10, deg)
 
 
 def aku470(deg=2.5):
     """AKU-470 ejector launcher for the R-27. 2.1 m long, to fit under the model's inner pylon fairing (flat underside from 1.17 m
     behind to 0.90 m ahead of the hardpoint): at 3.15 m its ends hung in the air past the fairing (user screenshots, v0.8.8)."""
-    return levelled(launcher(-1.15, 0.95, 0.06, 0.14, nose=0.50, tail=0.30, rail_depth=0.015, rail_half_w=0.028), 0.95, 0.14, deg)
+    return levelled(launcher(-1.15, 0.95, 0.05, 0.14, nose=0.50, tail=0.30, rail_depth=0.015, rail_half_w=0.028), 0.95, 0.14, deg)
 
 
 def tank_profile(L, R, nose, tail, tail_r, n=10):
@@ -309,7 +320,7 @@ if __name__ == "__main__":
     textures()
     parts = [r73().dump("R73"), r27r().dump("R27R"), r27t().dump("R27T"), r60m().dump("R60M"),
              apu73().dump("APU73"), aku470().dump("AKU470"), apu60().dump("APU60"),
-             apu73(5.0).dump("APU73_O"), apu60(5.0).dump("APU60_O"),   # outer pylons: their fairing slopes 5 deg
+             apu73(5.0, 0.04).dump("APU73_O"), apu60(5.0, 0.04).dump("APU60_O"),   # outer pylons: their fairing slopes 5 deg
              ptb1500().dump("PTB1500"), ptb1150().dump("PTB1150"),
              ptb_pylon(0.08, 1.9, 0.12).dump("PTB_PYLON_C"), ptb_pylon(0.10, 1.6, 0.10).dump("PTB_PYLON_W")]
     json.dump({"parts": parts}, open(OUT + "/missiles.json", "w"))
