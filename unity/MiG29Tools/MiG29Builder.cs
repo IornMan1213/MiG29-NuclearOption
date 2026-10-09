@@ -643,8 +643,6 @@ namespace MiG29Tools
         {
             var mat = AssetDatabase.LoadAssetAtPath<Material>(ModDir + "/weapons/MiG29_missiles.mat");
             var mesh = CreateOrReplace(AtlasBox("MiG29_intake_blocker", new Vector3(0.56f, 0.58f, 0.02f), 0.625f, 0.375f), ModDir + "/meshes/MiG29_intake_blocker.asset"); // atlas black
-            float fodLen = (FodOpenEnd(1f) - FodHinge(1f)).magnitude + 0.006f;
-            var fodMesh = CreateOrReplace(AtlasBox("MiG29_fod_door", new Vector3(0.52f, 0.015f, fodLen), 0.375f, 0.875f), ModDir + "/meshes/MiG29_fod_door.asset"); // atlas light grey
             foreach (var side in new[] { -1f, 1f })
             {
                 var part = Find(root, side < 0 ? "intake_L" : "intake_R");
@@ -655,18 +653,19 @@ namespace MiG29Tools
                 t.gameObject.AddComponent<MeshRenderer>().sharedMaterial = mat;
 
                 // FOD door: on the real jet a hinged panel in the roof of each duct swings down on the ground and seals the intake
-                // (the engines then breathe through the louvres on top of the wing roots). Built open, lying along the duct roof
-                // (y -0.27..-0.32) from its hinge just behind the lower lip; the MiG29Instruments plugin closes it on the ground by
-                // turning the hinge MiG29InstrumentMath.FodClosedDeg down to the duct floor (y -0.85 at z 3.80).
+                // (the engines then breathe through the louvres on top of the wing roots). Its outline is the duct's own cross-section
+                // along the line it closes on (tools/fod_door.py), so it seals the duct wall to wall; a plain rectangle left gaps all
+                // round (user screenshot, v0.9.0). Built open, folded up under the duct roof from its hinge just behind the lower lip;
+                // the MiG29Instruments plugin closes it on the ground by turning the hinge MiG29InstrumentMath.FodClosedDeg down to the
+                // duct floor, and hides it once it is folded away. Light grey face toward the intake mouth, dark back.
                 var hinge = new GameObject(side < 0 ? "MiG29_fod_L" : "MiG29_fod_R").transform;
                 hinge.SetParent(part, false);
                 hinge.SetPositionAndRotation(FodHinge(side) + ModelOffset, Quaternion.identity);
-                var dir = FodOpenEnd(side) - FodHinge(side);
+                var ls = part.lossyScale;                                       // the door is measured in metres: undo any part scale
+                hinge.localScale = new Vector3(1f / ls.x, 1f / ls.y, 1f / ls.z);
                 var door = new GameObject("MiG29_fod_door").transform;
                 door.SetParent(hinge, false);
-                door.localRotation = Quaternion.LookRotation(dir.normalized, Vector3.up);
-                door.localPosition = dir * 0.5f - door.up * 0.008f;
-                door.gameObject.AddComponent<MeshFilter>().sharedMesh = fodMesh;
+                door.gameObject.AddComponent<MeshFilter>().sharedMesh = CreateOrReplace(FodDoorMesh(side), $"{ModDir}/meshes/MiG29_fod_door_{(side < 0 ? "L" : "R")}.asset");
                 door.gameObject.AddComponent<MeshRenderer>().sharedMaterial = mat;
             }
         }
@@ -674,6 +673,64 @@ namespace MiG29Tools
         // MiG frame, duct centre x 0.70 (blender ray scan of the duct: roof -0.27..-0.32, floor -0.83..-0.87 at z 3.4..4.1, lower lip z 4.15)
         static Vector3 FodHinge(float side) => new Vector3(side * 0.70f, -0.295f, 4.15f);
         static Vector3 FodOpenEnd(float side) => new Vector3(side * 0.70f, -0.31f, 3.50f);
+
+        [Serializable] class FodDump { public float[] hinge; public float[] rows; }
+
+        // The door in the hinge's frame, open pose: the closed outline (rows of y, z, x-left, x-right from tools/fod_door.py, left
+        // intake; mirrored for the right) turned back up by -FodClosedDeg. Front (toward the intake mouth when closed) light grey,
+        // back dark grey, 1 cm thick.
+        static Mesh FodDoorMesh(float side)
+        {
+            var json = File.ReadAllText(Path.Combine(SourceDir, "fod_door.json"));
+            // JsonUtility cannot read nested arrays: flatten "rows": [[y, z, xl, xr], ...]
+            json = System.Text.RegularExpressions.Regex.Replace(json, @"""rows"":\s*\[(.*)\]\s*}", m => "\"rows\": [" + m.Groups[1].Value.Replace("[", "").Replace("]", "") + "]}");
+            var d = JsonUtility.FromJson<FodDump>(json);
+            var rows = new List<(float y, float z, float xl, float xr)>();
+            for (int i = 0; i + 3 < d.rows.Length; i += 4) rows.Add((d.rows[i], d.rows[i + 1], d.rows[i + 2], d.rows[i + 3]));
+            // the bottom row meets the duct floor's rounded corner: keep the width of the row above it
+            for (int i = 1; i < rows.Count; i++)
+                if (rows[i].xr - rows[i].xl < 0.8f * (rows[i - 1].xr - rows[i - 1].xl)) rows[i] = (rows[i].y, rows[i].z, rows[i - 1].xl, rows[i - 1].xr);
+            var hingePos = new Vector3(d.hinge[0], d.hinge[1], d.hinge[2]);
+            var open = Quaternion.Euler(-MiG29InstrumentMath.FodClosedDeg, 0f, 0f);
+            Vector3 Local(float x, float y, float z)
+            {
+                var p = new Vector3(x, y, z) - hingePos;
+                if (side > 0) p.x = -p.x;
+                return open * p;
+            }
+            var verts = new List<Vector3>(); var norms = new List<Vector3>(); var uvs = new List<Vector2>(); var tris = new List<int>();
+            var front = new Vector2(0.375f, 0.875f); var back = new Vector2(0.625f, 0.875f);   // missile atlas: light grey, dark grey
+            // closed door plane: normal toward the intake mouth (+z, a little down); the back face sits 1 cm behind it
+            var nClosed = Vector3.Cross(new Vector3(0f, rows[rows.Count - 1].y - rows[0].y, rows[rows.Count - 1].z - rows[0].z), Vector3.right).normalized;
+            if (nClosed.z < 0f) nClosed = -nClosed;
+            var nOpen = open * nClosed;
+            var thick = open * (-nClosed * 0.01f);
+            void Quad(Vector3 a, Vector3 b, Vector3 c, Vector3 e, Vector3 n, Vector2 uv)
+            {
+                int i0 = verts.Count;
+                verts.AddRange(new[] { a, b, c, e }); for (int k = 0; k < 4; k++) { norms.Add(n); uvs.Add(uv); }
+                // Unity front face: clockwise as seen from the normal side
+                if (Vector3.Dot(Vector3.Cross(b - a, c - a), n) < 0f) tris.AddRange(new[] { i0, i0 + 1, i0 + 2, i0, i0 + 2, i0 + 3 });
+                else tris.AddRange(new[] { i0, i0 + 2, i0 + 1, i0, i0 + 3, i0 + 2 });
+            }
+            for (int i = 0; i + 1 < rows.Count; i++)
+            {
+                var r0 = rows[i]; var r1 = rows[i + 1];
+                Vector3 a = Local(r0.xl, r0.y, r0.z), b = Local(r0.xr, r0.y, r0.z), c = Local(r1.xr, r1.y, r1.z), e = Local(r1.xl, r1.y, r1.z);
+                Quad(a, b, c, e, nOpen, front);
+                Quad(a + thick, b + thick, c + thick, e + thick, -nOpen, back);
+                // side edges
+                Quad(a, e, e + thick, a + thick, (a - b).normalized, back);
+                Quad(b, c, c + thick, b + thick, (b - a).normalized, back);
+            }
+            var f0 = rows[0]; var fl = rows[rows.Count - 1];
+            Quad(Local(f0.xl, f0.y, f0.z), Local(f0.xr, f0.y, f0.z), Local(f0.xr, f0.y, f0.z) + thick, Local(f0.xl, f0.y, f0.z) + thick, open * Vector3.up, back);
+            Quad(Local(fl.xl, fl.y, fl.z), Local(fl.xr, fl.y, fl.z), Local(fl.xr, fl.y, fl.z) + thick, Local(fl.xl, fl.y, fl.z) + thick, open * Vector3.down, back);
+            var m = new Mesh { name = "MiG29_fod_door" };
+            m.SetVertices(verts); m.SetNormals(norms); m.SetUVs(0, uvs); m.SetTriangles(tris, 0);
+            m.RecalculateBounds(); m.RecalculateTangents();
+            return m;
+        }
 
         // Box mesh centred on the origin, every vertex mapped to one flat-colour cell of the missile atlas (0.625, 0.875 = dgrey).
         static Mesh AtlasBox(string name, Vector3 size, float u, float v)

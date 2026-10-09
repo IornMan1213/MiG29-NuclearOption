@@ -35,6 +35,7 @@ namespace MiG29Instruments
         Aircraft ac;
         Cockpit cockpit;
         readonly List<(Transform t, Quaternion open)> doors = new List<(Transform, Quaternion)>();
+        readonly List<Renderer> doorRenderers = new List<Renderer>();
         float amount, nextFind;   // 0 open .. 1 closed
         int finds;
 
@@ -47,7 +48,8 @@ namespace MiG29Instruments
             {
                 if (Time.time < nextFind || finds > 20) return;
                 nextFind = Time.time + 1f; finds++;
-                foreach (var t in MiGParts.Named(ac, "MiG29_fod_")) if (t.name.Length == "MiG29_fod_L".Length) doors.Add((t, t.localRotation));
+                foreach (var t in MiGParts.Named(ac, "MiG29_fod_"))
+                    if (t.name.Length == "MiG29_fod_L".Length) { doors.Add((t, t.localRotation)); doorRenderers.AddRange(t.GetComponentsInChildren<Renderer>(true)); }
                 return;
             }
             if (cockpit == null && ac.cockpit != null) cockpit = ((Component)ac.cockpit).GetComponentInChildren<Cockpit>(true);
@@ -58,6 +60,9 @@ namespace MiG29Instruments
             amount = Mathf.MoveTowards(amount, closed ? 1f : 0f, Time.deltaTime / 0.8f);   // hydraulic, under a second
             var turn = Quaternion.Euler(Mathf.SmoothStep(0f, 1f, amount) * MiG29InstrumentMath.FodClosedDeg, 0f, 0f);
             foreach (var (t, open) in doors) if (t != null) t.localRotation = open * turn;
+            // folded away up into the duct roof: out of sight, as the real door becomes part of the roof
+            bool show = amount > 0.02f;
+            foreach (var r in doorRenderers) if (r != null && r.enabled != show) r.enabled = show;
         }
     }
 
