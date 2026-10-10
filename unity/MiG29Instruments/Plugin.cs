@@ -16,7 +16,7 @@ namespace MiG29Instruments
     public class MiG29InstrumentsPlugin : BaseUnityPlugin
     {
         // same as MiG29Builder.Version (build_mig29.ps1 checks): mod managers match the release version against this DLL's version
-        public const string ModVersion = "0.9.0";
+        public const string ModVersion = "0.9.1";
         internal static ManualLogSource Log;
         internal static BepInEx.Configuration.ConfigEntry<float> PanelLighting;
         internal static BepInEx.Configuration.ConfigEntry<BepInEx.Configuration.KeyboardShortcut> JettisonKey;
@@ -25,6 +25,8 @@ namespace MiG29Instruments
         internal static BepInEx.Configuration.ConfigEntry<bool> KeepCombatReadouts;
         internal static BepInEx.Configuration.ConfigEntry<bool> FoldMirrors;
         internal static BepInEx.Configuration.ConfigEntry<BepInEx.Configuration.KeyboardShortcut> MirrorFoldKey;
+        internal static BepInEx.Configuration.ConfigEntry<BepInEx.Configuration.KeyboardShortcut> CobraKey;
+        internal static BepInEx.Configuration.ConfigEntry<float> CobraSeconds;
 
         void Awake()
         {
@@ -46,6 +48,11 @@ namespace MiG29Instruments
                 "With the NO Mirrors plugin installed they reflect; without it they are plain grey");
             MirrorFoldKey = Config.Bind("Cockpit", "Mirror fold key", new BepInEx.Configuration.KeyboardShortcut(KeyCode.M, KeyCode.LeftControl),
                 "Folds or unfolds the mirrors in flight (flips \"Fold mirrors\")");
+            CobraKey = Config.Bind("Flight", "Cobra key", new BepInEx.Configuration.KeyboardShortcut(KeyCode.C, KeyCode.LeftControl),
+                "Turns Stability Assist (the pitch, g and AoA limiters) off for a few seconds for a Cobra or other post-stall move, then back on. " +
+                "Press again to end it early. Can be a joystick button (e.g. JoystickButton5)");
+            CobraSeconds = Config.Bind("Flight", "Cobra time", 4f,
+                new BepInEx.Configuration.ConfigDescription("Seconds the limiters stay off after the Cobra key", new BepInEx.Configuration.AcceptableValueRange<float>(1f, 10f)));
             // some games destroy BepInEx's manager object on scene loads: scan from an object of our own
             var go = new GameObject("MiG29InstrumentsScanner");
             DontDestroyOnLoad(go);
@@ -53,6 +60,7 @@ namespace MiG29Instruments
             go.AddComponent<Scanner>();
             go.AddComponent<GlassHudHider>();
             go.AddComponent<MirrorFolder>();
+            go.AddComponent<CobraSwitch>();
             Log.LogInfo("MiG-29 instruments ready");
         }
     }

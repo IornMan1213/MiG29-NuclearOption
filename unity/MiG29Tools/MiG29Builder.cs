@@ -21,11 +21,12 @@ namespace MiG29Tools
 
         public const string JsonKey = "mig29_Fulcrum";
         public const string DisplayName = "MiG-29 Fulcrum";
-        public const string Version = "0.9.0";
+        public const string Version = "0.9.1";
 
         // MiG model frame -> aircraft root. Puts MiG main wheels on the KR-67 main gear and MiG wheels on KR-67 ground line.
         static readonly Vector3 ModelOffset = new Vector3(0f, -0.44f, -2.655f);
         // KR-67 cockpit interior / pilot shifted to sit under the MiG canopy.
+        const int JointIterations = 30;   // PartJoint.solverIterations on every part (stock 6), see the mass-scaling step
         const float ThrustLineY = 0.0f;   // prefab frame: the aircraft's centre-of-mass height
         static readonly Vector3 CockpitShift = new Vector3(0f, -0.44f, -2.23f);
 
@@ -153,6 +154,8 @@ namespace MiG29Tools
             dso.FindProperty("width").floatValue = 11.36f;
             dso.FindProperty("height").floatValue = 4.73f;
             dso.FindProperty("value").floatValue = 95f;
+            // radar size on the game's scale (stock: KR-67 0.0015 stealth, T/A-30 0.12, A-19 0.6); real MiG-29 about 5 m2
+            dso.FindProperty("radarSize").floatValue = 0.2f;
             dso.FindProperty("unitPrefab").objectReferenceValue = prefab;
             dso.FindProperty("aircraftParameters").objectReferenceValue = parameters;
             dso.FindProperty("mapIcon").objectReferenceValue = displays.mapIcon;
@@ -433,6 +436,7 @@ namespace MiG29Tools
                 foreach (var ps in nav.GetComponentsInChildren<ParticleSystem>(true)) { var main = ps.main; main.startSizeMultiplier *= 0.45f; }
                 SetWorld(root, "wingtipvortex_" + s, new Vector3(sx * 5.56f, -0.05f, -1.65f) + ModelOffset);
             }
+            MiG29Vapor.Apply(root, ModelOffset);
         }
 
         // Landing light. The KR-67 hangs it on its front gear door, 3.6 m ahead of the MiG's nose gear; NavLights swaps its flat lamp
@@ -934,6 +938,16 @@ namespace MiG29Tools
             }
             Each("UnitPart", so => so.FindProperty("mass").floatValue *= MassScale);
             Each("FuelTank", so => so.FindProperty("fuelCapacity").floatValue *= FuelScale);
+            // The aircraft you fly has one rigidbody per part, held together by FixedJoints (AeroPart.CreateJoints). At the stock 6
+            // solver iterations the joints give under load: in a high-g pull the wings visibly rose off the fuselage and the airframe
+            // looked to come apart (user video, v0.9.0). The parts form one PhysX island, which is solved with the highest count of
+            // any of its bodies, so this stiffens the whole airframe. Break forces are unchanged.
+            Each("UnitPart", so =>
+            {
+                var joints = so.FindProperty("joints");
+                if (joints == null) return;
+                for (int i = 0; i < joints.arraySize; i++) joints.GetArrayElementAtIndex(i).FindPropertyRelative("solverIterations").intValue = JointIterations;
+            });
         }
 
         // ---------------- internal bays: the MiG has none ----------------

@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.9.1 (Update 9.1)
+**Cobra button, a stiffer airframe, wing vapour like the real jet, more thrust and a realistic radar signature.**
+- **Cobra button.** Ctrl+C turns Stability Assist (the pitch, g and angle-of-attack limiters) off for 4 seconds so you can pull
+  the nose past vertical for a Cobra or another post-stall move, then turns it back on by itself; press again to end it early.
+  Works below about 630 km/h. The key (a joystick button works too) and the time are in Configuration Manager under
+  MiG-29 Instruments > Flight.
+- **The airframe no longer comes apart under high g.** In a hard pull the wings visibly rose off the fuselage. The game holds the
+  parts of the jet you fly together with physics joints, and they stretched under load; they are now solved five times as
+  precisely and stay put. Damage and parts breaking off are unchanged.
+- **Wing vapour like the real MiG-29.** At high angle of attack a sheet of vapour now forms over the whole upper wing, from the
+  wing root to near the tip, instead of a small puff by the fuselage side.
+- **5% more thrust.** The RD-33s give 51.9 kN dry and 89.7 kN with afterburner (were 49.4 and 85.4), which also stands in for the
+  ram-air boost the game does not simulate.
+- **Realistic radar signature.** The MiG had kept the KR-67's stealth-fighter radar size (0.0015); it is now 0.2, matching the
+  real jet's 5 m² on the game's scale (between the T/A-30 trainer and the A-19). Radars and radar missiles now pick it up about
+  3.4 times farther away, as for any conventional fighter. Stores still add to it.
+
 ## 0.9.0 (Update 9.0)
 **Airbrakes, brake chute and intake doors, like the real jet.**
 - **Airbrakes.** The MiG-29's two speed-brake panels on the tail between the engines, one on top opening up and one underneath

@@ -28,3 +28,6 @@ unity/MiG29Instruments/obj/
 
 # hand-painted livery work files (blender/livery_edit.py)
 blender/livery/
+
+# the dash sandbox's working copy (blender/dash_sandbox.py)
+blender/dash/

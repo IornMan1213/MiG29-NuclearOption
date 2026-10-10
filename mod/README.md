@@ -1,4 +1,4 @@
-# MiG-29 Fulcrum for Nuclear Option (v0.9.0)
+# MiG-29 Fulcrum for Nuclear Option (v0.9.1)
 
 A flyable MiG-29 (9.12) with its own flight model, R-27R / R-27T / R-73 / R-60M missiles, the GSh-30-1 cannon, droppable fuel
 tanks, flares and chaff, airbrakes, a brake chute, intake FOD doors, working canopy and gear doors, working rear-view mirrors,
@@ -7,7 +7,7 @@ its own damage display, nine liveries and loading screens.
 ## Install
 1. Install [BepInEx 5](https://github.com/BepInEx/BepInEx) into the Nuclear Option folder.
 2. Install [Blueprinter](https://github.com/nikkorap/NOBlueprinter-Releases) (2.0.1 or newer) into `BepInEx/plugins`.
-3. Put `MiG-29 Fulcrum_0.9.0.nobp` and `MiG29Instruments.dll` (both in `MiG-29-Fulcrum_0.9.0.zip`) in
+3. Put `MiG-29 Fulcrum_0.9.1.nobp` and `MiG29Instruments.dll` (both in `MiG-29-Fulcrum_0.9.1.zip`) in
    `BepInEx/plugins/MiG-29_Fulcrum/`, or install the mod with a NOMNOM mod manager such as NOMM.
    Remove older `MiG-29 Fulcrum_*.nobp` files. The DLL makes the cockpit instruments work, gives the drop tanks their fuel and
    works the brake chute, intake doors, nozzles and gear path; without it the MiG still flies, with the gauges parked, the drop
@@ -21,7 +21,11 @@ Multiplayer: everyone needs the same mod set (Blueprinter checks this).
 ## Features
 - **Flight model** tuned offline against published MiG-29 data with a re-implementation of the game's aerodynamics:
   ~1,530 km/h at sea level, Mach 2.24 at 13 km, ~210 km/h stall, ~28 deg/s instantaneous and ~19-20 deg/s sustained turn,
-  9 g limit. RD-33 engines (49 kN dry / ~85 kN wet, no thrust vectoring), 3.7 t internal fuel, 11.5 t empty.
+  9 g limit. RD-33 engines (52 kN dry / ~90 kN wet in game, no thrust vectoring), 3.7 t internal fuel, 11.5 t empty.
+  Radar cross-section of a conventional fighter (radar size 0.2 clean, about the real jet's 5 m²; stores add to it).
+- **Cobra button**: **Ctrl+C** turns Stability Assist (the pitch, g and angle-of-attack limiters) off for 4 seconds for a
+  Cobra or another post-stall move, then back on; press it again to end early. Works below about 630 km/h. Key and time can be
+  changed in Configuration Manager (MiG-29 Instruments > Flight), including to a joystick button.
   Flat all-moving stabilators (pitch + differential roll), rudders, ailerons and flaps all move physically.
 - **Weapons**
   - R-27R (AA-10 Alamo-A): semi-active radar, two-stage motor, ~50 km. Keep your radar locked on the target until impact.

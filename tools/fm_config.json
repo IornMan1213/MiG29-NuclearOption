@@ -3,10 +3,10 @@
  "fuelKg": 3690,
  "alphaLimitDeg": 28,
  "engine": {
-  "_note": "RD-33: 49.4 kN dry / 81.4 kN AB. AB +10% and a generous altitude lapse stand in for ram recovery, which the game does not model.",
+  "_note": "RD-33: 49.4 kN dry / 81.4 kN AB. In game 51.9 kN dry and 51.9 + 37.8 = 89.7 kN with AB (5% and 10% over the book figures, which felt a little weak); that and a generous altitude lapse stand in for ram recovery, which the game does not model.",
   "count": 2,
-  "dryN": 49400,
-  "abN": 36000,
+  "dryN": 51900,
+  "abN": 37800,
   "maxSpeed": 650,
   "minDensity": 0.08,
   "altitudeThrust": [
