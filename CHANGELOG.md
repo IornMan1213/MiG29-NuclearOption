@@ -1,7 +1,11 @@
 # Changelog
 
 ## 0.9.2 (Update 9.2)
-**A cleaner dash and a cleaner skin.**
+**Less lag, a cleaner dash and a cleaner skin.**
+- **Less lag with several MiGs around.** The MiG's own parts were outside the game's level-of-detail system, so every MiG in view,
+  AI jets far away included, drew all ~250 of its parts (cockpit, 96 nozzle petals, wells, doors) at full detail. Now the
+  cockpit, wells and inner parts are drawn only up close (~470 m), the outside out to ~2.3 km, and beyond that just the airframe,
+  culled at ~46 km like the stock jets. Parts only seen inside wells and intakes no longer cast shadows.
 - **Instrument panel side wings enlarged.** The two angled side panels now fill the space out to the cockpit walls and up under the
   glareshield, and every instrument on them (radar screen, SPO-15, gear lights, engine gauges, caution panel) sits inside the
   panel with a border round it; several used to hang over the panel edges with gaps around them. The small holes to the sky at the

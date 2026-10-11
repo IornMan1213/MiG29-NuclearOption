@@ -123,6 +123,7 @@ namespace MiG29Tools
             MiG29Countermeasures.Setup(go, ModelOffset);
             var oldGun = MiG29Weapons.SetupGun(go, ModelOffset, weapons);
             var displays = MiG29Polish.BuildDisplays(go);
+            MiG29Lod.Apply(go);   // last: every renderer exists now
 
             var prefabPath = ModDir + "/MiG29.prefab";
             var prefab = PrefabUtility.SaveAsPrefabAsset(go, prefabPath);
