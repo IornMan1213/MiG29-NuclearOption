@@ -18,7 +18,7 @@ namespace MiG29Tools
     static class MiG29Lod
     {
         static readonly string[] Always = { "MiG29_skin_", "MiG29_aileron_", "MiG29_flap_", "MiG29_rudder_", "MiG29_stab_", "MiG29_canopy", "MiG29_abflame_", "MiG29_nozstatic_" };
-        static readonly string[] Internal = { "MiG29_well_", "MiG29_airbrake_well", "MiG29_fod_", "MiG29_intake_blocker", "MiG29_noz_L_inner", "MiG29_noz_R_inner", "MiG29_noz_L_seal", "MiG29_noz_R_seal", "MiG29_inner_" };
+        static readonly string[] Internal = { "MiG29_well_", "MiG29_airbrake_well", "MiG29_fod_", "MiG29_intake_blocker", "MiG29_noz_L_inner", "MiG29_noz_R_inner", "MiG29_noz_L_seal", "MiG29_noz_R_seal", "MiG29_inner_", "MiG29_mech_" };
 
         static bool Middle(string n) =>
             (n.StartsWith("MiG29_noz_") && n.Contains("_flap_")) ||

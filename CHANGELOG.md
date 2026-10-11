@@ -6,8 +6,10 @@
   with soot streaking aft and dented, crumpled panels, the way the game's own aircraft show damage. Before, a damaged part simply
   went flat black all over.
 - **Clean break-up.** Parts that come off now break along straight edges that follow the jet's hit zones (diagonal across the
-  wings, like a stock jet's panels) instead of tearing away as fans of spikes, and every broken edge has a dark inner wall, so the
-  jet no longer looks paper-thin with the sky showing through. What breaks off is the piece that was hit.
+  wings, like a stock jet's panels) instead of tearing away as fans of spikes. What breaks off is the piece that was hit.
+- **An inside, like the stock jets.** Behind the skin every part now has the game's own interior structure (frames and
+  stringers; honeycomb in the radome) and the RD-33 engines sit in the nacelles, so burnt-through holes and broken-off parts show
+  the jet's insides instead of the sky through a hollow shell.
 - **Less lag with several MiGs around.** The MiG's own parts were outside the game's level-of-detail system, so every MiG in view,
   AI jets far away included, drew all ~250 of its parts (cockpit, 96 nozzle petals, wells, doors) at full detail. Now the
   cockpit, wells and inner parts are drawn only up close (~470 m), the outside out to ~2.3 km, and beyond that just the airframe,

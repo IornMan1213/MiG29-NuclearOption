@@ -866,8 +866,29 @@ namespace MiG29Tools
                 return (wv, wn, uv, piece.triangles);
             }).ToList();
             var buckets = MiG29Cut.Split(world, hulls);
-            var innerMat = AssetDatabase.LoadAssetAtPath<Material>(ModDir + "/weapons/MiG29_missiles.mat");   // flat dark grey atlas cell
+            // the stock jets' own interior materials (game assets, restored at runtime like the KR-67 glass; nothing is shipped)
+            var structMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/Blueprinter/_donotship/Material/aircraft_structure_PLACEHOLDER.mat");
+            var honeyMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/Blueprinter/_donotship/Material/honeycomb_PLACEHOLDER.mat");
+            var mechMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/Blueprinter/_donotship/Material/jet_mechanical_PLACEHOLDER.mat");
             int innerTris = 0;
+            Mesh PartMesh(string name, Transform tr, List<Vector3> v, List<Vector3> n, List<Vector2> uv, List<Color32> col, List<int> t)
+            {
+                var pm = new Mesh { name = name };
+                pm.indexFormat = v.Count > 65000 ? UnityEngine.Rendering.IndexFormat.UInt32 : UnityEngine.Rendering.IndexFormat.UInt16;
+                pm.SetVertices(v.Select(x => tr.InverseTransformPoint(x)).ToList()); pm.SetNormals(n.Select(x => tr.InverseTransformDirection(x)).ToList());
+                pm.SetUVs(0, uv); if (col != null) pm.SetColors(col); pm.SetTriangles(t, 0);
+                pm.RecalculateBounds(); pm.RecalculateTangents();
+                return CreateOrReplace(pm, $"{ModDir}/meshes/{name}.asset");
+            }
+            // RD-33 bodies forward of the nozzle roots, inside the nacelles
+            var axes = new[] { -1f, 1f }.Select(sd => { MiG29Nozzles.EngineAxis(sd, out var r0, out var fw); return (r0 + ModelOffset, fw); }).ToList();
+            foreach (var kv in MiG29Cut.Engines(axes, EngineLength, EngineRadius, hulls.Label))
+            {
+                var part = parts[kv.Key]; var (ev, en, euv, et) = kv.Value;
+                MiG29Cut.Dump("mech_" + part.name, ev, et);
+                AddMeshObject("MiG29_mech_" + part.name, part.transform, PartMesh("MiG29_mech_" + part.name, part.transform, ev, en, euv, null, et), mechMat);
+                innerTris += et.Count / 3;
+            }
 
             foreach (var kv in buckets)
             {
@@ -882,22 +903,16 @@ namespace MiG29Tools
                 var r = AddMeshObject("MiG29_skin_" + part.name, tr, m, mat);
                 AddDamageRenderer(tr, r);
 
-                // the dark inside along the seams; not a damage renderer (the damage shader samples the airframe UV layout)
-                var (iv, inr, iuv, it) = MiG29Cut.Inner(b, new Vector2(0.625f, 0.875f));
-                if (it.Count > 0)
-                {
-                    MiG29Cut.Dump("inner_" + part.name, iv, it);
-                    var im = new Mesh { name = "MiG29_inner_" + part.name };
-                    im.indexFormat = iv.Count > 65000 ? UnityEngine.Rendering.IndexFormat.UInt32 : UnityEngine.Rendering.IndexFormat.UInt16;
-                    im.SetVertices(iv.Select(v => tr.InverseTransformPoint(v)).ToList()); im.SetNormals(inr.Select(v => tr.InverseTransformDirection(v)).ToList());
-                    im.SetUVs(0, iuv); im.SetTriangles(it, 0);
-                    im.RecalculateBounds(); im.RecalculateTangents();
-                    AddMeshObject("MiG29_inner_" + part.name, tr, CreateOrReplace(im, $"{ModDir}/meshes/MiG29_inner_{part.name}.asset"), innerMat);
-                    innerTris += it.Count / 3;
-                }
-                Debug.Log($"[MiG29] part {part.name}: {b.t.Count / 3} tris, inside {it.Count / 3}");
+                // the inside behind the skin (stock structure; honeycomb in the radome, at the stock tints and texel densities); not
+                // a damage renderer: the damage shader would punch the airframe's burn mask through it too
+                bool radome = part.name == "nose";
+                var (iv, inr, iuv, icol, it) = MiG29Cut.Interior(b, radome ? 0.61f : 0.46f, radome ? new Color32(0x81, 0x56, 0x43, 255) : new Color32(0x57, 0x57, 0x57, 255));
+                MiG29Cut.Dump("inner_" + part.name, iv, it);
+                AddMeshObject("MiG29_inner_" + part.name, tr, PartMesh("MiG29_inner_" + part.name, tr, iv, inr, iuv, icol, it), radome ? honeyMat : structMat);
+                innerTris += it.Count / 3;
+                Debug.Log($"[MiG29] part {part.name}: {b.t.Count / 3} tris");
             }
-            Debug.Log($"[MiG29] seams: {innerTris} inside triangles in all");
+            Debug.Log($"[MiG29] interior: {innerTris} triangles (structure, radome honeycomb, engines)");
 
             // Hitboxes: the KR-67's own part colliders (designed not to overlap each other, which matters because in complex
             // physics every part is its own rigidbody and only jointed neighbours ignore each other) scaled to the MiG:
@@ -917,6 +932,7 @@ namespace MiG29Tools
         }
 
         const float HitboxWidthScale = 0.8f;
+        const float EngineLength = 2.6f, EngineRadius = 0.42f;   // RD-33 body forward of the nozzle root, inside the nacelle
 
         static void SetHitbox(Component part, Mesh mesh)
         {

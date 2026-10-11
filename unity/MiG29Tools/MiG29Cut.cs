@@ -12,8 +12,8 @@ namespace MiG29Tools
     //  - The parts are the hitbox hulls (Hulls below), so what breaks off is what was hit, along diagonal cuts like a stock jet's
     //    panels (KR-67 part boxes gave staircase outlines on the swept wings). A triangle that straddles a boundary is cut there,
     //    only by planes that actually separate parts; anything left uncertain is bisected down to ~20 cm.
-    //  - Along every seam the skin gets a dark inside (the cut triangles' back faces, 4 mm in), so a broken edge reads as a wall
-    //    with depth instead of a paper-thin rim with the sky behind it. Close-up level only, no shadows (MiG29Lod).
+    //  - Behind the skin every part gets an inside like the stock jets' (Interior, Engines), so burnt-through holes and broken
+    //    edges show structure and engines instead of the sky (user screenshots, v0.9.2). Close-up level only, no shadows (MiG29Lod).
     static class MiG29Cut
     {
         public struct Vtx { public Vector3 p, n; public Vector2 uv; }
@@ -103,7 +103,7 @@ namespace MiG29Tools
         }
 
         const float MinEdge = 0.2f;
-        const float InnerInset = 0.004f;
+        const float InnerInset = 0.002f;
 
         // pieces in world space (MiG frame); buckets per hull index
         public static Dictionary<int, Bucket> Split(IEnumerable<(Vector3[] p, Vector3[] n, Vector2[] uv, int[] tris)> pieces, Hulls hulls)
@@ -236,27 +236,81 @@ namespace MiG29Tools
 
         static Vtx Mid(Vtx p, Vtx q) { if (Less(q.p, p.p)) { var s = p; p = q; q = s; } return Mix(p, q, 0.5f); }
 
-        // The dark inside along the seams: the bucket's cut triangles reversed, normals flipped, all on one flat atlas cell, inset
-        // a few mm. World space in and out, like the bucket.
-        public static (List<Vector3> v, List<Vector3> n, List<Vector2> uv, List<int> t) Inner(Bucket b, Vector2 cell)
+        // The part's inside, as on the stock jets (each KR-67 part mesh carries an "aircraft_structure" submesh behind its skin, and
+        // "honeycomb" in the radome): every skin triangle again, reversed and facing in, 2 mm under the skin, so where the damage
+        // shader burns holes through the skin or a part breaks away you see frames and stringers instead of the sky. Box-projected
+        // UVs at the stock texel density (0.46 tiles per metre for the structure), one vertex colour for the whole shell (the stock
+        // structure shader tints by it). World space in and out, like the bucket.
+        public static (List<Vector3> v, List<Vector3> n, List<Vector2> uv, List<Color32> c, List<int> t) Interior(Bucket b, float tilesPerMetre, Color32 tint)
         {
-            var v = new List<Vector3>(); var n = new List<Vector3>(); var uv = new List<Vector2>(); var t = new List<int>();
-            var map = new Dictionary<int, int>();
-            int Add(int i)
-            {
-                if (map.TryGetValue(i, out int j)) return j;
-                j = v.Count; map[i] = j;
-                v.Add(b.v[i] - b.n[i] * InnerInset); n.Add(-b.n[i]); uv.Add(cell);
-                return j;
-            }
+            var v = new List<Vector3>(); var n = new List<Vector3>(); var uv = new List<Vector2>(); var col = new List<Color32>(); var t = new List<int>();
             for (int i = 0; i < b.t.Count; i += 3)
             {
-                if (!b.seam[i / 3]) continue;
-                t.Add(Add(b.t[i])); t.Add(Add(b.t[i + 2])); t.Add(Add(b.t[i + 1]));
+                int i0 = b.t[i], i1 = b.t[i + 2], i2 = b.t[i + 1];                  // reversed: faces inward
+                var fn = Vector3.Cross(b.v[i1] - b.v[i0], b.v[i2] - b.v[i0]);
+                var a = new Vector3(Mathf.Abs(fn.x), Mathf.Abs(fn.y), Mathf.Abs(fn.z));
+                foreach (var k in new[] { i0, i1, i2 })
+                {
+                    var p = b.v[k] - b.n[k] * InnerInset;
+                    // project on the plane the face is most nearly in; long axis (z, nose to tail) along u where it lies in the plane
+                    var q = a.x >= a.y && a.x >= a.z ? new Vector2(p.z, p.y) : a.y >= a.z ? new Vector2(p.z, p.x) : new Vector2(p.x, p.y);
+                    t.Add(v.Count);
+                    v.Add(p); n.Add(-b.n[k]); uv.Add(q * tilesPerMetre); col.Add(tint);
+                }
             }
-            return (v, n, uv, t);
+            return (v, n, uv, col, t);
         }
 
+        // RD-33 engine bodies inside the nacelles ("jet_mechanical", like the stock jets' internals): a ring-segmented casing along
+        // each engine axis with the fan face in front, every 0.4 m segment on the part its centre lies in. World space.
+        public static Dictionary<int, (List<Vector3> v, List<Vector3> n, List<Vector2> uv, List<int> t)> Engines(
+            IEnumerable<(Vector3 rear, Vector3 fwd)> axes, float length, float radius, Func<Vector3, int> label)
+        {
+            const int Sides = 16; const float Seg = 0.4f;
+            var outp = new Dictionary<int, (List<Vector3> v, List<Vector3> n, List<Vector2> uv, List<int> t)>();
+            (List<Vector3> v, List<Vector3> n, List<Vector2> uv, List<int> t) Get(int k)
+            {
+                if (!outp.TryGetValue(k, out var m)) outp[k] = m = (new List<Vector3>(), new List<Vector3>(), new List<Vector2>(), new List<int>());
+                return m;
+            }
+            foreach (var (rear, fwd) in axes)
+            {
+                var side = Vector3.Cross(fwd, Vector3.up).normalized; var up = Vector3.Cross(side, fwd);
+                int segs = Mathf.CeilToInt(length / Seg);
+                for (int s = 0; s < segs; s++)
+                {
+                    float z0 = s * Seg, z1 = Mathf.Min(length, z0 + Seg);
+                    var m = Get(label(rear + fwd * (z0 + z1) / 2));
+                    int b0 = m.v.Count;
+                    for (int i = 0; i <= Sides; i++)
+                    {
+                        float ang = i * Mathf.PI * 2 / Sides;
+                        var rad = side * Mathf.Cos(ang) + up * Mathf.Sin(ang);
+                        // casing band of the jet_mechanical atlas (v 0.80-0.97), twice round
+                        float u = i * 2f / Sides;
+                        m.v.Add(rear + fwd * z0 + rad * radius); m.n.Add(rad); m.uv.Add(new Vector2(u, 0.80f));
+                        m.v.Add(rear + fwd * z1 + rad * radius); m.n.Add(rad); m.uv.Add(new Vector2(u, 0.97f));
+                    }
+                    for (int i = 0; i < Sides; i++)
+                    {
+                        int a = b0 + i * 2;
+                        m.t.AddRange(new[] { a, a + 2, a + 1, a + 1, a + 2, a + 3 });   // clockwise seen from outside (Unity front face)
+                    }
+                }
+                // fan face at the front: the fan disc of the atlas (centre 0.80, 0.52, radius 0.085)
+                var f = Get(label(rear + fwd * (length - 0.2f)));
+                int c0 = f.v.Count; var front = rear + fwd * length;
+                f.v.Add(front); f.n.Add(fwd); f.uv.Add(new Vector2(0.80f, 0.52f));
+                for (int i = 0; i <= Sides; i++)
+                {
+                    float ang = i * Mathf.PI * 2 / Sides;
+                    var rad = side * Mathf.Cos(ang) + up * Mathf.Sin(ang);
+                    f.v.Add(front + rad * radius); f.n.Add(fwd); f.uv.Add(new Vector2(0.80f + 0.085f * Mathf.Cos(ang), 0.52f + 0.085f * Mathf.Sin(ang)));
+                }
+                for (int i = 0; i < Sides; i++) f.t.AddRange(new[] { c0, c0 + 2 + i, c0 + 1 + i });
+            }
+            return outp;
+        }
         // MIG29_SPLIT_DUMP=<folder>: every part's skin (and inside) as an OBJ in world metres, for checking the seams in Blender
         public static void Dump(string name, List<Vector3> v, List<int> t)
         {

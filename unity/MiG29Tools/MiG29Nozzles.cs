@@ -28,6 +28,9 @@ namespace MiG29Tools
         static Layout layout;
         static Layout L => layout ?? (layout = JsonUtility.FromJson<Dump>(File.ReadAllText(Path.Combine(SourceDir, "nozzles.json"))).layout);
 
+        // engine axis (MiG frame): the nozzle root on it and the forward direction
+        public static void EngineAxis(float side, out Vector3 root, out Vector3 fwd) => Axis(side, out root, out fwd);
+
         static void Axis(float side, out Vector3 root, out Vector3 fwd)
         {
             root = new Vector3(side * L.axis_root[0], L.axis_root[1], L.axis_root[2]);
