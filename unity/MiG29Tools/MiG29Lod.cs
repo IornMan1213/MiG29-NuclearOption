@@ -24,7 +24,8 @@ namespace MiG29Tools
             (n.StartsWith("MiG29_noz_") && n.Contains("_flap_")) ||
             (n.StartsWith("MiG29_door_") && !n.EndsWith("_inner")) ||
             (n.StartsWith("MiG29_airbrake_") && n.EndsWith("_panel")) ||
-            n == "MiG29_ck_frames_ext";
+            n == "MiG29_ck_frames_ext" ||
+            n.StartsWith("MiG29_gear_");                // the MiG main gear legs (MiG29MainGear)
 
         public static void Apply(GameObject go)
         {
@@ -49,7 +50,10 @@ namespace MiG29Tools
             // the old LOD1 height, through the new LOD2
             var lods = new LOD[4];
             lods[0] = new LOD(0.05f, old[0].renderers.Concat(all).ToArray());
-            lods[1] = new LOD(0.01f, old[1].renderers.Concat(mid).ToArray());
+            // the KR-67's gear, wheels and struts kept for the MiG are LOD0-only in its group (its LOD1 gear meshes are hidden): without
+            // this the gear vanished beyond ~470 m, on approach too
+            var gear = old[0].renderers.Where(r => r != null && (r.name.StartsWith("gear_") || r.name.StartsWith("wheel_"))).ToArray();
+            lods[1] = new LOD(0.01f, old[1].renderers.Concat(mid).Concat(gear).ToArray());
             lods[2] = new LOD(0.001f, old[1].renderers.Concat(far).ToArray());
             lods[3] = new LOD(0.0005f, old[2].renderers.Concat(far).ToArray());
             lg.SetLODs(lods);
