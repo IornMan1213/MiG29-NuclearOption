@@ -21,59 +21,65 @@ from PIL import Image
 
 N = 2048
 src = sys.argv[1]
-outs = [os.path.join(src, n) for n in ("mig29_basecolor_dmg.png", "mig29_normal_dmg.png")]
+dst = sys.argv[2] if len(sys.argv) > 2 else src               # a scratch folder for trying variants live (NODevDriver dmgtex)
+outs = [os.path.join(dst, n) for n in ("mig29_basecolor_dmg.png", "mig29_normal_dmg.png")]
 ins = [os.path.join(src, n) for n in ("mig29_mesh.json", "mig29_normal.png")] + [os.path.abspath(__file__)]
-if all(os.path.exists(o) for o in outs) and min(os.path.getmtime(o) for o in outs) > max(os.path.getmtime(i) for i in ins):
-    print("[dmg] up to date"); sys.exit(0)   # ~70 s to bake
-mesh = json.load(open(os.path.join(src, "mig29_mesh.json")))
+if dst == src and all(os.path.exists(o) for o in outs) and min(os.path.getmtime(o) for o in outs) > max(os.path.getmtime(i) for i in ins):
+    print("[dmg] up to date"); sys.exit(0)
+cache = os.path.join(dst, "mig29_dmg_pos.npz")                 # texel positions: the slow part (~60 s), kept while the mesh is unchanged
+mesh_path = os.path.join(src, "mig29_mesh.json")
+if os.path.exists(cache) and os.path.getmtime(cache) > os.path.getmtime(mesh_path):
+    z = np.load(cache); pos, cov = z["pos"], z["cov"]
+else:
+    mesh = json.load(open(mesh_path))
+    # ---- texel -> model position (rasterised UV layout) ----
+    pos = np.zeros((N, N, 3), np.float32)
+    cov = np.zeros((N, N), bool)
+    for p in mesh["parts"]:
+        if p["material"] != "airframe" or p["name"] == "cockpit":   # the model's cockpit is replaced; glass has its own map
+            continue
+        v = np.array(p["vertices"], np.float32).reshape(-1, 3)
+        uv = np.array(p["uvs"], np.float32).reshape(-1, 2)
+        px = np.stack([uv[:, 0] * N - 0.5, (1 - uv[:, 1]) * N - 0.5], 1)   # Unity v is up, image rows go down
+        t = np.array(p["triangles"]).reshape(-1, 3)
+        for a, b, c in t:
+            pa, pb, pc = px[a], px[b], px[c]
+            x0, x1 = int(max(0, np.floor(min(pa[0], pb[0], pc[0])))), int(min(N - 1, np.ceil(max(pa[0], pb[0], pc[0]))))
+            y0, y1 = int(max(0, np.floor(min(pa[1], pb[1], pc[1])))), int(min(N - 1, np.ceil(max(pa[1], pb[1], pc[1]))))
+            if x1 < x0 or y1 < y0:
+                continue
+            d = (pb[1] - pc[1]) * (pa[0] - pc[0]) + (pc[0] - pb[0]) * (pa[1] - pc[1])
+            if abs(d) < 1e-9:
+                continue
+            X, Y = np.meshgrid(np.arange(x0, x1 + 1, dtype=np.float32), np.arange(y0, y1 + 1, dtype=np.float32))
+            w0 = ((pb[1] - pc[1]) * (X - pc[0]) + (pc[0] - pb[0]) * (Y - pc[1])) / d
+            w1 = ((pc[1] - pa[1]) * (X - pc[0]) + (pa[0] - pc[0]) * (Y - pc[1])) / d
+            w2 = 1 - w0 - w1
+            m = (w0 >= -0.02) & (w1 >= -0.02) & (w2 >= -0.02)   # a little over the edge: no cracks between triangles
+            if not m.any():
+                continue
+            P = w0[..., None] * v[a] + w1[..., None] * v[b] + w2[..., None] * v[c]
+            ys, xs = Y[m].astype(int), X[m].astype(int)
+            pos[ys, xs] = P[m]
+            cov[ys, xs] = True
+    print(f"[dmg] surface covers {cov.mean() * 100:.1f}% of the texture")
 
-# ---- texel -> model position (rasterised UV layout) ----
-pos = np.zeros((N, N, 3), np.float32)
-cov = np.zeros((N, N), bool)
-for p in mesh["parts"]:
-    if p["material"] != "airframe" or p["name"] == "cockpit":   # the model's cockpit is replaced; glass has its own map
-        continue
-    v = np.array(p["vertices"], np.float32).reshape(-1, 3)
-    uv = np.array(p["uvs"], np.float32).reshape(-1, 2)
-    px = np.stack([uv[:, 0] * N - 0.5, (1 - uv[:, 1]) * N - 0.5], 1)   # Unity v is up, image rows go down
-    t = np.array(p["triangles"]).reshape(-1, 3)
-    for a, b, c in t:
-        pa, pb, pc = px[a], px[b], px[c]
-        x0, x1 = int(max(0, np.floor(min(pa[0], pb[0], pc[0])))), int(min(N - 1, np.ceil(max(pa[0], pb[0], pc[0]))))
-        y0, y1 = int(max(0, np.floor(min(pa[1], pb[1], pc[1])))), int(min(N - 1, np.ceil(max(pa[1], pb[1], pc[1]))))
-        if x1 < x0 or y1 < y0:
-            continue
-        d = (pb[1] - pc[1]) * (pa[0] - pc[0]) + (pc[0] - pb[0]) * (pa[1] - pc[1])
-        if abs(d) < 1e-9:
-            continue
-        X, Y = np.meshgrid(np.arange(x0, x1 + 1, dtype=np.float32), np.arange(y0, y1 + 1, dtype=np.float32))
-        w0 = ((pb[1] - pc[1]) * (X - pc[0]) + (pc[0] - pb[0]) * (Y - pc[1])) / d
-        w1 = ((pc[1] - pa[1]) * (X - pc[0]) + (pa[0] - pc[0]) * (Y - pc[1])) / d
-        w2 = 1 - w0 - w1
-        m = (w0 >= -0.02) & (w1 >= -0.02) & (w2 >= -0.02)   # a little over the edge: no cracks between triangles
-        if not m.any():
-            continue
-        P = w0[..., None] * v[a] + w1[..., None] * v[b] + w2[..., None] * v[c]
-        ys, xs = Y[m].astype(int), X[m].astype(int)
-        pos[ys, xs] = P[m]
-        cov[ys, xs] = True
-print(f"[dmg] surface covers {cov.mean() * 100:.1f}% of the texture")
-
-# ---- dilate into the gaps between UV islands (mip-mapping would pull in junk otherwise) ----
-filled = cov.copy()
-for _ in range(24):
-    grow = np.zeros_like(filled)
-    acc = np.zeros_like(pos); cnt = np.zeros((N, N), np.float32)
-    for dy, dx in ((-1, 0), (1, 0), (0, -1), (0, 1)):
-        s = np.roll(np.roll(filled, dy, 0), dx, 1)
-        sp = np.roll(np.roll(pos, dy, 0), dx, 1)
-        add = s & ~filled
-        acc[add] += sp[add]; cnt[add] += 1
-        grow |= add
-    pos[grow] = acc[grow] / cnt[grow][:, None]
-    filled |= grow
-    if filled.all():
-        break
+    # ---- dilate into the gaps between UV islands (mip-mapping would pull in junk otherwise) ----
+    filled = cov.copy()
+    for _ in range(24):
+        grow = np.zeros_like(filled)
+        acc = np.zeros_like(pos); cnt = np.zeros((N, N), np.float32)
+        for dy, dx in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+            s = np.roll(np.roll(filled, dy, 0), dx, 1)
+            sp = np.roll(np.roll(pos, dy, 0), dx, 1)
+            add = s & ~filled
+            acc[add] += sp[add]; cnt[add] += 1
+            grow |= add
+        pos[grow] = acc[grow] / cnt[grow][:, None]
+        filled |= grow
+        if filled.all():
+            break
+    np.savez_compressed(cache, pos=pos, cov=cov)
 
 # ---- 3D value noise ----
 rng = np.random.default_rng(29)
@@ -106,43 +112,65 @@ def smooth(e0, e1, x):
     t = np.clip((x - e0) / (e1 - e0), 0, 1)
     return t * t * (3 - 2 * t)
 
+def blur(img, r):
+    """box blur (texture space), a few passes ~ gaussian; for soot halos round the holes"""
+    for _ in range(2):
+        c = np.cumsum(np.pad(img, ((r + 1, r), (0, 0)), mode="edge"), 0); img = (c[2 * r + 1:] - c[:-2 * r - 1]) / (2 * r + 1)
+        c = np.cumsum(np.pad(img, ((0, 0), (r + 1, r)), mode="edge"), 1); img = (c[:, 2 * r + 1:] - c[:, :-2 * r - 1]) / (2 * r + 1)
+    return img
+
 P = pos.astype(np.float32)
-streak = P * np.array([2.2, 2.2, 0.45], np.float32)        # long aft streaks (model z runs nose to tail)
+base = Image.open(os.path.join(src, "mig29_normal.png")).convert("RGB")
+if base.size[0] != N:
+    base = base.resize((N, N), Image.BILINEAR)
+base = np.asarray(base, np.float32) / 255 * 2 - 1
+# panel lines and rivets: where the skin's normal map leaves flat (the stock damage tears along them)
+dev = np.sqrt(base[..., 0] ** 2 + base[..., 1] ** 2)
+lines = smooth(np.quantile(dev[cov], 0.80), np.quantile(dev[cov], 0.95), dev)
 
-# burns: irregular patches, ~14% of the skin
-burn_n = fbm(P * 0.9 + 3.1) * 0.75 + fbm(P * 4.0 + 9.7, 3) * 0.25
-thr = np.quantile(burn_n[cov], 0.86)
-depth = smooth(thr, thr + 0.08, burn_n)                       # 0 at the patch edge, 1 inside
-burn = burn_n > thr
+# where hits concentrate: medium patches, a third of the skin
+region = smooth(0.42, 0.62, fbm(P * 0.75 + 3.1, 4))
+# torn, shredded holes: a crack network (ridged noise), specks, and tears along panel lines, all inside the hit regions;
+# plus a scatter of small isolated holes everywhere
+rip = 1 - np.abs(fbm(P * 6.5 + 9.7, 4) * 2 - 1)
+spk = fbm(P * 26.0 + 4.4, 3)
+score = region * (0.50 * smooth(0.70, 0.92, rip) + 0.35 * smooth(0.60, 0.78, spk) + 0.30 * lines * smooth(0.55, 0.85, rip))
+score += 0.6 * smooth(0.80, 0.86, fbm(P * 45.0 + 1.7, 2))
+thr = np.quantile(score[cov], 0.85)
+burn = score > thr
+depth = np.clip((score - thr) / (np.quantile(score[cov], 0.985) - thr), 0, 1)   # 0 at a hole's edge, 1 deep inside
 
-# soot / grunge (grey multiplier): a general scorched film, heavier streaks, and soot spreading round the burns
-grunge = 1.0 - 0.22 * smooth(0.35, 0.75, fbm(P * 1.6 + 1.0))
-grunge -= 0.28 * smooth(0.45, 0.8, fbm(streak + 5.0, 4))
-grunge -= 0.35 * smooth(thr - 0.10, thr, burn_n)
-grunge -= 0.08 * (fbm(P * 22.0 + 2.0, 2) - 0.5)               # fine speckle
-grunge = np.clip(grunge, 0.25, 1.0)
+# soot (grey multiplier, like the stock map): mostly clean metal, dark scorch round the holes, sooty hit regions, aft streaks
+streak = P * np.array([2.4, 2.4, 0.35], np.float32)          # model z runs nose to tail
+halo = blur(burn.astype(np.float32), 14)
+wide = blur(burn.astype(np.float32), 40)                       # soot spreading well past the holes (the ring next to them opens too)
+grunge = 1.0 - 0.45 * smooth(0.25, 0.70, region * fbm(P * 3.0 + 1.0, 4) * 1.6)
+grunge -= 0.75 * smooth(0.03, 0.5, halo) + 0.45 * smooth(0.02, 0.25, wide)
+grunge -= 0.30 * smooth(0.50, 0.85, fbm(streak + 5.0, 4))
+grunge -= 0.10 * (fbm(P * 30.0 + 2.0, 2) - 0.5) + 0.12 * lines * region
+grunge = np.clip(grunge, 0.12, 1.0)
 
-alpha = np.full((N, N), 0.60, np.float32)
-alpha += 0.06 * (fbm(P * 3.0 + 4.0, 3) - 0.5)                 # never chars: stays above 0.5
-alpha = np.where(burn, 0.45 - 0.29 * depth, alpha)            # 0.45 at the edge (chars last) .. 0.16 inside (first)
+# burn mask, read by the stock skin shader (measured with an alpha ramp): a pixel opens into a hole once its alpha falls below a
+# cut-off that rises with damage (0 at ~97 hit points, ~0.35 at 85, ~0.5 at 70, ~0.55 at most) and chars black within ~0.12
+# above it. So: holes 0.16 (open first) .. 0.45 at their edges, a scorch halo round each (0.45 .. 0.6) that chars outward as
+# the part takes more damage, and clean skin at ~0.62, which only chars when the part is nearly destroyed (the stock map is ~0.59).
+scorch = smooth(0.0, 0.7, blur(burn.astype(np.float32), 7))
+alpha = 0.62 + 0.04 * (fbm(P * 3.0 + 4.0, 3) - 0.5) - 0.17 * scorch
+alpha = np.where(burn, 0.45 - 0.29 * depth, alpha)
 
 rgb = np.repeat(grunge[..., None], 3, 2)
 rgba = np.concatenate([rgb, alpha[..., None]], 2)
-Image.fromarray((np.clip(rgba, 0, 1) * 255 + 0.5).astype(np.uint8), "RGBA").save(os.path.join(src, "mig29_basecolor_dmg.png"))
+Image.fromarray((np.clip(rgba, 0, 1) * 255 + 0.5).astype(np.uint8), "RGBA").save(os.path.join(dst, "mig29_basecolor_dmg.png"))
 
-# ---- dented normal map ----
-h = np.abs(fbm(P * 2.6 + 7.0, 4) - 0.5) * 2                   # ridged: crumpled sheet
-h = h * 0.7 + 0.3 * fbm(P * 9.0 + 3.3, 3)
-h += 0.6 * depth                                              # burnt-through patches bulge/sag
+# ---- dented normal map: crumpled sheet, heavier in the hit regions, buckled round the holes; the skin's panel lines kept ----
+h = (1 - np.abs(fbm(P * 3.2 + 7.0, 4) * 2 - 1)) * (0.35 + 0.65 * region)
+h += 0.25 * fbm(P * 14.0 + 3.3, 3) + 0.8 * blur(depth, 4)
 gx = (np.roll(h, -1, 1) - np.roll(h, 1, 1)) * 0.5
 gy = (np.roll(h, -1, 0) - np.roll(h, 1, 0)) * 0.5
-k = 9.0                                                       # strength (height units per texel)
+k = 7.0                                                       # strength (height units per texel)
 dn = np.stack([-gx * k, gy * k, np.ones_like(h)], 2)          # image rows run down = -v
 dn /= np.linalg.norm(dn, axis=2, keepdims=True)
-base = np.asarray(Image.open(os.path.join(src, "mig29_normal.png")).convert("RGB"), np.float32) / 255 * 2 - 1
-if base.shape[0] != N:
-    base = np.asarray(Image.open(os.path.join(src, "mig29_normal.png")).convert("RGB").resize((N, N), Image.BILINEAR), np.float32) / 255 * 2 - 1
 n = np.stack([base[..., 0] + dn[..., 0], base[..., 1] + dn[..., 1], base[..., 2] * dn[..., 2]], 2)   # whiteout blend
 n /= np.linalg.norm(n, axis=2, keepdims=True)
-Image.fromarray(((n * 0.5 + 0.5) * 255 + 0.5).clip(0, 255).astype(np.uint8), "RGB").save(os.path.join(src, "mig29_normal_dmg.png"))
-print(f"[dmg] burns on {burn[cov].mean() * 100:.1f}% of the skin, soot {grunge[cov].mean():.2f} mean, alpha {alpha[cov].min():.2f}-{alpha[cov].max():.2f}")
+Image.fromarray(((n * 0.5 + 0.5) * 255 + 0.5).clip(0, 255).astype(np.uint8), "RGB").save(os.path.join(dst, "mig29_normal_dmg.png"))
+print(f"[dmg] holes/burns on {burn[cov].mean() * 100:.1f}% of the skin, soot {grunge[cov].mean():.2f} mean, alpha {alpha[cov].min():.2f}-{alpha[cov].max():.2f}")

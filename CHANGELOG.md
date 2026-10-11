@@ -2,9 +2,9 @@
 
 ## 0.9.2 (Update 9.2)
 **A proper damage model, less lag, a cleaner dash and a cleaner skin.**
-- **Damage like the stock jets.** Hits now burn through in irregular black patches that spread as a part takes more damage,
-  with soot streaking aft and dented, crumpled panels, the way the game's own aircraft show damage. Before, a damaged part simply
-  went flat black all over.
+- **Damage like the stock jets.** Hits now burn small, shredded holes, torn along panel lines, that open and spread as a part
+  takes more damage, with charred rims, soot round the damage and dented panels, the way the game's own aircraft show it. Before,
+  a damaged part simply went flat black all over.
 - **Clean break-up.** Parts that come off now break along straight edges that follow the jet's hit zones (diagonal across the
   wings, like a stock jet's panels) instead of tearing away as fans of spikes. What breaks off is the piece that was hit.
 - **An inside, like the stock jets.** Behind the skin every part now has the game's own interior structure (frames and
