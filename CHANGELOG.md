@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.9.2 (Update 9.2)
+**A cleaner dash and a cleaner skin.**
+- **Instrument panel side wings enlarged.** The two angled side panels now fill the space out to the cockpit walls and up under the
+  glareshield, and every instrument on them (radar screen, SPO-15, gear lights, engine gauges, caution panel) sits inside the
+  panel with a border round it; several used to hang over the panel edges with gaps around them. The small holes to the sky at the
+  panel's top corners are closed.
+- **Caution panel no longer hidden.** The front ends of the side consoles rose into a nose that hid the bottom of the caution panel
+  from the pilot's seat; they are level now.
+- **No more ghost markings.** The source model's stars, board numbers "71", fin badges and stencils were still baked into the
+  skin's shine (metallic / smoothness) texture, so they showed through every livery as faint shiny or dull shapes. They are gone;
+  each livery still paints its own markings.
+- **Dark patches fixed.** About a hundred faces on top of the engine nacelles and at the front of the LERX (and a few in the
+  cockpit) had their shading normals pointing inward and were lit as if from inside; they shade correctly now.
+
 ## 0.9.1 (Update 9.1)
 **Cobra button, a stiffer airframe, wing vapour like the real jet, more thrust and a realistic radar signature.**
 - **Cobra button.** Ctrl+C turns Stability Assist (the pitch, g and angle-of-attack limiters) off for 4 seconds so you can pull

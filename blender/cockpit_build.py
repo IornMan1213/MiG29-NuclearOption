@@ -451,8 +451,10 @@ CON_IN = 0.235
 CON_TOP = 0.69
 for side in (-1, 1):
     xo = min(wall_x(y, z) for y in (FLOOR, 0.45, 0.6, CON_TOP, CON_TOP + 0.05) for z in (CON_Z0, 6.4, 6.7, CON_Z1)) - 0.004
+    # the front end stays level (it used to rise 3.5 cm into a nose, which hid the caution panel at the bottom of the right dash wing
+    # from the pilot's eye: user screenshot, v0.9.1)
     outline = [(side * CON_IN, FLOOR, CON_Z0), (side * CON_IN, CON_TOP - 0.02, CON_Z0), (side * CON_IN, CON_TOP, CON_Z0 + 0.03),
-               (side * CON_IN, CON_TOP + 0.015, CON_Z1 - 0.06), (side * CON_IN, CON_TOP + 0.05, CON_Z1), (side * CON_IN, FLOOR, CON_Z1)]
+               (side * CON_IN, CON_TOP + 0.015, CON_Z1 - 0.06), (side * CON_IN, CON_TOP + 0.01, CON_Z1), (side * CON_IN, FLOOR, CON_Z1)]
     # extrude toward the wall
     prism("tub", outline if side > 0 else list(reversed(outline)), (side * (xo - CON_IN), 0, 0), "turq")
     # decals on the console top (slightly sloped surface between CON_Z0+0.03 and CON_Z1-0.06)
@@ -532,17 +534,53 @@ def panel_normal(u, yaw=math.radians(28), u_hinge=0.2):
     return NRM
 
 
-U_WING = 0.34
-# panel face: centre + two folded wings, as a 2 cm slab with a box enclosure behind it
-for (ua, ub, vb, vt) in ((-0.2, 0.2, 0.0, PH), (0.2, U_WING, 0.04, PH - 0.03), (-U_WING, -0.2, 0.04, PH - 0.03)):
-    fr = [pp(ua, vb, 0, 1), pp(ub, vb, 0, 1), pp(ub, vt, 0, 1), pp(ua, vt, 0, 1)]
-    bk = [pp(ua, vb, -0.03, 1), pp(ub, vb, -0.03, 1), pp(ub, vt, -0.03, 1), pp(ua, vt, -0.03, 1)]
+# Side wings sized so every instrument on them sits inside the panel with a border round it, and so they fill the space out to the
+# cockpit wall and up under the glareshield. They were 0.34 wide from 0.04 to PH - 0.03: the radar screen bezel, EGT gauge,
+# caution panel, gear-light plate and cabin gauge hung over their edges and blank space showed around them (user screenshot, v0.9.1).
+# Their outer edge follows the cockpit wall and the canopy glass (the top outer corner would otherwise poke through the canopy).
+U_WING = 0.40
+
+
+def wing_u_out(s, v):
+    """Widest |u| (up to U_WING) at height v on side s where the wing slab, front and back, is inside the wall and under the glass."""
+    u = U_WING
+    while u > 0.30:
+        ok = True
+        for off in (0.0, -0.03):
+            x, y, z = pp(s * u, v, off, 1)
+            g = glass_top(x, z)
+            if abs(x) > wall_x(y, z) - 0.005 or (g is not None and y > g - 0.012):
+                ok = False; break
+        if ok:
+            return u
+        u -= 0.005
+    return 0.30
+
+
+def panel_slab(cs):
+    """2 cm panel slab over the (u, v) outline cs (counter-clockwise as seen from the seat)."""
+    fr = [pp(u, v, 0, 1) for u, v in cs]
+    bk = [pp(u, v, -0.03, 1) for u, v in cs]
     poly_paint("tub", fr, "turq")
-    poly_paint("tub", [bk[1], bk[0], bk[3], bk[2]], "turq")
-    for i in range(4):
-        poly_paint("tub", [fr[(i + 1) % 4], fr[i], bk[i], bk[(i + 1) % 4]], "turq_dark")
+    poly_paint("tub", bk[::-1], "turq")
+    for i in range(len(cs)):
+        j = (i + 1) % len(cs)
+        poly_paint("tub", [fr[j], fr[i], bk[i], bk[j]], "turq_dark")
+
+
+# panel face: centre + two folded wings, as a 2 cm slab with a box enclosure behind it
+panel_slab([(-0.2, 0.0), (0.2, 0.0), (0.2, PH), (-0.2, PH)])
+WING_V = [PH * k / 8 for k in range(9)]
+WING_OUT = {s: [wing_u_out(s, v) for v in WING_V] for s in (-1, 1)}
+print(f"[cockpit] dash wings out to u = {WING_OUT[-1]} (left), {WING_OUT[1]} (right)")
+for k in range(8):
+    v0, v1 = WING_V[k], WING_V[k + 1]
+    r0, r1 = WING_OUT[1][k], WING_OUT[1][k + 1]
+    l0, l1 = WING_OUT[-1][k], WING_OUT[-1][k + 1]
+    panel_slab([(0.2, v0), (r0, v0), (r1, v1), (0.2, v1)])
+    panel_slab([(-l0, v0), (-0.2, v0), (-0.2, v1), (-l1, v1)])
 # enclosure behind the panel down to the footwell (keeps the nose interior closed)
-eb = [pp(-U_WING, 0.04, -0.03, 1), pp(U_WING, 0.04, -0.03, 1)]
+eb = [pp(-WING_OUT[-1][0], 0.0, -0.03, 1), pp(WING_OUT[1][0], 0.0, -0.03, 1)]
 poly_paint("tub", [(eb[0][0], eb[0][1], eb[0][2]), (eb[1][0], eb[1][1], eb[1][2]), (eb[1][0], FLOOR + 0.25, Z_FRONT), (eb[0][0], FLOOR + 0.25, Z_FRONT)][::-1], "dgrey")
 
 # lower centre pedestal between the pilot's legs
@@ -777,6 +815,24 @@ def deck_pt(f, z):
 for z0, z1 in zip(deck, deck[1:]):
     for f0, f1 in zip(dxs, dxs[1:]):
         poly_paint("tub", [deck_pt(f0, z0), deck_pt(f1, z0), deck_pt(f1, z1), deck_pt(f0, z1)], "black")
+# dash corner fillers: the side wings' top outer corners are trimmed to clear the canopy, which left a small hole to the sky between
+# the hood end, the wing corner and the cockpit wall (user screenshot, v0.9.1). A black cap joins the wing's outer edge (upper part),
+# the hood end and the wall, kept under the glass.
+for s in (-1, 1):
+    cap = [pp(s * WING_OUT[s][k], WING_V[k], 0.002, 1) for k in range(4, 9)]
+    if s < 0:
+        cap = cap[::-1]
+    yh = hood_y(0.36) - 0.02
+    zw = gs_back
+    xw = wall_x(yh, zw) - 0.004
+    top = [(s * 0.36, yh, zw), (s * xw, under_glass(s * xw, yh, zw, 0.006), zw)]
+    x4, y4, z4 = pp(s * WING_OUT[s][4], WING_V[4], 0.002, 1)
+    low = (s * (wall_x(y4, z4) - 0.004), y4, z4)
+    ring = (cap + top + [low]) if s > 0 else ([low] + top[::-1] + cap)
+    cx = sum(p[0] for p in ring) / len(ring); cy = sum(p[1] for p in ring) / len(ring); cz = sum(p[2] for p in ring) / len(ring)
+    for i in range(len(ring)):
+        tri = [(cx, cy, cz), ring[i], ring[(i + 1) % len(ring)]]
+        poly_paint("tub", tri, "black"); poly_paint("tub", tri[::-1], "black")   # both sides: seen from the seat whichever way it winds
 # dark back wall behind the whole panel: closes the gaps around the folded side panels (the fuselage skin is hidden in the cockpit
 # view, so any gap there looks straight outside)
 Z_BW = 7.37
@@ -1242,13 +1298,13 @@ if PREVIEW:
              # the equipment bay behind the seat: over each shoulder (head turned and leaned, as with free look) and from outside
              "shoulder_l": (E + P(0.17, 0.0, -0.02), E + P(-0.50, -0.55, -1)), "shoulder_r": (E + P(-0.17, 0.0, -0.02), E + P(0.50, -0.55, -1)),
              "bay": (P(0.30, 1.45, 6.30), P(-0.02, 0.98, 5.80)), "outside_rear": (P(1.3, 1.9, 4.9), P(0, 1.0, 5.9)),
-             "console_l": (E + P(-0.05, -0.05, 0.0), P(-0.30, 0.66, 6.45)), "panel": (E, P(0, 0.88, 7.2)),
+             "console_l": (E + P(-0.05, -0.05, 0.0), P(-0.30, 0.66, 6.45)), "panel": (E, P(0, 0.88, 7.2)), "corner_l": (E, P(-0.36, 0.93, 7.15)), "corner_r": (E, P(0.36, 0.93, 7.15)),
              "seat_look": (E + P(-0.17, 0.0, 0.12), P(0.05, 0.92, 6.12)), "seat_front": (P(0.0, 1.02, 7.05), P(0, 0.78, 6.25))}
     only = [v for v in os.environ.get("MIG29_VIEWS", "").split(",") if v]   # e.g. MIG29_VIEWS=back,bay renders just those
     for name, (loc, look) in views.items():
         if only and name not in only:
             continue
-        cam = cs.camera(name, loc, look, lens=30 if name in ("outside", "outside_front", "outside_rear") else 13)
+        cam = cs.camera(name, loc, look, lens=30 if name in ("outside", "outside_front", "outside_rear") else (45 if name.startswith("corner") else 13))
         scene.camera = cam
         scene.render.filepath = os.path.join(PREVIEW, f"ck_{name}.png")
         bpy.ops.render.render(write_still=True)
