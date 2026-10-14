@@ -152,11 +152,13 @@ grunge = np.clip(grunge, 0.12, 1.0)
 
 # burn mask, read by the stock skin shader (measured with an alpha ramp): a pixel opens into a hole once its alpha falls below a
 # cut-off that rises with damage (0 at ~97 hit points, ~0.35 at 85, ~0.5 at 70, ~0.55 at most) and chars black within ~0.12
-# above it. So: holes 0.16 (open first) .. 0.45 at their edges, a scorch halo round each (0.45 .. 0.6) that chars outward as
-# the part takes more damage, and clean skin at ~0.62, which only chars when the part is nearly destroyed (the stock map is ~0.59).
+# above it. The stock map opens holes (0.16-0.43), but on the MiG that read as a see-through jet whose parts act broken without
+# breaking (user, v0.9.2): parts should break off (the game does that at 0 hit points, as on the stock jets), not turn to lace.
+# So nothing goes below 0.61, safely above the highest cut-off: the burn patches char black instead, cores first (0.61, from ~70
+# hit points) and edges later (0.66, near destruction), a scorch halo round them chars last, and clean skin (0.74) never does.
 scorch = smooth(0.0, 0.7, blur(burn.astype(np.float32), 7))
-alpha = 0.62 + 0.04 * (fbm(P * 3.0 + 4.0, 3) - 0.5) - 0.17 * scorch
-alpha = np.where(burn, 0.45 - 0.29 * depth, alpha)
+alpha = 0.74 + 0.03 * (fbm(P * 3.0 + 4.0, 3) - 0.5) - 0.06 * scorch
+alpha = np.where(burn, 0.66 - 0.05 * depth, alpha)
 
 rgb = np.repeat(grunge[..., None], 3, 2)
 rgba = np.concatenate([rgb, alpha[..., None]], 2)
