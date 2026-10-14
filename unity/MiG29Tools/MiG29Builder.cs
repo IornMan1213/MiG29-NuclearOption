@@ -890,6 +890,17 @@ namespace MiG29Tools
                 innerTris += et.Count / 3;
             }
 
+            // airframe thickness, for the inner hull's inset: a ray inward from the skin to its far side (the whole skin as one
+            // temporary collider on its own layer, back faces included)
+            var rayGo = new GameObject("MiG29_tmp_thickness") { layer = 31 };
+            var allV = new List<Vector3>(); var allT = new List<int>();
+            foreach (var bk in buckets.Values) { int o = allV.Count; allV.AddRange(bk.v); allT.AddRange(bk.t.Select(x => x + o)); }
+            var rayMesh = new Mesh { indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 }; rayMesh.SetVertices(allV); rayMesh.SetTriangles(allT, 0);
+            rayGo.AddComponent<MeshCollider>().sharedMesh = rayMesh;
+            Physics.SyncTransforms();
+            bool backfaces = Physics.queriesHitBackfaces; Physics.queriesHitBackfaces = true;
+            float Depth(Vector3 p, Vector3 dir) => Physics.Raycast(p + dir * 0.003f, dir, out var hit, 3f, 1 << 31, QueryTriggerInteraction.Ignore) ? hit.distance + 0.003f : 1f;
+
             foreach (var kv in buckets)
             {
                 var part = parts[kv.Key]; var b = kv.Value; var tr = part.transform;
@@ -906,13 +917,14 @@ namespace MiG29Tools
                 // the inside behind the skin (stock structure; honeycomb in the radome, at the stock tints and texel densities); not
                 // a damage renderer: the damage shader would punch the airframe's burn mask through it too
                 bool radome = part.name == "nose";
-                var (iv, inr, iuv, icol, it) = MiG29Cut.Interior(b, radome ? 0.61f : 0.46f, radome ? new Color32(0x81, 0x56, 0x43, 255) : new Color32(0x57, 0x57, 0x57, 255));
+                var (iv, inr, iuv, icol, it) = MiG29Cut.Interior(b, radome ? 0.61f : 0.46f, radome ? new Color32(0x81, 0x56, 0x43, 255) : new Color32(0x57, 0x57, 0x57, 255), Depth);
                 MiG29Cut.Dump("inner_" + part.name, iv, it);
                 AddMeshObject("MiG29_inner_" + part.name, tr, PartMesh("MiG29_inner_" + part.name, tr, iv, inr, iuv, icol, it), radome ? honeyMat : structMat);
                 innerTris += it.Count / 3;
                 Debug.Log($"[MiG29] part {part.name}: {b.t.Count / 3} tris");
             }
-            Debug.Log($"[MiG29] interior: {innerTris} triangles (structure, radome honeycomb, engines)");
+            Physics.queriesHitBackfaces = backfaces; UnityEngine.Object.DestroyImmediate(rayGo);
+            Debug.Log($"[MiG29] interior: {innerTris} triangles (inner hull, radome honeycomb, engines)");
 
             // Hitboxes: the KR-67's own part colliders (designed not to overlap each other, which matters because in complex
             // physics every part is its own rigidbody and only jointed neighbours ignore each other) scaled to the MiG:

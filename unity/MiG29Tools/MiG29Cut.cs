@@ -237,30 +237,52 @@ namespace MiG29Tools
         static Vtx Mid(Vtx p, Vtx q) { if (Less(q.p, p.p)) { var s = p; p = q; q = s; } return Mix(p, q, 0.5f); }
 
         // The part's inside, as on the stock jets (each KR-67 part mesh carries an "aircraft_structure" submesh behind its skin, and
-        // "honeycomb" in the radome): every skin triangle again, reversed and facing in, 2 mm under the skin, so where the damage
-        // shader burns holes through the skin or a part breaks away you see frames and stringers instead of the sky. Box-projected
-        // UVs at the stock texel density (0.46 tiles per metre for the structure), one vertex colour for the whole shell (the stock
-        // structure shader tints by it). World space in and out, like the bucket.
-        public static (List<Vector3> v, List<Vector3> n, List<Vector2> uv, List<Color32> c, List<int> t) Interior(Bucket b, float tilesPerMetre, Color32 tint)
+        // "honeycomb" in the radome). A shell lining the skin alone left the jet hollow: through a hole you looked across the whole
+        // fuselage, the nose gear from behind the cockpit (user, v0.9.2). So the inside is an inner hull: the part's skin again, moved
+        // in along its normal by up to InnerMax (a third of the airframe's thickness there, measured by `depth`, so it never reaches the
+        // far skin of a thin wing or fin) and two-sided. Through a hole you see structure a few centimetres behind the skin; where a
+        // part has broken away you look into a structure-walled shell. Box-projected UVs at the stock texel density (0.46 tiles per
+        // metre), one vertex colour (the stock structure shader tints by it). World space in and out, like the bucket.
+        public const float InnerMax = 0.10f;
+        public static (List<Vector3> v, List<Vector3> n, List<Vector2> uv, List<Color32> c, List<int> t) Interior(Bucket b, float tilesPerMetre, Color32 tint, Func<Vector3, Vector3, float> depth)
         {
+            // one inset per position (the bucket splits vertices at UV seams; separate insets would crack the hull there)
+            var key2 = new Dictionary<(int, int, int), int>(); var pid = new int[b.v.Count]; var nsum = new List<Vector3>(); var ppos = new List<Vector3>();
+            for (int i = 0; i < b.v.Count; i++)
+            {
+                var k = (Mathf.RoundToInt(b.v[i].x * 1e4f), Mathf.RoundToInt(b.v[i].y * 1e4f), Mathf.RoundToInt(b.v[i].z * 1e4f));
+                if (!key2.TryGetValue(k, out int p)) { p = ppos.Count; key2[k] = p; ppos.Add(b.v[i]); nsum.Add(Vector3.zero); }
+                pid[i] = p; nsum[p] += b.n[i];
+            }
+            var inner = new Vector3[ppos.Count];
+            for (int p = 0; p < ppos.Count; p++)
+            {
+                var nn = nsum[p].sqrMagnitude > 1e-8f ? nsum[p].normalized : Vector3.up;
+                float d = depth(ppos[p], -nn);                                   // distance to the airframe's far side, inward
+                inner[p] = ppos[p] - nn * Mathf.Clamp(d * 0.33f, InnerInset, InnerMax);
+            }
             var v = new List<Vector3>(); var n = new List<Vector3>(); var uv = new List<Vector2>(); var col = new List<Color32>(); var t = new List<int>();
             for (int i = 0; i < b.t.Count; i += 3)
             {
-                int i0 = b.t[i], i1 = b.t[i + 2], i2 = b.t[i + 1];                  // reversed: faces inward
-                var fn = Vector3.Cross(b.v[i1] - b.v[i0], b.v[i2] - b.v[i0]);
+                var a0 = inner[pid[b.t[i]]]; var a1 = inner[pid[b.t[i + 1]]]; var a2 = inner[pid[b.t[i + 2]]];
+                var fn = Vector3.Cross(a1 - a0, a2 - a0);
+                if (fn.sqrMagnitude < 1e-12f) continue;
                 var a = new Vector3(Mathf.Abs(fn.x), Mathf.Abs(fn.y), Mathf.Abs(fn.z));
-                foreach (var k in new[] { i0, i1, i2 })
+                Vector2 Q(Vector3 p) => (a.x >= a.y && a.x >= a.z ? new Vector2(p.z, p.y) : a.y >= a.z ? new Vector2(p.z, p.x) : new Vector2(p.x, p.y)) * tilesPerMetre;
+                // outward face (seen through holes in the skin, like the skin's own winding) and inward face (seen into a broken part)
+                for (int side = 0; side < 2; side++)
                 {
-                    var p = b.v[k] - b.n[k] * InnerInset;
-                    // project on the plane the face is most nearly in; long axis (z, nose to tail) along u where it lies in the plane
-                    var q = a.x >= a.y && a.x >= a.z ? new Vector2(p.z, p.y) : a.y >= a.z ? new Vector2(p.z, p.x) : new Vector2(p.x, p.y);
-                    t.Add(v.Count);
-                    v.Add(p); n.Add(-b.n[k]); uv.Add(q * tilesPerMetre); col.Add(tint);
+                    int b0 = v.Count;
+                    foreach (var k in side == 0 ? new[] { i, i + 1, i + 2 } : new[] { i, i + 2, i + 1 })
+                    {
+                        var nn = nsum[pid[b.t[k]]].normalized;
+                        v.Add(inner[pid[b.t[k]]]); n.Add(side == 0 ? nn : -nn); uv.Add(Q(inner[pid[b.t[k]]])); col.Add(tint);
+                    }
+                    t.Add(b0); t.Add(b0 + 1); t.Add(b0 + 2);
                 }
             }
             return (v, n, uv, col, t);
         }
-
         // RD-33 engine bodies inside the nacelles ("jet_mechanical", like the stock jets' internals): a ring-segmented casing along
         // each engine axis with the fan face in front, every 0.4 m segment on the part its centre lies in. World space.
         public static Dictionary<int, (List<Vector3> v, List<Vector3> n, List<Vector2> uv, List<int> t)> Engines(
