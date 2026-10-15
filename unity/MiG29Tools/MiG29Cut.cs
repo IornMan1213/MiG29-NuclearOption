@@ -254,16 +254,23 @@ namespace MiG29Tools
                 if (!key2.TryGetValue(k, out int p)) { p = ppos.Count; key2[k] = p; ppos.Add(b.v[i]); nsum.Add(Vector3.zero); }
                 pid[i] = p; nsum[p] += b.n[i];
             }
-            var inner = new Vector3[ppos.Count];
+            // which way is in: the model's normals point inward in places (and the inset then went 10 cm OUT of the skin: structure
+            // standing off the nacelles and the nozzle covers, user screenshots); so a ray each way, and the side that finds the far
+            // skin is the inside. Thin open sheets (no far skin either way: flaps, the covers over the nozzles) get no inner hull.
+            var inner = new Vector3[ppos.Count]; var inN = new Vector3[ppos.Count]; var open = new bool[ppos.Count];
             for (int p = 0; p < ppos.Count; p++)
             {
                 var nn = nsum[p].sqrMagnitude > 1e-8f ? nsum[p].normalized : Vector3.up;
                 float d = depth(ppos[p], -nn);                                   // distance to the airframe's far side, inward
+                if (d < 0f) { float d2 = depth(ppos[p], nn); if (d2 > 0f) { nn = -nn; d = d2; } }
+                if (d < 0f) { open[p] = true; inner[p] = ppos[p]; inN[p] = nn; continue; }
+                inN[p] = nn;
                 inner[p] = ppos[p] - nn * Mathf.Clamp(d * 0.33f, InnerInset, InnerMax);
             }
             var v = new List<Vector3>(); var n = new List<Vector3>(); var uv = new List<Vector2>(); var col = new List<Color32>(); var t = new List<int>();
             for (int i = 0; i < b.t.Count; i += 3)
             {
+                if (open[pid[b.t[i]]] || open[pid[b.t[i + 1]]] || open[pid[b.t[i + 2]]]) continue;
                 var a0 = inner[pid[b.t[i]]]; var a1 = inner[pid[b.t[i + 1]]]; var a2 = inner[pid[b.t[i + 2]]];
                 var fn = Vector3.Cross(a1 - a0, a2 - a0);
                 if (fn.sqrMagnitude < 1e-12f) continue;
@@ -275,7 +282,7 @@ namespace MiG29Tools
                     int b0 = v.Count;
                     foreach (var k in side == 0 ? new[] { i, i + 1, i + 2 } : new[] { i, i + 2, i + 1 })
                     {
-                        var nn = nsum[pid[b.t[k]]].normalized;
+                        var nn = inN[pid[b.t[k]]];
                         v.Add(inner[pid[b.t[k]]]); n.Add(side == 0 ? nn : -nn); uv.Add(Q(inner[pid[b.t[k]]])); col.Add(tint);
                     }
                     t.Add(b0); t.Add(b0 + 1); t.Add(b0 + 2);

@@ -129,14 +129,18 @@ dev = np.sqrt(base[..., 0] ** 2 + base[..., 1] ** 2)
 lines = smooth(np.quantile(dev[cov], 0.80), np.quantile(dev[cov], 0.95), dev)
 
 # where hits concentrate: medium patches, a third of the skin
-region = smooth(0.42, 0.62, fbm(P * 0.75 + 3.1, 4))
+region = smooth(0.48, 0.66, fbm(P * 0.9 + 3.1, 4))
 # torn, shredded holes: a crack network (ridged noise), specks, and tears along panel lines, all inside the hit regions;
 # plus a scatter of small isolated holes everywhere
-rip = 1 - np.abs(fbm(P * 6.5 + 9.7, 4) * 2 - 1)
-spk = fbm(P * 26.0 + 4.4, 3)
-score = region * (0.50 * smooth(0.70, 0.92, rip) + 0.35 * smooth(0.60, 0.78, spk) + 0.30 * lines * smooth(0.55, 0.85, rip))
-score += 0.6 * smooth(0.80, 0.86, fbm(P * 45.0 + 1.7, 2))
-thr = np.quantile(score[cov], 0.85)
+rip = 1 - np.abs(fbm(P * 9.0 + 9.7, 4) * 2 - 1)
+spk = fbm(P * 34.0 + 4.4, 3)
+# spread evenly over every part, as on the stock jets: the shader knows only a part's hit points, not where it was hit, so holes
+# bunched into a few patches all opened in one corner of a part whichever side took the shot (user, v0.9.2). Only a gentle
+# large-scale variation (0.75-1), so no area of a part is spared and none collects all the holes.
+spread = 0.75 + 0.25 * fbm(P * 1.3 + 3.1, 3)
+score = spread * (0.50 * smooth(0.70, 0.92, rip) + 0.35 * smooth(0.60, 0.78, spk) + 0.30 * lines * smooth(0.55, 0.85, rip))
+score += 0.5 * smooth(0.80, 0.86, fbm(P * 45.0 + 1.7, 2))
+thr = np.quantile(score[cov], 0.93)                          # holes on ~7% of the skin (the stock jets' are small)
 burn = score > thr
 depth = np.clip((score - thr) / (np.quantile(score[cov], 0.985) - thr), 0, 1)   # 0 at a hole's edge, 1 deep inside
 
@@ -153,11 +157,11 @@ grunge = np.clip(grunge, 0.12, 1.0)
 # burn mask, read by the stock skin shader (measured with an alpha ramp): a pixel opens into a hole once its alpha falls below a
 # cut-off that rises with damage (0 at ~97 hit points, ~0.35 at 85, ~0.5 at 70, ~0.55 at most) and chars black within ~0.12
 # above it. So, like the stock map: holes 0.16 (open first) .. 0.45 at their edges, a scorch halo round each (0.45 .. 0.6) that
-# chars outward as the part takes more damage, and clean skin at ~0.62, which only chars when the part is nearly destroyed (the
+# chars outward (never opens: it stays above the cut-off) as the part takes more damage, and clean skin at ~0.62, which only chars when the part is nearly destroyed (the
 # stock map is ~0.59). Through a hole you see structure, not the length of the jet: MiG29Cut puts an inside shell and a bulkhead at
 # every seam (a hollow skin showed the nose gear from behind the cockpit, user v0.9.2).
 scorch = smooth(0.0, 0.7, blur(burn.astype(np.float32), 7))
-alpha = 0.62 + 0.04 * (fbm(P * 3.0 + 4.0, 3) - 0.5) - 0.17 * scorch
+alpha = 0.62 + 0.04 * (fbm(P * 3.0 + 4.0, 3) - 0.5) - 0.05 * scorch   # the halo chars but never opens (>= 0.56)
 alpha = np.where(burn, 0.45 - 0.29 * depth, alpha)
 
 rgb = np.repeat(grunge[..., None], 3, 2)
