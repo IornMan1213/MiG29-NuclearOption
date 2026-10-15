@@ -244,7 +244,8 @@ namespace MiG29Tools
         // part has broken away you look into a structure-walled shell. Box-projected UVs at the stock texel density (0.46 tiles per
         // metre), one vertex colour (the stock structure shader tints by it). World space in and out, like the bucket.
         public const float InnerMax = 0.10f;
-        public static (List<Vector3> v, List<Vector3> n, List<Vector2> uv, List<Color32> c, List<int> t) Interior(Bucket b, float tilesPerMetre, Color32 tint, Func<Vector3, Vector3, float> depth)
+        const float FlipMax = 0.25f, RimMax = 0.02f;
+        public static (List<Vector3> v, List<Vector3> n, List<Vector2> uv, List<Color32> c, List<int> t) Interior(Bucket b, float tilesPerMetre, Color32 tint, Func<Vector3, Vector3, float> depth, Func<Vector3, bool> keepOut = null)
         {
             // one inset per position (the bucket splits vertices at UV seams; separate insets would crack the hull there)
             var key2 = new Dictionary<(int, int, int), int>(); var pid = new int[b.v.Count]; var nsum = new List<Vector3>(); var ppos = new List<Vector3>();
@@ -258,14 +259,28 @@ namespace MiG29Tools
             // standing off the nacelles and the nozzle covers, user screenshots); so a ray each way, and the side that finds the far
             // skin is the inside. Thin open sheets (no far skin either way: flaps, the covers over the nozzles) get no inner hull.
             var inner = new Vector3[ppos.Count]; var inN = new Vector3[ppos.Count]; var open = new bool[ppos.Count];
+            // the skin's open edges (the nozzle openings, intake lips, cut-outs, panel edges): their rays skim past the edge into the
+            // next panel, and the hull flared out round the nozzles (user screenshot): never flipped there, and inset 2 cm at most
+            var edgeUse = new Dictionary<(int, int), int>();
+            for (int i = 0; i < b.t.Count; i += 3)
+                for (int k = 0; k < 3; k++)
+                {
+                    int e0 = pid[b.t[i + k]], e1 = pid[b.t[i + (k + 1) % 3]];
+                    if (e0 == e1) continue;
+                    var e = e0 < e1 ? (e0, e1) : (e1, e0);
+                    edgeUse[e] = edgeUse.TryGetValue(e, out int u) ? u + 1 : 1;
+                }
+            var rim = new bool[ppos.Count];
+            foreach (var kv in edgeUse) if (kv.Value == 1) { rim[kv.Key.Item1] = true; rim[kv.Key.Item2] = true; }
             for (int p = 0; p < ppos.Count; p++)
             {
                 var nn = nsum[p].sqrMagnitude > 1e-8f ? nsum[p].normalized : Vector3.up;
                 float d = depth(ppos[p], -nn);                                   // distance to the airframe's far side, inward
-                if (d < 0f) { float d2 = depth(ppos[p], nn); if (d2 > 0f) { nn = -nn; d = d2; } }
+                if (d < 0f) { float d2 = depth(ppos[p], nn); if (!rim[p] && d2 > 0f && d2 < FlipMax) { nn = -nn; d = d2; } }   // a far hit is another panel, not this one's inside
                 if (d < 0f) { open[p] = true; inner[p] = ppos[p]; inN[p] = nn; continue; }
                 inN[p] = nn;
-                inner[p] = ppos[p] - nn * Mathf.Clamp(d * 0.33f, InnerInset, InnerMax);
+                inner[p] = ppos[p] - nn * Mathf.Clamp(d * 0.33f, InnerInset, rim[p] ? RimMax : InnerMax);   // at an edge the ray may have skimmed into another panel
+                if (keepOut != null && keepOut(inner[p])) open[p] = true;                                   // e.g. inside the cockpit
             }
             var v = new List<Vector3>(); var n = new List<Vector3>(); var uv = new List<Vector2>(); var col = new List<Color32>(); var t = new List<int>();
             for (int i = 0; i < b.t.Count; i += 3)

@@ -23,6 +23,17 @@
 - **No more ghost markings.** The source model's stars, board numbers "71", fin badges and stencils were still baked into the
   skin's shine (metallic / smoothness) texture, so they showed through every livery as faint shiny or dull shapes. They are gone;
   each livery still paints its own markings.
+- **Bullet holes where you were hit.** Holes are punched where rounds and fragments actually strike, sized like the stock
+  jets', instead of appearing in fixed spots on a damaged part.
+- **No more stray pieces.** The structure behind the skin no longer pokes out over the nacelles and nozzle covers, and the odd
+  vertical stalk behind the cockpit (the source model's dorsal antenna) is gone.
+- **Slimmer windscreen bow.** The black frame across the windscreen and its three mirrors are much slimmer and hug the glass,
+  for a far clearer view out; a streaky second arch under it and slabs along the sills (the inner structure showing through)
+  are gone.
+- **No more star shadows on the wings.** The source model's wing stars were still in the skin's shading texture and showed as
+  dark star outlines through every livery.
+- **Stiffer nose gear.** The nose leg no longer sags, dives under braking and bobs.
+- **Rank 2, $50 M.** The MiG-29 is now an earlier, cheaper jet (rank 2, $50 million); the MiG-29SMT mod is the modern upgrade.
 - **Dark patches fixed.** About a hundred faces on top of the engine nacelles and at the front of the LERX (and a few in the
   cockpit) had their shading normals pointing inward and were lit as if from inside; they shade correctly now.
 

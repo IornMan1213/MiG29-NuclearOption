@@ -1,9 +1,9 @@
 """Take the source model's insignia out of the skin's metallic / smoothness texture.
 
-mig29_metallic.png (R = metallic, A = smoothness) came with the source model's markings baked in: red stars, board numbers "71",
+mig29_metallic.png (R = metallic, G = occlusion, A = smoothness) came with the source model's markings baked in: red stars, board numbers "71",
 a badge on the fins and stencils. Every livery paints only the base colour, so those shapes showed through on all of them as
 shiny or dull ghosts (a star and a circle on the fin of a black livery: user screenshot, v0.9.1). The markings are darker than
-the skin around them in R; they are found against a local background (median over ~80 px) and filled in R and A from the
+the skin around them in R; they are found against a local background (median over ~80 px) and filled in every channel from the
 surrounding skin (normalised blur, so the smoothness keeps its local level). Large features (the black intake / nozzle discs,
 the bright metal panels) are bigger than the filter and stay.
 
@@ -130,7 +130,10 @@ def fill(ch, bgc, radius=12):
 # source pixels for the fill: plain skin in both channels, never another hole, fitting or panel edge (the same pixels for R and A)
 PLAIN = ~mask & skin & (np.abs(r - bg_r) < 10) & (np.abs(a - bg_a) < 30)
 r2, a2 = fill(r, bg_r), fill(a, bg_a)
-out = Image.merge("RGBA", [Image.fromarray(np.clip(x, 0, 255).astype(np.uint8)) for x in (r2, g, b, a2)])
+# G and B too: the skin shader reads G as ambient occlusion. Filled in R and A only, the stars stayed near black in G and every livery
+# showed star-shaped shadows on the wings (user screenshot, 0.9.2). In the source R = G = B, so they get the same fill.
+g2, b2 = fill(g, background(g)), fill(b, background(b))
+out = Image.merge("RGBA", [Image.fromarray(np.clip(x, 0, 255).astype(np.uint8)) for x in (r2, g2, b2, a2)])
 out.save(OUT)
 print(f"[insignia] {mask.mean() * 100:.2f}% of the metallic/smoothness map filled from the surrounding skin")
 if DBG:

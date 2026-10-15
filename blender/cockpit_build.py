@@ -994,7 +994,11 @@ def bow_gap(theta):
     return None
 
 
-bow = []                              # per angle: outer/inner points at the rear (z0) and front (z1) edge, Unity frame
+# Slim bow (0.9.2; first on the SMT): it used to fill the whole slot (10-12 cm along the arch) and stand 4.2 cm off the glass, a ~13 cm black band
+# across the view; the user asked for it slimmer and moulded in, the real MiG's arch being slim with good visibility. Now 5.5 cm wide
+# at the glass, tapering to 3.5 cm on its inner face, 2.4 cm deep, centred in the slot; the rest of the slot is glazed with the
+# canopy glass so the glazing runs on unbroken.
+BOW_W, BOW_WI, BOW_D = 0.055, 0.035, 0.024
 gaps = [(th, bow_gap(th)) for th in range(-88, 89, 2)]
 gaps = [(th, g) for th, g in gaps if g is not None]
 # the slot's edges follow the glass triangulation and wobble: smooth them so the bow's edges run clean
@@ -1002,13 +1006,13 @@ sm = []
 for i, (th, g) in enumerate(gaps):
     nb = [gg for _, gg in gaps[max(0, i - 3):i + 4]]
     sm.append((th, (min(x[0] for x in nb), max(x[1] for x in nb))))
+bow, slot = [], []                    # bow: outer/inner points at the rear (z0) and front (z1) edge; slot: the glass at the slot's ends
 for th, g in sm:
-    (h0, d), (h1, _) = glass_hit(th, g[0] - 0.008), glass_hit(th, g[1] + 0.008)
+    (h0, d), (h1, _) = glass_hit(th, g[0] - 0.004), glass_hit(th, g[1] + 0.004)
     if h0 is None or h1 is None:
         continue
     du = (d.x, d.z, d.y)               # Blender -> Unity direction
-    def U(h, k): return (h.x - du[0] * k, h.z - du[1] * k, h.y - du[2] * k)
-    bow.append((U(h0, 0.004), U(h0, 0.042), U(h1, 0.042), U(h1, 0.004), du))
+    slot.append(((h0.x, h0.z, h0.y), (h1.x, h1.z, h1.y), du))
 # the glass is faceted, so the hit radius wobbles from station to station: smooth every point along the arch
 def _smooth(seq, k):
     out = []
@@ -1016,21 +1020,33 @@ def _smooth(seq, k):
         nb = seq[max(0, i - k):i + k + 1]
         out.append(tuple(sum(p[c] for p in nb) / len(nb) for c in range(3)))
     return out
-cols = [_smooth([b[j] for b in bow], 3) for j in range(4)]
-bow = [(cols[0][i], cols[1][i], cols[2][i], cols[3][i], bow[i][4]) for i in range(len(bow))]
+sa, sb = _smooth([s[0] for s in slot], 3), _smooth([s[1] for s in slot], 3)
+glass_strips = []
+for A, B, (_, _, du) in zip(sa, sb, slot):
+    A, B = Vector(A), Vector(B)
+    span = max((B - A).length, 1e-4)
+    def L(f, k): return tuple(A.lerp(B, f) - Vector(du) * k)    # across the slot (the glass's chord), k inward
+    h, hi = 0.5 * BOW_W / span, 0.5 * BOW_WI / span
+    bow.append((L(0.5 - h, 0.002), L(0.5 - hi, BOW_D), L(0.5 + hi, BOW_D), L(0.5 + h, 0.002), du))
+    glass_strips.append((L(0.0, 0.0), L(0.5 - h, 0.0), L(0.5 + h, 0.0), L(1.0, 0.0)))
 for a, b in zip(bow, bow[1:]):
     o0a, i0a, i1a, o1a, da = a
     o0b, i0b, i1b, o1b, db = b
     inward = tuple(-(da[k] + db[k]) / 2 for k in range(3))
     face_toward("tub", [i0a, i0b, i1b, i1a], inward, "dgrey")                 # inner face
-    face_toward("tub", [o0a, o0b, i0b, i0a], (0, 0, -1), "dgrey")            # rear face (toward the pilot)
-    face_toward("tub", [o1a, i1a, i1b, o1b], (0, 0, 1), "dgrey")             # front face
-for end, out in ((bow[0], -1), (bow[-1], 1)):                                # feet: taper down and out onto the sills
+    face_toward("tub", [o0a, o0b, i0b, i0a], (0, 0, -1), "dgrey")            # rear chamfer (toward the pilot)
+    face_toward("tub", [o1a, i1a, i1b, o1b], (0, 0, 1), "dgrey")             # front chamfer
+for a, b in zip(glass_strips, glass_strips[1:]):                             # glazing either side of the bow, both faces
+    for j0, j1 in ((0, 1), (2, 3)):
+        q = [a[j0], b[j0], b[j1], a[j1]]
+        PARTS["glass"].face([P(*p) for p in q], [(0.5, 0.5)] * 4)
+        PARTS["glass"].face([P(*p) for p in q[::-1]], [(0.5, 0.5)] * 4)
+for end, out in ((bow[0], -1), (bow[-1], 1)):                                # feet: run down and out onto the sills, same profile
     o0, i0, i1, o1, du = end
     foot_y = wall_top(BOW_Z) - 0.01
-    zf0, zf1 = i0[2] - 0.015, i1[2] + 0.015
-    xo = out * (wall_x(foot_y, BOW_Z) - 0.004)
-    fi0, fi1, fo0, fo1 = (xo - out * 0.05, foot_y, zf0), (xo - out * 0.05, foot_y, zf1), (xo, foot_y, zf0), (xo, foot_y, zf1)
+    zf0, zf1 = o0[2] - 0.006, o1[2] + 0.006
+    xo = out * (wall_x(foot_y, BOW_Z) - 0.010)
+    fi0, fi1, fo0, fo1 = (xo - out * 0.032, foot_y, zf0 + 0.010), (xo - out * 0.032, foot_y, zf1 - 0.010), (xo, foot_y, zf0), (xo, foot_y, zf1)
     face_toward("tub", [i0, i1, fi1, fi0], (-out, 0.4, 0), "dgrey")              # inner slope
     face_toward("tub", [o0, i0, fi0, fo0], (0, 0, -1), "dgrey")                  # rear (toward the pilot)
     face_toward("tub", [o1, i1, fi1, fo1], (0, 0, 1), "dgrey")                   # front
@@ -1056,24 +1072,24 @@ def mirror(gid, theta, w, h, view, stalk=0.05):
     pos = tuple(base[k] - du[k] * stalk for k in range(3))
     pos = (pos[0], pos[1], pos[2] - 0.03)
     pid = part("ins_mirror_" + gid)
-    tube(pid, [base, pos], 0.007, "black", 8)
+    tube(pid, [base, pos], 0.0045, "black", 8)
     n = ((Vector(EYE) - Vector(pos)).normalized() + Vector(view).normalized()).normalized()
     m = look_matrix(pos, tuple(Vector(pos) + n))
-    box(pid, pos, (w, h, 0.022), "black", 0.006, rot=m)
+    box(pid, pos, (w, h, 0.014), "black", 0.004, rot=m)
     INS[pid] = (Vector(base), Vector((0.0, 0.0, 1.0)), Vector((-du[0], -du[1], -du[2])))
     # the reflecting face: a quad built in Unity (MiG29Cockpit) as "NOMirror_<gid>" for the NO Mirrors plugin, on the housing's face
     up = Vector((0.0, 1.0, 0.0)); up = (up - n * up.dot(n)).normalized()
-    c = Vector(pos) + n * 0.0115
-    MGLASS[pid] = [c.x, c.y, c.z, n.x, n.y, n.z, up.x, up.y, up.z, w - 0.012, h - 0.012]
+    c = Vector(pos) + n * 0.0075
+    MGLASS[pid] = [c.x, c.y, c.z, n.x, n.y, n.z, up.x, up.y, up.z, w - 0.008, h - 0.008]
 
 
 MGLASS = {}   # mirror glass frames, Unity MiG frame: centre, normal (toward the eye), up, width, height
 
 
 # views: straight back over the spine; the side mirrors back and out past each side of the canopy; all a little below level
-mirror("c", 0, 0.20, 0.055, view=(0.0, -0.05, -1.0), stalk=0.045)   # centre rear-view mirror at the top of the bow
-mirror("l", -42, 0.11, 0.065, view=(-0.35, -0.05, -1.0))           # side mirrors on the bow's upper corners
-mirror("r", 42, 0.11, 0.065, view=(0.35, -0.05, -1.0))
+mirror("c", 0, 0.18, 0.046, view=(0.0, -0.05, -1.0), stalk=0.04)   # centre rear-view mirror at the top of the bow
+mirror("l", -42, 0.095, 0.055, view=(-0.35, -0.05, -1.0), stalk=0.04)           # side mirrors on the bow's upper corners
+mirror("r", 42, 0.095, 0.055, view=(0.35, -0.05, -1.0), stalk=0.04)
 
 # Folded pose per mirror, tucked against the canopy. At a fixed 60 deg about the hinge they still hung below the bow (user video,
 # v0.8.7), and the side mirrors meet the curved glass at 66 deg. Searched: a fold about the hinge (mount x, either way) then a twist

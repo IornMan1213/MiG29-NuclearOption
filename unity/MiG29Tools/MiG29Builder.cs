@@ -135,6 +135,7 @@ namespace MiG29Tools
             var parameters = CloneAsset(BaseParameters, ModDir + "/MiG29_parameters.asset");
             var pso = new SerializedObject(parameters);
             pso.FindProperty("aircraftName").stringValue = "MiG-29";
+            pso.FindProperty("rankRequired").intValue = 2;   // rank and price: the 9.12 rank 2 / $50 M, the SMT rank 3 / $90 M (user, 0.9.2 / SMT 0.2.0)
             RemoveBayLoadouts(pso);
             MiG29Weapons.ClearLoadoutSlot(pso, centreSet);
             MiG29Weapons.InsertLoadoutSlot(pso, outerPylonSet);
@@ -156,7 +157,7 @@ namespace MiG29Tools
             dso.FindProperty("length").floatValue = 17.32f;
             dso.FindProperty("width").floatValue = 11.36f;
             dso.FindProperty("height").floatValue = 4.73f;
-            dso.FindProperty("value").floatValue = 95f;
+            dso.FindProperty("value").floatValue = 50f;
             // radar size on the game's scale (stock: KR-67 0.0015 stealth, T/A-30 0.12, A-19 0.6); real MiG-29 about 5 m2
             dso.FindProperty("radarSize").floatValue = 0.2f;
             dso.FindProperty("unitPrefab").objectReferenceValue = prefab;
@@ -913,6 +914,11 @@ namespace MiG29Tools
             rayGo.AddComponent<MeshCollider>().sharedMesh = rayMesh;
             Physics.SyncTransforms();
             bool backfaces = Physics.queriesHitBackfaces; Physics.queriesHitBackfaces = true;
+            // No inner hull inside the cockpit (MiG frame: between the sills from the floor up through the canopy, the canopy's rear
+            // edge to the windscreen): the windscreen frame and sills fell to the front fuselage in the hull cut, and their hull, a few
+            // cm in from the skin, showed in the cockpit view as a streaky arch under the bow and slabs along the sills (user
+            // screenshot, SMT 0.2.0); the game hides only the cockpit part's skin there. The cockpit tub closes that space anyway.
+            bool InCockpit(Vector3 p) { var q = p - ModelOffset; return Mathf.Abs(q.x) < 0.46f && q.y > 0.30f && q.y < 1.45f && q.z > 5.62f && q.z < 7.95f; }
             float Depth(Vector3 p, Vector3 dir) => Physics.Raycast(p + dir * 0.003f, dir, out var hit, 3f, 1 << 31, QueryTriggerInteraction.Ignore) ? hit.distance + 0.003f : -1f;   // -1: no far side
 
             foreach (var kv in buckets)
@@ -931,7 +937,7 @@ namespace MiG29Tools
                 // the inside behind the skin (stock structure; honeycomb in the radome, at the stock tints and texel densities); not
                 // a damage renderer: the damage shader would punch the airframe's burn mask through it too
                 bool radome = part.name == "nose";
-                var (iv, inr, iuv, icol, it) = MiG29Cut.Interior(b, radome ? 0.61f : 0.46f, radome ? new Color32(0x81, 0x56, 0x43, 255) : new Color32(0x57, 0x57, 0x57, 255), Depth);
+                var (iv, inr, iuv, icol, it) = MiG29Cut.Interior(b, radome ? 0.61f : 0.46f, radome ? new Color32(0x81, 0x56, 0x43, 255) : new Color32(0x57, 0x57, 0x57, 255), Depth, InCockpit);
                 MiG29Cut.Dump("inner_" + part.name, iv, it);
                 AddMeshObject("MiG29_inner_" + part.name, tr, PartMesh("MiG29_inner_" + part.name, tr, iv, inr, iuv, icol, it), radome ? honeyMat : structMat);
                 innerTris += it.Count / 3;
@@ -1008,6 +1014,31 @@ namespace MiG29Tools
                 if (joints == null) return;
                 for (int i = 0; i < joints.arraySize; i++) joints.GetArrayElementAtIndex(i).FindPropertyRelative("solverIterations").intValue = JointIterations;
             });
+            StiffenNoseGear(root);
+        }
+
+        // The nose leg keeps the KR-67's spring (300 kN/m, 30 kN s/m), but on the MiG the nose wheel sits 3.6 m ahead of the mains
+        // with the CG 0.7 m ahead of them, so the leg carries ~20 % of the weight. The KR-67 spread that load over a longer
+        // wheelbase. On the MiG the nose sagged at rest, dived hard under braking and bobbed afterwards (user report, 0.9.2). The
+        // real MiG's nose strut barely moves, so the spring is stiffer and damped near critical for the pitch-on-gear mode
+        // (about 7 t at the nose).
+        const float NoseSpringRate = 480000f, NoseDampingRate = 75000f;
+
+        static void StiffenNoseGear(Transform root)
+        {
+            var wheel = Find(root, "wheel_F");
+            foreach (var lg in root.GetComponentsInChildren(TypeByName("LandingGear"), true))
+            {
+                var so = new SerializedObject(lg);
+                var hinge = so.FindProperty("gearHinge").objectReferenceValue as Transform;
+                if (hinge == null || !wheel.IsChildOf(hinge)) continue;
+                so.FindProperty("springRate").floatValue = NoseSpringRate;
+                so.FindProperty("dampingRate").floatValue = NoseDampingRate;
+                so.ApplyModifiedPropertiesWithoutUndo();
+                Debug.Log($"[MiG29] nose gear {lg.name}: spring {NoseSpringRate}, damping {NoseDampingRate}");
+                return;
+            }
+            throw new Exception("[MiG29] no LandingGear drives wheel_F");
         }
 
         // ---------------- internal bays: the MiG has none ----------------

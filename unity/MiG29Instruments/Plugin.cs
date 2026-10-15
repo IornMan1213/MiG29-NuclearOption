@@ -31,7 +31,9 @@ namespace MiG29Instruments
         void Awake()
         {
             Log = Logger;
-            new HarmonyLib.Harmony("iornman1213.mig29.instruments").PatchAll(typeof(R27RNoTarget));
+            var harmony = new HarmonyLib.Harmony("iornman1213.mig29.instruments");
+            harmony.PatchAll(typeof(R27RNoTarget));
+            harmony.PatchAll(typeof(BulletHolePatch)); harmony.PatchAll(typeof(BlastHolePatch));   // holes where the shots land (Holes.cs)
             PanelLighting = Config.Bind("Cockpit", "Night panel lighting", 1f,
                 new BepInEx.Configuration.ConfigDescription("Brightness of the cockpit flood lights at night (0 = off)", new BepInEx.Configuration.AcceptableValueRange<float>(0f, 4f)));
             JettisonKey = Config.Bind("Drop tanks", "Jettison key", new BepInEx.Configuration.KeyboardShortcut(KeyCode.J, KeyCode.LeftControl),
