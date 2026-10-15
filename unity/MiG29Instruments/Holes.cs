@@ -110,7 +110,10 @@ namespace MiG29Instruments
         {
             unit = u;
             Texture src = null;
-            foreach (var r in u.GetComponentsInChildren<MeshRenderer>(true))
+            // in flight every part is its own physics root, no longer under the aircraft: its parts come from the unit's part list
+            var renderers = new List<MeshRenderer>(u.GetComponentsInChildren<MeshRenderer>(true));
+            foreach (var p in u.partLookup) if (p != null && !p.transform.IsChildOf(u.transform)) renderers.AddRange(p.GetComponentsInChildren<MeshRenderer>(true));
+            foreach (var r in renderers)
             {
                 if (!r.name.StartsWith("MiG29_skin_") && !r.name.StartsWith("MiG29_lod")) continue;
                 var m = r.sharedMaterial;
@@ -119,7 +122,7 @@ namespace MiG29Instruments
                 skins.Add(r);
             }
             original = src;
-            if (src == null || Holes.BrushMaterial == null) { Debug.LogWarning("[MiG29] holes: no skin damage map or brush shader"); return false; }
+            if (src == null || Holes.BrushMaterial == null) { MiG29InstrumentsPlugin.Log.LogWarning($"holes: no skin damage map ({skins.Count} skins) or brush shader ({Holes.BrushMaterial != null})"); return false; }
             rt = new RenderTexture(src.width, src.height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB)
                 { name = "MiG29_holes", useMipMap = true, autoGenerateMips = false, wrapMode = TextureWrapMode.Repeat, anisoLevel = 4 };
             rt.Create();
@@ -152,7 +155,11 @@ namespace MiG29Instruments
             if (meshes.TryGetValue(part, out var m)) return m;
             MeshFilter mf = null;
             foreach (Transform ch in part.transform) if (ch.name.StartsWith("MiG29_skin_")) { mf = ch.GetComponent<MeshFilter>(); break; }
-            if (mf == null || mf.sharedMesh == null || !mf.sharedMesh.isReadable) { meshes[part] = m = (null, null, null, null); return m; }
+            if (mf == null || mf.sharedMesh == null || !mf.sharedMesh.isReadable)
+            {
+                MiG29InstrumentsPlugin.Log.LogWarning($"holes: no readable skin mesh on {part.name} ({(mf == null ? "none" : mf.sharedMesh == null ? "no mesh" : "not readable")})");
+                meshes[part] = m = (null, null, null, null); return m;
+            }
             var sm = mf.sharedMesh;
             meshes[part] = m = (mf, sm.vertices, sm.uv, sm.triangles);
             return m;
