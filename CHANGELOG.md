@@ -30,6 +30,9 @@
 - **Slimmer windscreen bow.** The black frame across the windscreen and its three mirrors are much slimmer and hug the glass,
   for a far clearer view out; a streaky second arch under it and slabs along the sills (the inner structure showing through)
   are gone.
+- **Dash corners closed.** The gaps between the instrument panel and the windscreen frame, where the outside showed through,
+  are filled in panel colour; the side panels now run out to the cockpit walls, and the radar screen sits inside the panel with
+  a border instead of hanging over its edge.
 - **No more star shadows on the wings.** The source model's wing stars were still in the skin's shading texture and showed as
   dark star outlines through every livery.
 - **Stiffer nose gear.** The nose leg no longer sags, dives under braking and bobs.

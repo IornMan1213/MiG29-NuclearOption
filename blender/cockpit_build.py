@@ -538,7 +538,9 @@ def panel_normal(u, yaw=math.radians(28), u_hinge=0.2):
 # cockpit wall and up under the glareshield. They were 0.34 wide from 0.04 to PH - 0.03: the radar screen bezel, EGT gauge,
 # caution panel, gear-light plate and cabin gauge hung over their edges and blank space showed around them (user screenshot, v0.9.1).
 # Their outer edge follows the cockpit wall and the canopy glass (the top outer corner would otherwise poke through the canopy).
-U_WING = 0.40
+# They stopped at 0.40, short of the wall: the black corner filler between them and the wall read as a stray dark block in game,
+# and the radar screen's bezel looked to hang off the panel edge (user screenshot, 0.9.2). Now they run out to the wall.
+U_WING = 0.52
 
 
 def wing_u_out(s, v):
@@ -779,9 +781,11 @@ for (u, v) in ((-0.078, 0.14), (0.078, 0.14), (-0.172, 0.20), (0.172, 0.20), (-0
     cylinder("tub", tuple(c + n * 0.019), tuple(n), 0.0055, 0.004, "dgrey", 12)
 
 # tac screen: bezel plate + the screen quad (the game's render texture, main area u 0-0.75 v 0.25-1, 2.1:1)
-SW, SH = 0.165, 0.079
-sc = plate(0.29, 0.262, SW + 0.026, SH + 0.034, "radar_frame", off=0.004)
-cu, cvv = 0.29, 0.262
+# Sized to leave a border: at 0.165 x 0.079 its bezel ran to u 0.386, the panel's edge up there (the wall and glass close in), and
+# it looked to hang off the dash (user screenshot, 0.9.2). Now the bezel spans u 0.212-0.372.
+SW, SH = 0.134, 0.064
+cu, cvv = 0.292, 0.256
+sc = plate(cu, cvv, SW + 0.026, SH + 0.034, "radar_frame", off=0.004)
 corners = [pp(cu - SW / 2, cvv - SH / 2, 0.006, 1), pp(cu + SW / 2, cvv - SH / 2, 0.006, 1), pp(cu + SW / 2, cvv + SH / 2, 0.006, 1), pp(cu - SW / 2, cvv + SH / 2, 0.006, 1)]
 quad_uv("screen", corners, (0.0, 0.25, 0.75, 1.0))
 # hood around the screen
@@ -819,20 +823,24 @@ for z0, z1 in zip(deck, deck[1:]):
 # the hood end, the wing corner and the cockpit wall (user screenshot, v0.9.1). A black cap joins the wing's outer edge (upper part),
 # the hood end and the wall, kept under the glass.
 for s in (-1, 1):
-    cap = [pp(s * WING_OUT[s][k], WING_V[k], 0.002, 1) for k in range(4, 9)]
+    cap = [pp(s * (WING_OUT[s][k] - 0.006), WING_V[k], 0.0005, 1) for k in range(3, 9)]   # overlaps the wing edge 6 mm: no hairline at the seam
     if s < 0:
         cap = cap[::-1]
     yh = hood_y(0.36) - 0.02
     zw = gs_back
     xw = wall_x(yh, zw) - 0.004
     top = [(s * 0.36, yh, zw), (s * xw, under_glass(s * xw, yh, zw, 0.006), zw)]
-    x4, y4, z4 = pp(s * WING_OUT[s][4], WING_V[4], 0.002, 1)
+    x4, y4, z4 = pp(s * WING_OUT[s][3], WING_V[3], 0.0, 1)
     low = (s * (wall_x(y4, z4) - 0.004), y4, z4)
     ring = (cap + top + [low]) if s > 0 else ([low] + top[::-1] + cap)
     cx = sum(p[0] for p in ring) / len(ring); cy = sum(p[1] for p in ring) / len(ring); cz = sum(p[2] for p in ring) / len(ring)
     for i in range(len(ring)):
         tri = [(cx, cy, cz), ring[i], ring[(i + 1) % len(ring)]]
-        poly_paint("tub", tri, "black"); poly_paint("tub", tri[::-1], "black")   # both sides: seen from the seat whichever way it winds
+        # both sides (seen from the seat whichever way it winds), in the panel colour. The back copy sits 0.5 mm off: on the same
+        # vertices the export's remove_doubles merged the two and dropped one, and where the one left faced away Unity culled it,
+        # so the cap was missing in game and the outside showed between the dash and the bow foot (user screenshot, 0.9.2)
+        n = (Vector(tri[1]) - Vector(tri[0])).cross(Vector(tri[2]) - Vector(tri[0])).normalized() * 0.0005
+        poly_paint("tub", tri, "turq"); poly_paint("tub", [tuple(Vector(p) - n) for p in tri[::-1]], "turq")
 # dark back wall behind the whole panel: closes the gaps around the folded side panels (the fuselage skin is hidden in the cockpit
 # view, so any gap there looks straight outside)
 Z_BW = 7.37
@@ -1277,6 +1285,8 @@ if PREVIEW:
     m_ck = mat("ck", img); m_glass = mat("glass", color=(0.6, 0.75, 0.7, 1), alpha=0.15, rough=0.05)
     m_screen = mat("screen", color=(0.02, 0.1, 0.06, 1), emit=(0.05, 0.35, 0.18, 1)); m_lamp = mat("lamp", color=(0.4, 0.1, 0.05, 1))
     m_skin = mat("skin", skin); m_body = mat("body", color=(0.45, 0.47, 0.5, 1), rough=0.5)
+    if os.environ.get("MIG29_CULL"):   # like Unity: back faces not drawn (one-sided faces turned the wrong way show as holes)
+        m_ck.use_backface_culling = True
     for name, me in meshes.items():
         ob = bpy.data.objects.new("ck_" + name, me); scene.collection.objects.link(ob)
         ob.data.materials.append({"glass": m_glass, "screen": m_screen, "lamps": m_lamp}.get(name, m_ck))
