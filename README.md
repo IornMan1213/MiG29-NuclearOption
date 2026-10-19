@@ -9,7 +9,8 @@ doors, a custom cockpit damage display, and nine liveries. Its three rear-view m
 [![Latest release](https://img.shields.io/github/v/release/IornMan1213/MiG29-NuclearOption?include_prereleases&label=release)](https://github.com/IornMan1213/MiG29-NuclearOption/releases)
 [![Licence: code MIT, model CC BY-NC-SA 4.0](https://img.shields.io/badge/licence-MIT%20%2B%20CC%20BY--NC--SA%204.0-blue)](#licence)
 [![Nuclear Option + Blueprinter](https://img.shields.io/badge/Nuclear%20Option-Blueprinter%202.0.1%2B-red)](https://github.com/nikkorap/NOBlueprinter-Releases)
-![GitHub Downloads (all assets, latest release)](https://img.shields.io/github/downloads/IornMan1213/MiG29-NuclearOption/latest/total?style=flat)
+![GitHub Downloads (all assets, latest release)](https://img.shields.io/github/downloads/IornMan1213/MiG29-NuclearOption/latest/total?style=flat&link=https%3A%2F%2Fgithub.com%2FIornMan1213%2FMiG29-NuclearOption%2Freleases%2Flatest)
+
 
 
 
