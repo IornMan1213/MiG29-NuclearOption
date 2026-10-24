@@ -6,7 +6,9 @@ param(
     [string]$Unity = "C:\Program Files\Unity\Hub\Editor\2022.3.62f2\Editor\Unity.exe",
     [string]$Blender = "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe",
     [switch]$Release,          # back the build up to builds/ and the GitHub `builds` branch (tools/backup_build.py)
-    [string]$Note = ""         # notes column for that version
+    [string]$Note = "",        # notes column for that version
+    [switch]$Quick             # skip the generated sources (models, liveries, cockpit mesh) when they are already there: for
+                               # cockpit editor changes, which only the Unity pass uses
 )
 $ErrorActionPreference = "Stop"
 if (-not $Project -or -not (Test-Path (Join-Path $Project "Assets"))) { throw "Pass -Project <Blueprinter-Editor folder> or set BLUEPRINTER_PROJECT" }
@@ -25,8 +27,19 @@ New-Item -ItemType Directory -Force $dst | Out-Null
 Copy-Item (Join-Path (Split-Path $PSScriptRoot) "unity\MiG29Tools\*.cs") $dst -Force
 
 # 0b. Generated sources: missile/launcher models, the flight-model export and the livery textures.
-$tools = $PSScriptRoot
 $src = "$Project\MiG29Source"
+# cockpit editor elements (decals, custom screens): <repo>\cockpit\build, written by the editor (Documents\CockpitEditor)
+Remove-Item "$src\custom" -Recurse -Force -ErrorAction SilentlyContinue
+$customBuild = Join-Path (Split-Path $PSScriptRoot) "cockpit\build"
+if (Test-Path "$customBuild\custom_mesh.json") { New-Item -ItemType Directory -Force "$src\custom" | Out-Null; Copy-Item "$customBuild\*" "$src\custom" -Force }
+# -Quick skips Blender only when the cockpit mesh there already has the editor's groups (a build from a branch without them
+# writes one without, and the layout could not be applied)
+$hasGroups = $false
+if ($Quick -and (Test-Path "$src\cockpit_mesh.json")) {
+    $hasGroups = (python -c "import json,os;p=r'$src';m=json.load(open(os.path.join(p,'cockpit_mesh.json')));b=os.path.join(p,'cockpit_mesh_base.json');m=json.load(open(b)) if m.get('layout_applied') and os.path.exists(b) else m;print(1 if m.get('groups') else 0)") -eq "1"
+}
+if (-not ($Quick -and $hasGroups)) {
+$tools = $PSScriptRoot
 Push-Location (Split-Path $tools)
 python "$tools\fix_winding.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "fix_winding failed" }   # before anything copies body triangles
 python "$tools\clean_insignia.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "clean_insignia failed" }
@@ -58,6 +71,14 @@ $ckOld = if (Test-Path "$src\cockpit_mesh.json") { (Get-Item "$src\cockpit_mesh.
 & $Blender -b --python "$(Split-Path $tools)\blender\cockpit_build.py" -- "$src" | Select-String '\[cockpit\]|Error|Traceback' | ForEach-Object { $_.Line }
 if (-not (Test-Path "$src\cockpit_mesh.json") -or (Get-Item "$src\cockpit_mesh.json").LastWriteTime -le $ckOld) { throw "cockpit_build failed" }
 Pop-Location
+}
+
+# cockpit editor layout (moved / turned / scaled / hidden instruments): the builder sets the instrument groups' transforms from
+# <source>\custom\layout.json (they are their own objects, which the plugins also move at runtime for .cpit setups). A cockpit
+# mesh an older build baked a layout into is put back to Blender's output first.
+if ((Test-Path "$src\cockpit_mesh_base.json") -and (Select-String -Path "$src\cockpit_mesh.json" -Pattern '"layout_applied": true' -SimpleMatch -Quiet)) { Copy-Item "$src\cockpit_mesh_base.json" "$src\cockpit_mesh.json" -Force }
+$layoutFile = Join-Path (Split-Path $PSScriptRoot) "cockpit\layout.json"
+if (Test-Path $layoutFile) { New-Item -ItemType Directory -Force "$src\custom" | Out-Null; Copy-Item $layoutFile "$src\custom\layout.json" -Force }
 
 # 1. Compile pass. Blueprinter keeps the game's Assembly-CSharp in ScriptAssemblies read-only, which makes
 #    batchmode compilation fail; clear it so the project compiles.
