@@ -22,6 +22,7 @@ namespace MiG29Instruments
         readonly Dictionary<GameObject, Hidden> hidden = new Dictionary<GameObject, Hidden>();
         float nextScan;
         bool wasActive;
+        readonly List<GameObject> gone = new List<GameObject>();
 
         void LateUpdate()
         {
@@ -41,7 +42,7 @@ namespace MiG29Instruments
                 try { Scan(); } catch (Exception e) { MiG29InstrumentsPlugin.Log.LogError(e); nextScan = Time.unscaledTime + 10f; }
             }
             wasActive = true;
-            var gone = new List<GameObject>();
+            gone.Clear();
             foreach (var kv in hidden)
             {
                 if (kv.Key == null || kv.Value.group == null) { gone.Add(kv.Key); continue; }

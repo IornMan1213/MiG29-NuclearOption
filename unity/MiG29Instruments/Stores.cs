@@ -143,7 +143,7 @@ namespace MiG29Instruments
             if (ac == null || ac.remoteSim || jettisoning) return;
             if (IsPlayer(ac))
             {
-                if (MiG29InstrumentsPlugin.JettisonKey.Value.IsDown() && Carrying) StartCoroutine(Jettison(false));
+                if (Carrying && Hotkeys.Down(MiG29InstrumentsPlugin.JettisonKey)) StartCoroutine(Jettison(false));
                 else if (MiG29InstrumentsPlugin.AutoDropEmpty.Value && TanksEmpty) StartCoroutine(Jettison(true));
             }
             else if (ac.IsServer && TanksEmpty) StartCoroutine(Jettison(true));   // AI pilots drop their tanks once dry

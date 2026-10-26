@@ -86,52 +86,60 @@ namespace MiG29Tools
 
         static readonly float[] SectorBearings = { -150, -120, -60, -30, 30, 60, 120, 150 };
 
+        // lamp ids built once: the plugin asks for the lit set every frame
+        static readonly string[] SpoSector = Ids("spo_s", 8), SpoType = Ids("spo_t", 6), SpoPower = Ids("spo_p", 10);
+        static readonly string[] GearRed = { "gear_nose_r", "gear_left_r", "gear_right_r" }, GearGreen = { "gear_nose_g", "gear_left_g", "gear_right_g" };
+        static string[] Ids(string prefix, int n) { var a = new string[n]; for (int i = 0; i < n; i++) a[i] = prefix + i; return a; }
+
         // Every lit lamp for this state: caution panel (cau_*), radar warning receiver (spo_*), gear lights (gear_*).
-        public static HashSet<string> Lamps(FlightState s)
+        public static HashSet<string> Lamps(FlightState s) => Lamps(s, new HashSet<string>());
+
+        // The same into a set the caller keeps (cleared first), without allocating.
+        public static HashSet<string> Lamps(FlightState s, HashSet<string> on)
         {
-            var on = new HashSet<string>();
-            void C(string id, bool v) { if (v) on.Add("cau_" + id); }
+            on.Clear();
+            void C(string id, bool v) { if (v) on.Add(id); }
             bool engOffL = s.rpmL < 40, engOffR = s.rpmR < 40;
-            C("fire_l", s.fireL && s.blink); C("fire_r", s.fireR && s.blink);
-            C("lowalt", s.airborne && !s.gearDown && s.radAltM < 60 && s.vsMs < -2);
-            C("aoa", s.airborne && s.aoaDeg > 24);
-            C("overg", s.g > 8.5f || s.g < -2.5f);
-            C("missile", s.missileIncoming && s.blink);
-            C("fuel_low", s.fuelFrac < 0.25f);
-            C("fuel_res", s.fuelFrac < 0.10f && s.blink);
-            C("gen_l", engOffL); C("gen_r", engOffR);
-            C("hyd", s.hydraulic < 150);
-            C("lock", s.lockedOn);
-            C("pump", engOffL || engOffR);
-            C("oil", s.damagedL || s.damagedR);
-            C("vib", (s.damagedL && s.rpmL > 60) || (s.damagedR && s.rpmR > 60) || Mathf.Max(s.rpmL, s.rpmR) > 104);
-            C("canopy", s.canopyOpen);
-            C("gear", s.gearMoving || (s.airborne && !s.gearDown && s.iasKmh < 300 && s.radAltM < 300));
-            C("speed", s.iasKmh > 1450 || s.mach > 2.25f);
-            C("ptb", s.ptbEmpty);   // drop tanks carried but dry: drop them
-            C("flaps", s.gearDown && !s.gearMoving && s.airborne);
-            C("brake", s.brake > 0.1f);
-            C("fod", FodClosed(s.onGround, s.iasKmh, s.rpmL, s.rpmR));
-            C("ab", s.throttle > 0.9f && (s.rpmL > 90 || s.rpmR > 90));
+            C("cau_fire_l", s.fireL && s.blink); C("cau_fire_r", s.fireR && s.blink);
+            C("cau_lowalt", s.airborne && !s.gearDown && s.radAltM < 60 && s.vsMs < -2);
+            C("cau_aoa", s.airborne && s.aoaDeg > 24);
+            C("cau_overg", s.g > 8.5f || s.g < -2.5f);
+            C("cau_missile", s.missileIncoming && s.blink);
+            C("cau_fuel_low", s.fuelFrac < 0.25f);
+            C("cau_fuel_res", s.fuelFrac < 0.10f && s.blink);
+            C("cau_gen_l", engOffL); C("cau_gen_r", engOffR);
+            C("cau_hyd", s.hydraulic < 150);
+            C("cau_lock", s.lockedOn);
+            C("cau_pump", engOffL || engOffR);
+            C("cau_oil", s.damagedL || s.damagedR);
+            C("cau_vib", (s.damagedL && s.rpmL > 60) || (s.damagedR && s.rpmR > 60) || Mathf.Max(s.rpmL, s.rpmR) > 104);
+            C("cau_canopy", s.canopyOpen);
+            C("cau_gear", s.gearMoving || (s.airborne && !s.gearDown && s.iasKmh < 300 && s.radAltM < 300));
+            C("cau_speed", s.iasKmh > 1450 || s.mach > 2.25f);
+            C("cau_ptb", s.ptbEmpty);   // drop tanks carried but dry: drop them
+            C("cau_flaps", s.gearDown && !s.gearMoving && s.airborne);
+            C("cau_brake", s.brake > 0.1f);
+            C("cau_fod", FodClosed(s.onGround, s.iasKmh, s.rpmL, s.rpmR));
+            C("cau_ab", s.throttle > 0.9f && (s.rpmL > 90 || s.rpmR > 90));
             bool anyWarn = on.Count > 0 && !(on.Count == 1 && (on.Contains("cau_brake") || on.Contains("cau_fod") || on.Contains("cau_ab") || on.Contains("cau_flaps")));
-            C("master", anyWarn && (s.airborne || s.fireL || s.fireR) && s.blink);
+            C("cau_master", anyWarn && (s.airborne || s.fireL || s.fireR) && s.blink);
 
             // SPO-15: sector lamps nearest each emitter's bearing, power ladder, threat type
             foreach (var (bearing, type) in s.rwr)
             {
                 int best = 0; float bestD = 999;
                 for (int i = 0; i < SectorBearings.Length; i++) { float d = Mathf.Abs(Mathf.DeltaAngle(bearing, SectorBearings[i])); if (d < bestD) { bestD = d; best = i; } }
-                if (!s.missileIncoming || s.blink) on.Add("spo_s" + best);
-                if (type >= 0 && type <= 5) on.Add("spo_t" + type);
+                if (!s.missileIncoming || s.blink) on.Add(SpoSector[best]);
+                if (type >= 0 && type <= 5) on.Add(SpoType[type]);
             }
             int bars = Mathf.RoundToInt(Mathf.Clamp01(s.rwrPower) * 10);
-            for (int i = 0; i < bars; i++) on.Add("spo_p" + i);
+            for (int i = 0; i < bars && i < SpoPower.Length; i++) on.Add(SpoPower[i]);
 
             // gear: green down and locked, red in transit
-            foreach (var g in new[] { "nose", "left", "right" })
+            for (int i = 0; i < 3; i++)
             {
-                if (s.gearMoving) on.Add($"gear_{g}_r");
-                else if (s.gearDown) on.Add($"gear_{g}_g");
+                if (s.gearMoving) on.Add(GearRed[i]);
+                else if (s.gearDown) on.Add(GearGreen[i]);
             }
             return on;
         }

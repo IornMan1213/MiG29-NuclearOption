@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.9.3 (unreleased)
+**Fixes and smoother frame rates.**
+- **Brake chute brakes the same at any frame rate.** Its drag was added once per frame instead of once per physics step, so on a
+  fast PC (144 fps) the chute stopped the jet about three times as hard as at 50 fps, and on a slow one it braked too little.
+- **Smarter Cobra button.** The limiters now come back as soon as the move is over (the nose has been past 35 degrees and is back
+  under 15, or the jet has slowed below 140 km/h) instead of always after 4 seconds; "Cobra time" is now the longest it stays off.
+  A short tone sounds when the limiters go off and when they come back (Configuration Manager, MiG-29 Instruments > Flight >
+  Cobra sound).
+- **Keys behave.** The Cobra, jettison, mirror and cockpit-setup keys no longer fire while you type in chat or a text box (Ctrl+C
+  is copy) or while the game is paused, and Ctrl+M no longer folds the MiG's mirrors while you fly another aircraft. Each key's
+  description now says how to bind a joystick button, including one on a particular controller (`Joystick1Button5`).
+- **Cockpit lights follow the sun.** The night panel lighting fades in by the height of the game's sun instead of at fixed times
+  (06:30 and 18:30), so it comes on at dusk on every map.
+- **Less work for jets far away.** The nozzle petals of distant MiGs are no longer moved every frame where they are not even drawn,
+  and the plugin no longer searches the whole scene to find each new MiG's parts.
+- **Bullet holes cost less.** No extra checks on bullet impacts when there is no MiG in the mission, at most 12 new holes per frame,
+  and the materials made for a jet's holes are freed when it goes (they stayed in memory until the next mission).
+- Small per-frame memory allocations in the cockpit instruments removed (less garbage-collection stutter).
+
 ## 0.9.2 (Update 9.2)
 **A proper damage model, less lag, a cleaner dash and a cleaner skin.**
 - **Damage like the stock jets.** Hit parts now gather soot, dented panels and black scorched patches that spread as they take

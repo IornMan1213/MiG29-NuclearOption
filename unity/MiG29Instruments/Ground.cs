@@ -12,15 +12,31 @@ namespace MiG29Instruments
 
     static class MiGParts
     {
-        // aircraft parts are separate physics roots in flight: look through every part of this aircraft
-        public static IEnumerable<Transform> Named(Aircraft ac, string prefix)
+        // Aircraft parts are separate physics roots in flight: look through the aircraft and every part in its part list that is no
+        // longer under it. (This used to search every UnitPart in the scene, once a second per driver and per MiG spawned.)
+        public static IEnumerable<Transform> Roots(Aircraft ac)
         {
-            foreach (var part in Object.FindObjectsOfType<UnitPart>())
-            {
-                if (part.parentUnit != ac) continue;
-                foreach (var t in part.GetComponentsInChildren<Transform>(true))
-                    if (t.name.StartsWith(prefix)) yield return t;
-            }
+            yield return ac.transform;
+            var parts = ((Unit)ac).partLookup;
+            if (parts == null) yield break;
+            foreach (var p in parts)
+                if (p != null && !p.transform.IsChildOf(ac.transform)) yield return p.transform;
+        }
+
+        public static List<Transform> Named(Aircraft ac, string prefix)
+        {
+            var found = new List<Transform>();
+            foreach (var root in Roots(ac))
+                foreach (var t in root.GetComponentsInChildren<Transform>(true))
+                    if (t.name.StartsWith(prefix)) found.Add(t);
+            if (found.Count == 0)   // a part the list does not carry: the old scene-wide search, once
+                foreach (var part in Object.FindObjectsOfType<UnitPart>())
+                {
+                    if (part.parentUnit != ac) continue;
+                    foreach (var t in part.GetComponentsInChildren<Transform>(true))
+                        if (t.name.StartsWith(prefix) && !found.Contains(t)) found.Add(t);
+                }
+            return found;
         }
 
         public static float RpmPercent(float ratio) => ratio <= 0.33f ? ratio / 0.33f * 70f : 70f + (ratio - 0.33f) / 0.67f * 30f;
@@ -80,7 +96,7 @@ namespace MiG29Instruments
         Transform attachPart;
         Vector3 attachLocal;
         GameObject chute;
-        float deployT, onGroundT;
+        float deployT, onGroundT, fill;
         bool armed, deployed;
         Vector3 releaseVel;
         float releaseT;
@@ -138,7 +154,7 @@ namespace MiG29Instruments
             chute = new GameObject("MiG29_brake_chute");
             chute.AddComponent<MeshFilter>().sharedMesh = mesh;
             chute.AddComponent<MeshRenderer>().sharedMaterial = mat;
-            deployed = true; armed = false; deployT = 0f;
+            deployed = true; armed = false; deployT = 0f; fill = 0f;
             Pose();
         }
 
@@ -161,15 +177,22 @@ namespace MiG29Instruments
             float sway = Mathf.Sin(Time.time * 7.5f + GetInstanceID());
             var dir = Quaternion.AngleAxis(2.5f * sway, Vector3.up) * Quaternion.AngleAxis(-2f + 1.5f * Mathf.Sin(Time.time * 5.3f), Vector3.Cross(back, Vector3.up)) * back;
             float stream = Mathf.SmoothStep(0.25f, 1f, deployT / 0.5f);
-            float fill = Mathf.SmoothStep(0.12f, 1f, (deployT - 0.3f) / 0.9f) * (1f + 0.025f * sway);
+            fill = Mathf.SmoothStep(0.12f, 1f, (deployT - 0.3f) / 0.9f) * (1f + 0.025f * sway);
             chute.transform.SetPositionAndRotation(a, Quaternion.LookRotation(dir, Vector3.up));
             chute.transform.localScale = new Vector3(fill, fill, stream);
+        }
 
-            if (rb != null && !ac.remoteSim)
-            {
-                float q = 0.5f * ac.GetAirDensity() * v.sqrMagnitude;
-                rb.AddForceAtPosition(-v.normalized * q * CdS * fill * fill, a);
-            }
+        // The drag goes on in the physics step, where the aircraft is simulated (the owner). It used to be added in Update, and Unity
+        // sums forces until the next physics step: at 144 fps the chute braked about three times as hard as at 50 fps.
+        void FixedUpdate()
+        {
+            if (!deployed || chute == null || attachPart == null || ac == null || ac.remoteSim) return;
+            var rb = attachPart.GetComponentInParent<Rigidbody>();
+            if (rb == null) return;
+            var v = rb.velocity;
+            if (v.sqrMagnitude < 1f) return;
+            float q = 0.5f * ac.GetAirDensity() * v.sqrMagnitude;
+            rb.AddForceAtPosition(-v.normalized * q * CdS * fill * fill, attachPart.TransformPoint(attachLocal));
         }
 
         // dropped: it drifts on, collapses and settles, then goes

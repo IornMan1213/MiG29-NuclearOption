@@ -37,7 +37,10 @@ namespace MiG29Instruments
 
         void Find()
         {
-            foreach (var g in FindObjectsOfType<LandingGear>())
+            var gears = new List<LandingGear>();
+            foreach (var root in MiGParts.Roots(ac)) gears.AddRange(root.GetComponentsInChildren<LandingGear>(true));
+            if (gears.Count == 0) gears.AddRange(FindObjectsOfType<LandingGear>());   // a part the list does not carry: the scene-wide search
+            foreach (var g in gears)
             {
                 if ((Aircraft)fAircraft.GetValue(g) != ac) continue;
                 var hinge = fHinge.GetValue(g) as Transform;

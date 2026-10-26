@@ -64,7 +64,7 @@ namespace MiG29Instruments
         public static void Update()
         {
             if (selected == null) return;
-            if (nextKey != null && nextKey.Value.IsDown())
+            if (Hotkeys.Down(nextKey))
             {
                 var names = new List<string> { Default }; names.AddRange(Scan());
                 int i = names.FindIndex(n => string.Equals(n, selected.Value, StringComparison.OrdinalIgnoreCase));
