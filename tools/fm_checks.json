@@ -1,0 +1,12 @@
+{
+ "_note": "Ranges for python tools/fm_sim.py --check: today's numbers with a margin, so a change that moves the flight model far from them fails. Published MiG-29 (9.12): ~1,500 km/h at sea level, Mach 2.25 at altitude, ~28 deg/s instantaneous and ~19-21 deg/s sustained turn, 260-330 m/s climb (the game has no drag rise, so ours is lower: see DEVLOG). static_arm_m > 0 means stable.",
+ "limits": {
+  "static_arm_m": [0.3, 0.9],
+  "top_speed_sl_kmh": [1500, 1650],
+  "mach_13km": [2.15, 2.35],
+  "stall_kmh": [190, 230],
+  "instantaneous_turn_deg_s": [26, 30],
+  "sustained_turn_deg_s": [18.5, 23],
+  "climb_sl_m_s": [200, 340]
+ }
+}

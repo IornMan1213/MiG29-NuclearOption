@@ -3,7 +3,7 @@ leg posed, right leg = its mirror), the strut-top yoke above the skin trimmed, f
 python main_gear_apply.py <MiG29Out>"""
 import json, os, sys
 import numpy as np
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # archived: the shared modules are one folder up
 OUT = sys.argv[1]
 R = json.load(open(os.path.join(OUT, os.environ.get("RESULT", "main_gear_search.json"))))
 NEWLEG = os.environ.get("NEWLEG")

@@ -3,8 +3,8 @@ rises through the bay opening without cutting the skin), then slide into the sto
 along candidate paths. python main_gear_path.py <MiG29Source> <MiG29Out>"""
 import json, os, sys
 import numpy as np
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "tools"))
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "tools"))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # archived: the shared modules are one folder up
 import bay_grid
 from main_gear_search_lib import pose_points
 
