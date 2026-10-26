@@ -123,6 +123,7 @@ namespace MiG29Instruments
         Transform origin, cockpitPart;
         readonly List<Renderer> buildItems = new List<Renderer>();
         readonly List<GameObject> created = new List<GameObject>();
+        readonly List<UnityEngine.Object> owned = new List<UnityEngine.Object>();   // meshes, materials, pictures made for the setup
         Material ckMat, tacMat;
         Texture2D metal;
         int layer;
@@ -151,6 +152,8 @@ namespace MiG29Instruments
         {
             foreach (var o in created) if (o != null) Destroy(o);
             created.Clear();
+            foreach (var o in owned) if (o != null) Destroy(o);   // not freed with their objects: switching setups leaked them
+            owned.Clear();
             foreach (var g in groups.Values) if (g.t != null) { g.t.localPosition = g.p; g.t.localRotation = g.r; g.t.localScale = g.s; }
             if (tac?.t != null) { tac.t.localPosition = tac.p; tac.t.localRotation = tac.r; tac.t.localScale = tac.s; }
             foreach (var r in buildItems) if (r != null) r.enabled = true;
@@ -186,6 +189,7 @@ namespace MiG29Instruments
                 string name = MiG29Json.Str(po, "name"), mat = MiG29Json.Str(po, "material");
                 if (string.IsNullOrEmpty(name) || name.IndexOfAny(new[] { '/', '\\' }) >= 0) throw new Exception("a part without a proper name");
                 var mesh = MakeMesh(po, origin.localPosition, "MiG29_ck_" + name);
+                owned.Add(mesh);
                 Material m = ckMat;
                 if (mat == "decal")
                 {
@@ -195,6 +199,7 @@ namespace MiG29Instruments
                     if (!ImageConversion.LoadImage(tex, Convert.FromBase64String(str))) throw new Exception($"decal {name}: bad picture");
                     if (metal == null) { metal = new Texture2D(4, 4, TextureFormat.RGBA32, false); var px = new Color32[16]; for (int k = 0; k < 16; k++) px[k] = new Color32(0, 0, 0, 70); metal.SetPixels32(px); metal.Apply(); }
                     m = new Material(ckMat) { name = "MiG29_cpit_" + name };
+                    owned.Add(tex); owned.Add(m);
                     m.SetTexture("_Basecolor", tex); m.SetTexture("_Livery", tex); m.SetTexture("_BasecolorDmg", tex); m.SetTexture("_Metallic", metal);
                 }
                 else if (mat == "tac" && tacMat != null) m = tacMat;
@@ -233,6 +238,11 @@ namespace MiG29Instruments
             return m;
         }
 
-        void OnDestroy() { if (CockpitSetups.Current == this) CockpitSetups.Current = null; }
+        void OnDestroy()
+        {
+            if (CockpitSetups.Current == this) CockpitSetups.Current = null;
+            foreach (var o in owned) if (o != null) Destroy(o);
+            if (metal != null) Destroy(metal);
+        }
     }
 }
