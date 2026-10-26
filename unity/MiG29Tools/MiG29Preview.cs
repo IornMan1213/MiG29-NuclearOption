@@ -71,7 +71,9 @@ namespace MiG29Tools
                     {
                         var id = t.name.Substring("MiG29_ins_".Length); var nd = t.Find("needle");
                         if (MiG29InstrumentMath.Pose(id, st, out var lp, out var lr)) { nd.localPosition = lp; nd.localRotation = lr; }
-                        else nd.localRotation = id == "adi_ball" ? MiG29InstrumentMath.Ball(st) : Quaternion.Euler(0f, 0f, -MiG29InstrumentMath.Needles[id](st));
+                        else if (id == "adi_ball") nd.localRotation = MiG29InstrumentMath.Ball(st);
+                        else if (MiG29InstrumentMath.Needles.TryGetValue(id, out var f)) nd.localRotation = Quaternion.Euler(0f, 0f, -f(st));
+                        // (the mirrors share the instrument naming but are folded by the plugin's MirrorFolder: nothing to pose)
                     }
                     litLamps = MiG29InstrumentMath.Lamps(st);
                     Debug.Log("[MiG29] pose sample, lit: " + string.Join(" ", litLamps));

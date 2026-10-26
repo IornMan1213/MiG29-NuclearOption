@@ -18,6 +18,9 @@
 - **Bullet holes cost less.** No extra checks on bullet impacts when there is no MiG in the mission, at most 12 new holes per frame,
   and the materials made for a jet's holes are freed when it goes (they stayed in memory until the next mission).
 - Small per-frame memory allocations in the cockpit instruments removed (less garbage-collection stutter).
+- **One download.** Releases now come as a single zip (`MiG-29-Fulcrum_x.y.z.zip`, what NOMM installs) holding the `.nobp`, the
+  plugin and the credits. The separate `.nobp` download is gone: GitHub renamed it to `MiG-29.Fulcrum_…`, so hand installs could
+  end up with two copies of the mod.
 
 ## 0.9.2 (Update 9.2)
 **A proper damage model, less lag, a cleaner dash and a cleaner skin.**
