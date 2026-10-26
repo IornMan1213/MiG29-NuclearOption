@@ -26,20 +26,29 @@ namespace MiG29Instruments
 
         void Find()
         {
-            // aircraft parts are separate physics roots in flight: look through every part of this aircraft
-            foreach (var part in FindObjectsOfType<UnitPart>())
+            foreach (var t in MiGParts.Named(ac, "MiG29_noz_"))
             {
-                if (part.parentUnit != ac) continue;
-                foreach (var t in part.GetComponentsInChildren<Transform>(true))
-                {
-                    if (!t.name.StartsWith("MiG29_noz_")) continue;
-                    var bits = t.name.Split('_');              // MiG29, noz, L|R, kind, index
-                    if (bits.Length < 5 || !int.TryParse(bits[4], out int i)) continue;
-                    var n = nozzles[bits[2] == "L" ? 0 : 1];
-                    float phase = bits[3] == "flap" ? 0f : bits[3] == "seal" ? 0.5f : 0.25f;
-                    n.petals.Add(new Petal { t = t, kind = bits[3], spin = Quaternion.AngleAxis(360f * (i + phase) / Count, Vector3.forward) });
-                }
+                var bits = t.name.Split('_');              // MiG29, noz, L|R, kind, index
+                if (bits.Length < 5 || !int.TryParse(bits[4], out int i)) continue;
+                var n = nozzles[bits[2] == "L" ? 0 : 1];
+                float phase = bits[3] == "flap" ? 0f : bits[3] == "seal" ? 0.5f : 0.25f;
+                n.petals.Add(new Petal { t = t, kind = bits[3], spin = Quaternion.AngleAxis(360f * (i + phase) / Count, Vector3.forward) });
             }
+        }
+
+        // The petals are only drawn out to the outside level of detail (~2.3 km, MiG29Lod): nothing to pose beyond it, and every
+        // fourth frame past 600 m, where a frame's movement is under a pixel.
+        const float SkipBeyond = 2400f, SlowBeyond = 600f;
+        float lastPose = -1f;
+
+        bool Due()
+        {
+            var cam = Camera.main;
+            var p = nozzles[0].petals.Count > 0 ? nozzles[0].petals[0].t : nozzles[1].petals[0].t;
+            if (cam == null || p == null) return true;
+            float d2 = (p.position - cam.transform.position).sqrMagnitude;
+            if (d2 > SkipBeyond * SkipBeyond) return false;
+            return d2 < SlowBeyond * SlowBeyond || ((Time.frameCount + GetInstanceID()) & 3) == 0;
         }
 
         static float Target(float rpmPercent, bool afterburner, bool running)
@@ -60,11 +69,14 @@ namespace MiG29Instruments
                 Find();
                 return;
             }
+            if (!Due()) return;
+            float dt = lastPose < 0f ? Time.deltaTime : Mathf.Min(Time.time - lastPose, 1f);   // time since the last pose, frames skipped included
+            lastPose = Time.time;
             if (cockpit == null && ac.cockpit != null) cockpit = ((Component)ac.cockpit).GetComponentInChildren<Cockpit>(true);
             var engines = cockpit != null ? cockpit.GetEngineStates() : null;
             var inputs = ac.GetInputs();
             float throttle = inputs != null ? inputs.throttle : 0f;
-            float k = 1f - Mathf.Exp(-Time.deltaTime / 0.6f);          // the nozzle actuators take about a second
+            float k = 1f - Mathf.Exp(-dt / 0.6f);          // the nozzle actuators take about a second
             for (int e = 0; e < 2; e++)
             {
                 var n = nozzles[e];

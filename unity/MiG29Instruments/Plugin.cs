@@ -28,6 +28,7 @@ namespace MiG29Instruments
         internal static BepInEx.Configuration.ConfigEntry<BepInEx.Configuration.KeyboardShortcut> MirrorFoldKey;
         internal static BepInEx.Configuration.ConfigEntry<BepInEx.Configuration.KeyboardShortcut> CobraKey;
         internal static BepInEx.Configuration.ConfigEntry<float> CobraSeconds;
+        internal static BepInEx.Configuration.ConfigEntry<bool> CobraSound;
 
         void Awake()
         {
@@ -38,7 +39,7 @@ namespace MiG29Instruments
             PanelLighting = Config.Bind("Cockpit", "Night panel lighting", 1f,
                 new BepInEx.Configuration.ConfigDescription("Brightness of the cockpit flood lights at night (0 = off)", new BepInEx.Configuration.AcceptableValueRange<float>(0f, 4f)));
             JettisonKey = Config.Bind("Drop tanks", "Jettison key", new BepInEx.Configuration.KeyboardShortcut(KeyCode.J, KeyCode.LeftControl),
-                "Drops all drop tanks at once (they can also be selected and fired like any store)");
+                "Drops all drop tanks at once (they can also be selected and fired like any store). " + Hotkeys.JoystickHelp);
             AutoDropEmpty = Config.Bind("Drop tanks", "Drop empty tanks automatically", false,
                 "Release your drop tanks by themselves once they run dry (AI-flown MiGs always do)");
             HideGlassHud = Config.Bind("HUD", "Hide flight HUD", false,
@@ -50,12 +51,13 @@ namespace MiG29Instruments
                 "Fold the three rear-view mirrors flat along the inside of the canopy, out of the way of the forward view. " +
                 "With the NO Mirrors plugin installed they reflect; without it they are plain grey");
             MirrorFoldKey = Config.Bind("Cockpit", "Mirror fold key", new BepInEx.Configuration.KeyboardShortcut(KeyCode.M, KeyCode.LeftControl),
-                "Folds or unfolds the mirrors in flight (flips \"Fold mirrors\")");
+                "Folds or unfolds the mirrors in flight (flips \"Fold mirrors\"). " + Hotkeys.JoystickHelp);
             CobraKey = Config.Bind("Flight", "Cobra key", new BepInEx.Configuration.KeyboardShortcut(KeyCode.C, KeyCode.LeftControl),
                 "Turns Stability Assist (the pitch, g and AoA limiters) off for a few seconds for a Cobra or other post-stall move, then back on. " +
-                "Press again to end it early. Can be a joystick button (e.g. JoystickButton5)");
+                "Press again to end it early. " + Hotkeys.JoystickHelp);
             CobraSeconds = Config.Bind("Flight", "Cobra time", 4f,
-                new BepInEx.Configuration.ConfigDescription("Seconds the limiters stay off after the Cobra key", new BepInEx.Configuration.AcceptableValueRange<float>(1f, 10f)));
+                new BepInEx.Configuration.ConfigDescription("Longest time the limiters stay off after the Cobra key (they come back sooner once the nose is down again or the jet is too slow)", new BepInEx.Configuration.AcceptableValueRange<float>(1f, 10f)));
+            CobraSound = Config.Bind("Flight", "Cobra sound", true, "A short tone when the limiters go off and when they come back on");
             CockpitSetups.Init(Config);   // cockpit setups (.cpit) in the Cockpits folder
             // some games destroy BepInEx's manager object on scene loads: scan from an object of our own
             var go = new GameObject("MiG29InstrumentsScanner");
@@ -117,15 +119,18 @@ namespace MiG29Instruments
                 nextStoresScan = Time.unscaledTime + 2f;
                 try
                 {
+                    bool any = false;
                     foreach (var a in UnityEngine.Object.FindObjectsOfType<Aircraft>())
                         if (((Unit)a).definition != null && ((Unit)a).definition.jsonKey == MiG29Key)
                         {
+                            any = true;
                             if (a.GetComponent<StoresDriver>() == null) a.gameObject.AddComponent<StoresDriver>();
                             if (a.GetComponent<NozzleDriver>() == null) a.gameObject.AddComponent<NozzleDriver>();
                             if (a.GetComponent<GearPathDriver>() == null) a.gameObject.AddComponent<GearPathDriver>();
                             if (a.GetComponent<IntakeDriver>() == null) a.gameObject.AddComponent<IntakeDriver>();
                             if (a.GetComponent<ChuteDriver>() == null) a.gameObject.AddComponent<ChuteDriver>();
                         }
+                    Holes.MiGsPresent = any;
                 }
                 catch (Exception e) { MiG29InstrumentsPlugin.Log.LogError(e); nextStoresScan = Time.unscaledTime + 10f; }
             }
@@ -182,6 +187,8 @@ namespace MiG29Instruments
         readonly List<(Unit emitter, float time, float power, bool target)> radar = new List<(Unit, float, float, bool)>();
         Canopy[] canopies;
         Light panelLight, consoleLight;
+        Light[] lights = new Light[0];
+        readonly HashSet<string> wanted = new HashSet<string>();
         Material litMat;
 
         float lastNight = -1f;
@@ -235,6 +242,7 @@ namespace MiG29Instruments
                 // under the glareshield lip, aimed down the panel; low intensity: the game's exposure adapts to the dark
                 panelLight = MakeLight("MiG29_panel_light", adi.position - adi.forward * 0.10f + adi.up * 0.07f, adi, 0.55f, new Color(1f, 0.55f, 0.42f));
                 consoleLight = MakeLight("MiG29_console_light", adi.position - adi.forward * 0.55f - adi.up * 0.05f, adi, 0.8f, new Color(1f, 0.5f, 0.4f));
+                lights = new[] { panelLight, consoleLight };
             }
             // cockpit setups (.cpit): records the default cockpit and applies the selected setup (anything wrong: the default)
             try { CockpitSetups.Attach(root); } catch (Exception e) { MiG29InstrumentsPlugin.Log.LogError($"cockpit setups: {e}"); }
@@ -254,9 +262,15 @@ namespace MiG29Instruments
             return l;
         }
 
-        // 0 by day, 1 at night (game time of day, hours)
-        static float Night(float tod)
+        // 0 by day, 1 at night: from the height of the game's sun (dusk runs from 4 deg above the horizon to 6 deg below, as civil
+        // twilight), so it follows each map's own sunrise and sunset. Without a sun, by the clock (06:30 / 18:30).
+        static float Night(LevelInfo lvl, float tod)
         {
+            if (lvl != null && lvl.sun != null)
+            {
+                float elevation = Mathf.Asin(Mathf.Clamp(-lvl.sun.transform.forward.y, -1f, 1f)) * Mathf.Rad2Deg;
+                return Mathf.InverseLerp(4f, -6f, elevation);
+            }
             float d = Mathf.Min(Mathf.Abs(tod - 6.5f), Mathf.Abs(tod - 18.5f));
             bool dark = tod < 6.5f || tod > 18.5f;
             return dark ? Mathf.Clamp01(0.5f + d) : Mathf.Clamp01(0.5f - d);
@@ -432,8 +446,8 @@ namespace MiG29Instruments
             if (ball != null) ball.localRotation = first ? MiG29InstrumentMath.Ball(st) : Quaternion.Slerp(ball.localRotation, MiG29InstrumentMath.Ball(st), 1f - Mathf.Exp(-12f * dt));
             first = false;
 
-            float night = Night(st.hours + st.minutes / 60f);
-            foreach (var l in new[] { panelLight, consoleLight })
+            float night = Night(NetworkSceneSingleton<LevelInfo>.i, st.hours + st.minutes / 60f);
+            foreach (var l in lights)
                 if (l != null)
                 {
                     float k = night * MiG29InstrumentsPlugin.PanelLighting.Value;
@@ -445,7 +459,7 @@ namespace MiG29Instruments
                 lastNight = night;
             }
 
-            var on = MiG29InstrumentMath.Lamps(st);
+            var on = MiG29InstrumentMath.Lamps(st, wanted);
             if (Dev && Time.time > nextLog)
             {
                 nextLog = Time.time + 2f;

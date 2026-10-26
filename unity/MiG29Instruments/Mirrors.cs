@@ -21,12 +21,12 @@ namespace MiG29Instruments
         {
             try
             {
-                if (MiG29InstrumentsPlugin.MirrorFoldKey.Value.IsDown())
-                    MiG29InstrumentsPlugin.FoldMirrors.Value = !MiG29InstrumentsPlugin.FoldMirrors.Value;
-
                 var hud = SceneSingleton<CombatHUD>.i;
                 var ac = hud != null ? hud.aircraft : null;
                 if (ac == null || ((Unit)ac).definition == null || ((Unit)ac).definition.jsonKey != MiG29Key) { found = null; mirrors.Clear(); return; }
+                // only while flying the MiG: in another aircraft the key belongs to whatever else it is bound to
+                if (Hotkeys.Down(MiG29InstrumentsPlugin.MirrorFoldKey))
+                    MiG29InstrumentsPlugin.FoldMirrors.Value = !MiG29InstrumentsPlugin.FoldMirrors.Value;
                 if (ac != found)
                 {
                     found = ac; mirrors.Clear(); angle = -1f;

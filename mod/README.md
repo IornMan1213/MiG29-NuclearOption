@@ -23,9 +23,11 @@ Multiplayer: everyone needs the same mod set (Blueprinter checks this).
   ~1,530 km/h at sea level, Mach 2.24 at 13 km, ~210 km/h stall, ~28 deg/s instantaneous and ~19-20 deg/s sustained turn,
   9 g limit. RD-33 engines (52 kN dry / ~90 kN wet in game, no thrust vectoring), 3.7 t internal fuel, 11.5 t empty.
   Radar cross-section of a conventional fighter (radar size 0.2 clean, about the real jet's 5 m²; stores add to it).
-- **Cobra button**: **Ctrl+C** turns Stability Assist (the pitch, g and angle-of-attack limiters) off for 4 seconds for a
-  Cobra or another post-stall move, then back on; press it again to end early. Works below about 630 km/h. Key and time can be
-  changed in Configuration Manager (MiG-29 Instruments > Flight), including to a joystick button.
+- **Cobra button**: **Ctrl+C** turns Stability Assist (the pitch, g and angle-of-attack limiters) off for a Cobra or another
+  post-stall move. They come back on by themselves once the nose is down again or the jet is slower than 140 km/h, after 4
+  seconds at most; press the key again to end it early. A short tone marks both. Works below about 630 km/h. Key, time and tone
+  can be changed in Configuration Manager (MiG-29 Instruments > Flight), including to a joystick button (`JoystickButton5` for
+  any controller, `Joystick1Button5` for the first one). The plugin's keys do nothing while you type in chat.
   Flat all-moving stabilators (pitch + differential roll), rudders, ailerons and flaps all move physically.
 - **Weapons**
   - R-27R (AA-10 Alamo-A): semi-active radar, two-stage motor, ~50 km. Keep your radar locked on the target until impact.

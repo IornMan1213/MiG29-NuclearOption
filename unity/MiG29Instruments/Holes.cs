@@ -18,6 +18,17 @@ namespace MiG29Instruments
     {
         public const string MiG29Key = "mig29_Fulcrum";   // MiG29Builder.JsonKey
         const int MaxCanvases = 4;
+        const int MaxStampsPerFrame = 12;   // a burst landing at once costs at most this many skin searches in one frame
+        static int stampFrame, stampsThisFrame;
+
+        // Set by the scanner every 2 s: any MiG in the scene at all. Without one, bullet impacts skip their extra ray cast.
+        internal static bool MiGsPresent = true;
+
+        internal static bool StampBudget()
+        {
+            if (Time.frameCount != stampFrame) { stampFrame = Time.frameCount; stampsThisFrame = 0; }
+            return ++stampsThisFrame <= MaxStampsPerFrame;
+        }
         static readonly int DmgTex = Shader.PropertyToID("_BasecolorDmg");
         static Material brush;
         static readonly System.Random rng = new System.Random();
@@ -85,6 +96,9 @@ namespace MiG29Instruments
         RenderTexture rt;
         Texture original;
         readonly List<Renderer> skins = new List<Renderer>();
+        // skins whose material Init copied (renderer.material) and the material they had before: the copies are destroyed and the
+        // originals put back when the canvas goes (each hit MiG used to leak a set of materials until the next scene load)
+        readonly List<(Renderer r, Material before, Material copy)> copies = new List<(Renderer, Material, Material)>();
         readonly Dictionary<UnitPart, (MeshFilter mf, Vector3[] v, Vector2[] uv, int[] t)> meshes = new Dictionary<UnitPart, (MeshFilter, Vector3[], Vector2[], int[])>();
         bool dirty;
 
@@ -128,7 +142,13 @@ namespace MiG29Instruments
             rt.Create();
             Graphics.Blit(src, rt);
             rt.GenerateMips();
-            foreach (var r in skins) r.material.SetTexture(Holes.DamageTexId, rt);   // .material: the game's damage tint is per renderer too
+            foreach (var r in skins)
+            {
+                var before = r.sharedMaterial;
+                var m = r.material;   // .material: the game's damage tint is per renderer too
+                if (m != before) copies.Add((r, before, m));
+                m.SetTexture(Holes.DamageTexId, rt);
+            }
             live.Add(this);
             return true;
         }
@@ -139,6 +159,12 @@ namespace MiG29Instruments
             if (rt != null)
             {
                 foreach (var r in skins) if (r != null && r.sharedMaterial != null && r.sharedMaterial.GetTexture(Holes.DamageTexId) == rt) r.sharedMaterial.SetTexture(Holes.DamageTexId, original);
+                foreach (var (r, before, copy) in copies)
+                {
+                    if (r != null && r.sharedMaterial == copy) r.sharedMaterial = before;   // a jet still flying keeps its stock damage map
+                    if (copy != null) Destroy(copy);
+                }
+                copies.Clear();
                 rt.Release(); Destroy(rt); rt = null;
             }
         }
@@ -167,6 +193,7 @@ namespace MiG29Instruments
 
         internal void Stamp(UnitPart part, Vector3 point, Vector3 dir, float size)
         {
+            if (!Holes.StampBudget()) return;
             var (mf, v, uv, t) = Mesh(part);
             if (mf == null) return;
             // the skin under the impact: the first skin triangle along the round's path, from 1.5 m before the hitbox
@@ -245,7 +272,7 @@ namespace MiG29Instruments
 
         static void Postfix(BulletSim.Bullet __instance, (bool impacted, Vector3 vel) __state)
         {
-            if (__state.impacted || !__instance.impacted) return;
+            if (__state.impacted || !__instance.impacted || !Holes.MiGsPresent) return;
             var vel = __state.vel; if (vel.sqrMagnitude < 1f) return;
             var dir = vel.normalized;
             var at = __instance.position.ToLocalPosition();   // set to the hit point less 0.1 m along the path
