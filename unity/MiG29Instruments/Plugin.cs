@@ -29,6 +29,7 @@ namespace MiG29Instruments
         internal static BepInEx.Configuration.ConfigEntry<BepInEx.Configuration.KeyboardShortcut> CobraKey;
         internal static BepInEx.Configuration.ConfigEntry<float> CobraSeconds;
         internal static BepInEx.Configuration.ConfigEntry<bool> CobraSound;
+        internal static BepInEx.Configuration.ConfigEntry<bool> R27RCue;
 
         void Awake()
         {
@@ -58,6 +59,9 @@ namespace MiG29Instruments
             CobraSeconds = Config.Bind("Flight", "Cobra time", 4f,
                 new BepInEx.Configuration.ConfigDescription("Longest time the limiters stay off after the Cobra key (they come back sooner once the nose is down again or the jet is too slow)", new BepInEx.Configuration.AcceptableValueRange<float>(1f, 10f)));
             CobraSound = Config.Bind("Flight", "Cobra sound", true, "A short tone when the limiters go off and when they come back on");
+            R27RCue = Config.Bind("Weapons", "R-27R lock cue", true,
+                "While an R-27R you fired is guiding, a line under the crosshair says to hold the lock, with the time to impact; it says so when the lock is lost");
+            InstallCheck.Run();
             CockpitSetups.Init(Config);   // cockpit setups (.cpit) in the Cockpits folder
             // some games destroy BepInEx's manager object on scene loads: scan from an object of our own
             var go = new GameObject("MiG29InstrumentsScanner");
@@ -67,6 +71,7 @@ namespace MiG29Instruments
             go.AddComponent<GlassHudHider>();
             go.AddComponent<MirrorFolder>();
             go.AddComponent<CobraSwitch>();
+            go.AddComponent<R27RCue>();
             Log.LogInfo("MiG-29 instruments ready");
         }
     }
@@ -247,6 +252,7 @@ namespace MiG29Instruments
             // cockpit setups (.cpit): records the default cockpit and applies the selected setup (anything wrong: the default)
             try { CockpitSetups.Attach(root); } catch (Exception e) { MiG29InstrumentsPlugin.Log.LogError($"cockpit setups: {e}"); }
             MiG29InstrumentsPlugin.Log.LogInfo($"MiG-29 instruments on {ac.name}: {needles.Count} needles, ball {(ball != null)}, {lamps.Count} lamps, {engines.Count} engines");
+            boundAt = Time.time;
         }
 
         Light MakeLight(string name, Vector3 pos, Transform parent, float range, Color col)
@@ -411,7 +417,8 @@ namespace MiG29Instruments
         }
 
         int errors;
-        float nextLog, rawPower;
+        float nextLog, rawPower, boundAt = -1f;
+        static bool installShown;
         static readonly bool Dev = System.IO.File.Exists(System.IO.Path.Combine(BepInEx.Paths.BepInExRootPath, "mig29_dump.flag"));
 
         void LateUpdate()
@@ -423,6 +430,11 @@ namespace MiG29Instruments
 
         void Drive()
         {
+            if (!installShown && InstallCheck.Problem != null && boundAt >= 0f && Time.time > boundAt + 3f)
+            {
+                installShown = true;
+                SceneSingleton<AircraftActionsReport>.i?.ReportText(InstallCheck.Problem, 12f);
+            }
             float dt = Mathf.Min(Time.deltaTime, 0.1f);
             Sample(dt);
             foreach (var n in needles)

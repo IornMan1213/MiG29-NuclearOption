@@ -18,6 +18,12 @@
 - **Bullet holes cost less.** No extra checks on bullet impacts when there is no MiG in the mission, at most 12 new holes per frame,
   and the materials made for a jet's holes are freed when it goes (they stayed in memory until the next mission).
 - Small per-frame memory allocations in the cockpit instruments removed (less garbage-collection stutter).
+- **R-27R "hold the lock" cue.** While an R-27R you fired is guiding, a line under the crosshair says to hold the lock, with the
+  time to impact; if its target drops out of your target list it says the lock is lost (the missile can no longer guide).
+  Configuration Manager, MiG-29 Instruments > Weapons > R-27R lock cue.
+- **Install check.** If two copies of the mod are installed (an old version left behind, or the same one under GitHub's dotted
+  file name), or the plugin and the .nobp come from different releases, the game says so the first time you fly the MiG, and the
+  log lists the files.
 - **One download.** Releases now come as a single zip (`MiG-29-Fulcrum_x.y.z.zip`, what NOMM installs) holding the `.nobp`, the
   plugin and the credits. The separate `.nobp` download is gone: GitHub renamed it to `MiG-29.Fulcrum_…`, so hand installs could
   end up with two copies of the mod.
