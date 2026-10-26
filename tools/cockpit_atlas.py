@@ -8,14 +8,15 @@ builder (blender/cockpit_build.py) turns them into UVs. Drawn at 4x and downsamp
 """
 import json, math, os, random, sys
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
+import fonts
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else "."
 K = 2   # texel density: cells are laid out in "cell px" and stored at K texels per cell px (4096 atlas, sharp up close)
 W = 2048 * K
 SS = 4 * K  # drawing resolution per cell px (4x supersampling of the stored texels)
-FONT = "C:/Windows/Fonts/arialbd.ttf"
-FONT_R = "C:/Windows/Fonts/arial.ttf"
-FONT_N = "C:/Windows/Fonts/bahnschrift.ttf"
+FONT = fonts.find("arialbd.ttf", "LiberationSans-Bold.ttf")
+FONT_R = fonts.find("arial.ttf", "LiberationSans-Regular.ttf")
+FONT_N = fonts.find("bahnschrift.ttf", "DejaVuSansCondensed.ttf")
 
 # paint (sRGB). MiG-29 9.12 interior: blue-green ("turquoise") panels and consoles, black instruments and switch plates.
 PAINT = {

@@ -20,7 +20,7 @@ views = {"eye_fwd": ((ex, ey, ez), (ex, ey + 1, ez - 0.25)), "eye_down": ((ex, e
          "side": ((2.2, 6.7, 1.0), (0, 6.7, 0.8)), "top": ((0, 6.7, 3.0), (0, 6.71, 0.0)), "xside": ((6, 6.7, 0.8), (0, 6.7, 0.8)),
          "eye_left": ((ex, ey, ez), (ex - 1, ey + 0.1, ez - 0.4)), "eye_back": ((ex, ey, ez), (ex, ey - 1, ez - 0.2))}
 body = obs["body"]
-pil = cs.load_obj_unity(r"C:/Users/jayea/Downloads/Blueprinter-Editor/Blueprinter-Editor/MiG29Out/pilot_mig.obj", "pilot"); pil.color = (1, 0.5, 0.1, 1)
+pil = cs.load_obj_unity(os.path.join(os.environ["BLUEPRINTER_PROJECT"], "MiG29Out", "pilot_mig.obj"), "pilot"); pil.color = (1, 0.5, 0.1, 1)
 for zz in (5.5, 6.0, 6.5, 7.0, 7.5, 8.0):
     bpy.ops.mesh.primitive_cube_add(size=0.03, location=cs.u2b(0.45, 0.2, zz)); bpy.context.object.color = (1, 0, 0, 1)
 for yy in (0.4, 0.6, 0.8, 1.0, 1.2):
