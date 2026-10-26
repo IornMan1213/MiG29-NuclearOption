@@ -4,7 +4,7 @@ left leg posed, right leg its mirror). In-flight poses use the fully extended un
 python main_gear_apply2.py <MiG29Source> <MiG29Out>   env: RESULT (default main_gear_search2.json), EXT (1 / 0)"""
 import json, os, sys
 import numpy as np
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # archived: the shared modules are one folder up
 from main_gear_search_lib import rot
 
 SRC, OUT = sys.argv[1], sys.argv[2]
