@@ -22,10 +22,10 @@ doors, a custom cockpit damage display, and nine liveries. Its three rear-view m
 1. Install [BepInEx 5](https://github.com/BepInEx/BepInEx) into the Nuclear Option folder.
 2. Install [Blueprinter](https://github.com/nikkorap/NOBlueprinter-Releases) 2.0.1 or newer into `BepInEx/plugins`.
 3. Install it with a mod manager that uses [NOMNOM](https://github.com/KopterBuzz/NOMNOM) (e.g. NOMM), or by hand: download
-   `MiG-29-Fulcrum_x.y.z.zip` (or `MiG-29 Fulcrum_x.y.z.nobp` and `MiG29Instruments.dll`) from the newest
-   [release](https://github.com/IornMan1213/MiG29-NuclearOption/releases) (every version is also on the
-   [`builds` branch](https://github.com/IornMan1213/MiG29-NuclearOption/tree/builds)) and put both in
-   `BepInEx/plugins/MiG-29_Fulcrum/`. Delete any older versions first. The DLL makes the cockpit instruments work and feeds the drop tanks' fuel.
+   `MiG-29-Fulcrum_x.y.z.zip` from the newest [release](https://github.com/IornMan1213/MiG29-NuclearOption/releases) (every
+   version is also on the [`builds` branch](https://github.com/IornMan1213/MiG29-NuclearOption/tree/builds)) and put the
+   `.nobp` and `MiG29Instruments.dll` from it in `BepInEx/plugins/MiG-29_Fulcrum/`. Delete any older MiG-29 `.nobp` first
+   (older downloads may be named `MiG-29.Fulcrum_x.y.z.nobp`). The DLL makes the cockpit instruments work and feeds the drop tanks' fuel.
 
 See [mod/README.md](mod/README.md) for the full feature list and known limitations.
 
@@ -88,7 +88,7 @@ dumped from the built prefab (`tools/aero_reference.json`, refreshed with `MiG29
 - **The released `.nobp`** contains a converted and modified version of
   ["MiG-29 - Fighter Jet - Free"](https://sketchfab.com/3d-models/mig-29-fighter-jet-free-0a21787096244220b246ec8747e7b09c) by
   **bohmerang**, licensed [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/). The release file is distributed under
-  the same licence: it is free, non-commercial, and requires credit. Renders of the model in `docs/img/` and `assets/` are also covered by CC BY-NC-SA 4.0.
+  the same licence: it is free, non-commercial, and requires credit. Renders of the model in `docs/img/` and `assets/` are also covered by CC BY-NC-SA 4.0. See [LICENSE-MODEL.md](LICENSE-MODEL.md).
 - Nuclear Option is by Shockfront. This is an unofficial fan mod with no affiliation to Shockfront. It uses the game's own
   KR-67 systems at runtime through Blueprinter and does not redistribute any game files.
 - This mod was made with the assistance of AI (Anthropic's Claude), which helped write the code, tools and documentation.

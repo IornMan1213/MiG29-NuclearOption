@@ -24,6 +24,9 @@
 - **Install check.** If two copies of the mod are installed (an old version left behind, or the same one under GitHub's dotted
   file name), or the plugin and the .nobp come from different releases, the game says so the first time you fly the MiG, and the
   log lists the files.
+- **One download.** Releases now come as a single zip (`MiG-29-Fulcrum_x.y.z.zip`, what NOMM installs) holding the `.nobp`, the
+  plugin and the credits. The separate `.nobp` download is gone: GitHub renamed it to `MiG-29.Fulcrum_…`, so hand installs could
+  end up with two copies of the mod.
 
 ## 0.9.2 (Update 9.2)
 **A proper damage model, less lag, a cleaner dash and a cleaner skin.**

@@ -247,3 +247,43 @@ Blueprinter bundles can only use components that already exist in the game, and 
   for non-aircraft emitters, so the plugin also lights ЗАХВАТ when an enemy aircraft painting us has us in its `WeaponManager` target list. Live: lock from
   a fighter (ЗАХВАТ + ПРОВЕРЬ), then a hit on the right engine (ГЕН П, ГИДРО, НАСОС, МАСЛО, ВИБРАЦ), then both engines out
   (ГЕН Л, АККУМ).
+
+## v0.8.0 - v0.9.2 (2026-10-03 to 10-16): game facts the build relies on
+Collected from the code and changelog after the fact (the journal had stopped at v0.7.0); the code comments carry the details.
+- **Drop tanks** (`Stores.cs`, `MiG29Weapons.BuildDropTank`): a tank is a releasable store (a `bomb_250_1` clone: torque 0, almost
+  no warhead) whose mass is the full tank. The plugin keeps the internal tanks topped up from it on the owner (`!remoteSim`) and
+  moves the transferred mass with `Hardpoint.ModifyMass` / `UnitPart.ModifyMass`, so dropping one sheds only what is left in it.
+  Releases go through `WeaponStation.LaunchMount`, networked like any store; `SafetyIsOn` blocks them with the gear down.
+- **Chaff** (`MiG29Countermeasures`): the game has a `ChaffEjector` / `RadarChaff` that no stock aircraft carries. ARH and SARH
+  seekers weigh a burst by aspect (beaming) and range. The game pops "flares" from the first countermeasure station, so the
+  stations are named to sort IR Flares < Radar Chaff < Radar ECM.
+- **Carrier**: `OpAddAircraftToHangars` with `FleetCarrier1` and its hangar names `hangar_R1..3` puts the jet on the Hyperion.
+- **Main gear** (`GearPath.cs`): `LandingGear` folds about the hinge parent's x by `foldAmount`. When a leg latches down the game
+  snaps the hinge straight but leaves `foldAmount` at ~0.01; steering the hinge on that value held it ~1 degree short, the game
+  read a bent leg (hinge x ~359 > 10) and broke the wheel on touchdown after any gear cycle. Only steer legs whose `foldAmount`
+  is still changing.
+- **Afterburner**: the KR-67's `JetNozzle.Afterburner` entries start at `throttleStart` 0.9 (to 1.0); the cockpit lamp, nozzle
+  petals and EGT use the same 0.9.
+- **R-27R without a target**: `WeaponManager.Fire` can launch with an empty target list and `SARHSeeker.Seek` detonates an armed
+  missile that has no target (harmless on the SAM it was made for). `R27R.cs` flies it straight instead; `armDelay` 1 s.
+- **Airbrakes** (`MiG29Airbrakes`): the game's own `Airbrake` component opens hinges about their +x with the throttle at idle,
+  adds drag (`DragAmount` x density x v^2) and plays the stock sound; the lower hinge is rolled 180 deg so the same turn opens it down.
+- **Wing vapour** (`MiG29Vapor`): `VaporEffect` drives `wingVapor` emitters that face the airflow and play while alpha is above
+  their speed curve; a row along the span replaces the KR-67's single point.
+- **Airframe stiffness** (0.9.1): in a hard pull the parts' `PartJoint`s stretched visibly; `solverIterations` 30 on every part
+  (stock 6) keeps them together without changing damage or break-off.
+- **Levels of detail** (`MiG29Lod`): renderers added to the prefab sit outside the KR-67's `LODGroup` unless they are put in it;
+  each MiG drew ~250 objects at any distance. LOD0 > 0.05 screen height (~470 m), LOD1 > 0.01 (~2.3 km), LOD2 > 0.001 (~23 km),
+  LOD3 > 0.0005 (~46 km), then culled. The KR-67 gear is LOD0-only in its group: keep it in LOD1 or it vanishes beyond ~470 m.
+- **Damage maps** (`tools/damage_textures.py`, measured on the stock `AircraftSkin` shader): `_BasecolorDmg` RGB multiplies the
+  livery as a part's hit points fall from 100 to about -20; its alpha is the burn mask (below ~0.5 the skin chars once the part
+  has taken ~10-20 damage, lower first); `_NormalDmg` replaces the normal map with the same fade. Holes open from that alpha.
+- **Hit-placed holes** (`Holes.cs`): `BulletSim.Bullet.TrajectoryTrace` runs on every client (visual-only on non-owners) and
+  `AeroPart.TakeShockwave` too, so painting holes into a per-aircraft copy of the damage map from those hooks looks the same for
+  everyone. In flight the parts are their own physics roots: find their skins through `Unit.partLookup`.
+- **Break-up** (`MiG29Cut`): the skin is split along the hitbox hulls (cut by separating planes) so what breaks off is what was
+  hit; each KR-67 part mesh has an `aircraft_structure` submesh behind its skin, copied as the MiG's inside.
+- **Radar size**: the KR-67 is a stealth fighter (0.0015). 0.2 matches a conventional fighter's ~5 m2 on the game's scale.
+- **Hotkeys and chat** (0.9.3): BepInEx shortcuts fire regardless of UI focus; the plugin checks `EventSystem.current`'s selected
+  object for an input field and `Time.timeScale` before acting on a key.
+- **Sun** (0.9.3): `LevelInfo.sun` is the scene's directional light; `-sun.transform.forward.y` is the sine of its elevation.

@@ -9,7 +9,7 @@ its own damage display, nine liveries and loading screens.
 2. Install [Blueprinter](https://github.com/nikkorap/NOBlueprinter-Releases) (2.0.1 or newer) into `BepInEx/plugins`.
 3. Put `MiG-29 Fulcrum_0.9.2.nobp` and `MiG29Instruments.dll` (both in `MiG-29-Fulcrum_0.9.2.zip`) in
    `BepInEx/plugins/MiG-29_Fulcrum/`, or install the mod with a NOMNOM mod manager such as NOMM.
-   Remove older `MiG-29 Fulcrum_*.nobp` files. The DLL makes the cockpit instruments work, gives the drop tanks their fuel and
+   Remove older `MiG-29 Fulcrum_*.nobp` (or `MiG-29.Fulcrum_*.nobp`) files. The DLL makes the cockpit instruments work, gives the drop tanks their fuel and
    works the brake chute, intake doors, nozzles and gear path; without it the MiG still flies, with the gauges parked, the drop
    tanks empty, no brake chute and the intake doors always open.
 4. Optional: [NO Mirrors](https://github.com/IornMan1213/NuclearOption-Mirrors) makes the three rear-view mirrors reflect.
@@ -103,7 +103,8 @@ drop-tank `Jettison key` and `Drop empty tanks automatically`).
 ## Troubleshooting
 - **The MiG-29 isn't in the aircraft list.** It spawns from medium hangars, shelters and revetments on land bases, and from the
   Hyperion carrier's hangars.
-  Check that `BepInEx/LogOutput.log` has the line `Loaded mig29 x.y.z`, and that only one `MiG-29 Fulcrum_*.nobp` is installed.
+  Check that `BepInEx/LogOutput.log` has the line `Loaded mig29 x.y.z`, and that only one MiG-29 `.nobp` is installed
+  (look for both `MiG-29 Fulcrum_*.nobp` and `MiG-29.Fulcrum_*.nobp`: older bare downloads from GitHub had a dot in the name).
 - **Can't join a multiplayer server.** Every player needs the same mod set and the same MiG-29 version; Blueprinter compares
   them when you join.
 - **R-27R misses.** It's semi-active: keep the target locked on your radar until impact. A line under the crosshair counts down to impact while it guides and tells you if the lock is lost. For fire-and-forget at medium range,
