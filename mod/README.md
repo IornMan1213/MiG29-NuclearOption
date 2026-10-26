@@ -106,7 +106,7 @@ drop-tank `Jettison key` and `Drop empty tanks automatically`).
   Check that `BepInEx/LogOutput.log` has the line `Loaded mig29 x.y.z`, and that only one `MiG-29 Fulcrum_*.nobp` is installed.
 - **Can't join a multiplayer server.** Every player needs the same mod set and the same MiG-29 version; Blueprinter compares
   them when you join.
-- **R-27R misses.** It's semi-active: keep the target locked on your radar until impact. For fire-and-forget at medium range,
+- **R-27R misses.** It's semi-active: keep the target locked on your radar until impact. A line under the crosshair counts down to impact while it guides and tells you if the lock is lost. For fire-and-forget at medium range,
   use the R-27T (infrared; lock its seeker before launch).
 - **The gun runs dry fast.** The GSh-30-1 has 150 rounds, about five and a half seconds of fire. Short bursts.
 - **Drop tanks don't feed fuel / Ctrl+J does nothing / no brake chute.** These come from `MiG29Instruments.dll`; check it is
@@ -114,6 +114,9 @@ drop-tank `Jettison key` and `Drop empty tanks automatically`).
   Tanks can't be released with the gear down.
 - **Gauges don't move.** `MiG29Instruments.dll` must be in `BepInEx/plugins` (next to the .nobp is fine);
   `BepInEx/LogOutput.log` then shows `MiG-29 instruments on MiG29`.
+- **"2 copies of the mod are installed" or "the mod is x but MiG29Instruments.dll is y".** The plugin found more than one MiG-29
+  `.nobp` in `BepInEx/plugins`, or a `.nobp` and DLL from different releases. `BepInEx/LogOutput.log` lists the files; keep one
+  `.nobp` and the DLL from the same zip.
 - **Something else.** [Open an issue](https://github.com/IornMan1213/MiG29-NuclearOption/issues/new/choose) with your mod version
   and the `Exception` lines from `%USERPROFILE%\AppData\LocalLow\Shockfront\NuclearOption\Player.log`.
 
