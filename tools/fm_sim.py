@@ -6,10 +6,10 @@ per-part data dumped from the built prefab (tools/aero_reference.json, a copy of
 
 Usage: python tools/fm_sim.py [config.json]     (default: tools/fm_config.json)
 """
-import json, math, sys
+import json, math, os, sys
 import numpy as np
 
-HERE = __file__.rsplit("\\", 1)[0].rsplit("/", 1)[0]
+HERE = os.path.dirname(os.path.abspath(__file__))
 cfg = json.load(open(sys.argv[1] if len(sys.argv) > 1 else HERE + "/fm_config.json"))
 aero = json.load(open(sys.argv[2] if len(sys.argv) > 2 else HERE + "/aero_reference.json"))
 G = 9.81

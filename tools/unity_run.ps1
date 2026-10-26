@@ -3,13 +3,13 @@ param(
     [Parameter(Mandatory = $true)][string]$Method,
     [switch]$Graphics,
     [string]$Project = $env:BLUEPRINTER_PROJECT,
-    [string]$Unity = "C:\Program Files\Unity\Hub\Editor\2022.3.62f2\Editor\Unity.exe"
+    [string]$Unity = $(if ($env:UNITY_EDITOR) { $env:UNITY_EDITOR } elseif ($env:OS -eq 'Windows_NT') { "C:\Program Files\Unity\Hub\Editor\2022.3.62f2\Editor\Unity.exe" } else { "$HOME/Unity/Hub/Editor/2022.3.62f2/Editor/Unity" })
 )
 $ErrorActionPreference = "Stop"
 if (-not $Project -or -not (Test-Path (Join-Path $Project "Assets"))) { throw "Pass -Project <Blueprinter-Editor folder> or set BLUEPRINTER_PROJECT" }
-$dst = Join-Path $Project "Assets\Editor\MiG29Tools"; New-Item -ItemType Directory -Force $dst | Out-Null
-Copy-Item (Join-Path (Split-Path $PSScriptRoot) "unity\MiG29Tools\*.cs") $dst -Force  # repo is the source of truth
-$sa = Join-Path $Project "Library\ScriptAssemblies"
+$dst = Join-Path $Project "Assets/Editor/MiG29Tools"; New-Item -ItemType Directory -Force $dst | Out-Null
+Copy-Item (Join-Path (Split-Path $PSScriptRoot) "unity/MiG29Tools/*.cs") $dst -Force  # repo is the source of truth
+$sa = Join-Path $Project "Library/ScriptAssemblies"
 $dlls = "Assembly-CSharp.dll", "Assembly-CSharp-firstpass.dll"
 function Invoke-Unity([string[]]$extra, [string]$log) {
     $a = @('-batchmode', '-projectPath', "`"$Project`"", '-logFile', "`"$log`"") + $extra
@@ -21,7 +21,7 @@ if ((Invoke-Unity @('-quit') (Join-Path $Project "MiG29Out_compile.log")) -ne 0)
 foreach ($f in $dlls) {
     $d = Join-Path $sa $f
     if (Test-Path $d) { Set-ItemProperty $d IsReadOnly $false }
-    Copy-Item (Join-Path $Project "Packages\nuclearoption\$f") $d -Force
+    Copy-Item (Join-Path $Project "Packages/nuclearoption/$f") $d -Force
     Set-ItemProperty $d IsReadOnly $true
 }
 $log = Join-Path $Project "MiG29Out_run.log"

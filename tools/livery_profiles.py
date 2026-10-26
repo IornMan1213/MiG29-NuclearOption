@@ -17,12 +17,13 @@ the right way on both sides, and skipped on texels the left and right sides shar
 import json, os, sys
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
+import fonts
 
 SRC, MESH, OUT = sys.argv[1], sys.argv[2], sys.argv[3]
 PREVIEW = sys.argv[sys.argv.index("--preview") + 1] if "--preview" in sys.argv else None
 N = 2048
 d = json.load(open(MESH))
-FONT = "C:/Windows/Fonts/arialbd.ttf"
+FONT = fonts.find("arialbd.ttf", "LiberationSans-Bold.ttf")
 
 
 def C(*rgb): return np.array(rgb, np.float32) / 255.0
