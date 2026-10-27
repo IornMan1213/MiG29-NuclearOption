@@ -44,7 +44,8 @@ $tools = $PSScriptRoot
 Push-Location (Split-Path $tools)
 & $py "$tools/fix_winding.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "fix_winding failed" }   # before anything copies body triangles
 & $py "$tools/clean_insignia.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "clean_insignia failed" }
-& $py "$tools/damage_textures.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "damage_textures failed" }   # after fix_winding (mesh)
+& $py "$tools/normal_map_y.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "normal_map_y failed" }   # the skin's normal map in Unity's convention
+& $py "$tools/damage_textures.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "damage_textures failed" }   # after fix_winding (mesh) and normal_map_y
 & $py "$tools/missile_gen.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "missile_gen failed" }
 & $py "$tools/nozzle_gen.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "nozzle_gen failed" }
 & $py "$tools/nose_bay.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "nose_bay failed" }
