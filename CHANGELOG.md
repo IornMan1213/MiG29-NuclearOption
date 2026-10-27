@@ -2,10 +2,13 @@
 
 ## 0.9.3 (unreleased)
 **Fixes and smoother frame rates.**
-- **Skin shading fixed** (the "normals issue"). The skin's normal map was in the wrong format for the game, its green channel
-  upside down, so panel lines and rivets were lit from the wrong side on every livery. And along sharp edges (the chines,
-  trailing edges, the nose) some faces were shaded as if lit from behind and showed dark streaks. Both are fixed at build time
-  (`tools/normal_map_y.py`, `tools/fix_winding.py`).
+- **Skin shading fixed** (the "normals issue"). Three things made the skin look badly shaded:
+  - on every livery but the default, the default's grey camouflage showed through as triangles of lighter and darker skin
+    (the liveries now keep only the panel lines, rivets and weathering: `tools/livery_shade.py`);
+  - the normal map was in the wrong format for the game, its green channel upside down, so panel lines and rivets were lit
+    from the wrong side (`tools/normal_map_y.py`);
+  - along sharp edges (the chines, trailing edges, the nose) some faces were shaded as if lit from behind and showed dark
+    streaks (`tools/fix_winding.py`).
 - **Brake chute brakes the same at any frame rate.** Its drag was added once per frame instead of once per physics step, so on a
   fast PC (144 fps) the chute stopped the jet about three times as hard as at 50 fps, and on a slow one it braked too little.
 - **Smarter Cobra button.** The limiters now come back as soon as the move is over (the nose has been past 35 degrees and is back
