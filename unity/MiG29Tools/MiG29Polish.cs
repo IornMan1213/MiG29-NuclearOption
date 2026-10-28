@@ -463,8 +463,8 @@ namespace MiG29Tools
             int k = 0;
             foreach (var (faction, pala) in factions)
             {
-                var order = (pala ? new[] { ("Fulcrum Desert Tan", desert), ("Fulcrum Two-Tone Grey", grey), ("Fulcrum Digital Grey", digital), ("Fulcrum Display Blue", display) }
-                                  : new[] { ("Fulcrum Two-Tone Grey", grey), ("Fulcrum Desert Tan", desert), ("Fulcrum Digital Grey", digital), ("Fulcrum Display Blue", display) }).ToList();
+                var order = (pala ? new[] { ("Fulcrum Desert Tan", desert), ("Fulcrum Grey", grey), ("Fulcrum Digital Grey", digital), ("Fulcrum Display Blue", display) }
+                                  : new[] { ("Fulcrum Grey", grey), ("Fulcrum Desert Tan", desert), ("Fulcrum Digital Grey", digital), ("Fulcrum Display Blue", display) }).ToList();
                 order.AddRange(profiles);
                 if (custom != null) order.Add(("Fulcrum Custom", custom));
                 foreach (var (name, guid) in order)

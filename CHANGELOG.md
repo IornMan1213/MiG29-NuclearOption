@@ -7,7 +7,8 @@
 - **A plain grey base: no more star ghosts.** The default livery is now one flat grey (the old camouflage's lighter tone) with the
   panel lines, rivets, weathering, stencils and warning marks. Its camouflage, red stars and "51" are gone, so they can no longer
   show through the other liveries (star outlines on the wings and fins, a ghost "51"). Liveries draw their own markings: the
-  display and digital ones now have none, and the desert one keeps its two-tone camouflage (`tools/base_flat.py`).
+  display and digital ones now have none, and the desert one keeps its two-tone camouflage (`tools/base_flat.py`). The default
+  is now called Fulcrum Grey.
 - **Skin shading fixed** (the "normals issue"). Three things made the skin look badly shaded:
   - on every livery but the default, the default's grey camouflage showed through as triangles of lighter and darker skin
     (the liveries now keep only the panel lines, rivets and weathering: `tools/livery_shade.py`);
