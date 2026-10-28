@@ -6,8 +6,8 @@
   only had the right one: `tools/fin_antenna.py` mirrors it), and the blade antenna on the spine behind the canopy is back (0.9.2
   took it out because it looked like a loose panel; that was the shading along its thin edges, fixed in this release).
 - **90 flares and 90 chaff** (was 30 of each).
-- **Wingtip countermeasure pods** (new "Wingtips" station): a slim pod on each wing tip with 30 more cartridges each: flares,
-  chaff, or 15 of each. They add to the jet's own flare and chaff counts while they are on.
+- **Wingtip countermeasure pods** (new "Wingtips" station): a slim pod on each wing tip with 60 more cartridges each: flares,
+  chaff, or 30 of each. They add to the jet's own flare and chaff counts while they are on.
 - **Canopy glass from every side.** The glass was one-sided: it vanished from inside the cockpit and wherever the open canopy
   showed its underside (the aircraft selection screen). It now has an inner layer, as the stock jets' canopies do.
 - **A plain grey base: no more star ghosts.** The default livery is now one flat grey (the old camouflage's lighter tone) with the

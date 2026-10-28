@@ -210,12 +210,12 @@ namespace MiG29Tools
 
         // ---------------- wingtip countermeasure pods ----------------
 
-        // A slim pod on each wing tip with one BVP-30-26M load (30 cartridges): flares, chaff, or half and half. Like the game's ECM pod
+        // A slim pod on each wing tip with 60 cartridges (two BVP-30-26M loads): flares, chaff, or 30 of each. Like the game's ECM pod
         // it is a store whose prefab carries a countermeasure: Hardpoint.SpawnMount attaches it to the aircraft, and the aircraft pools
         // countermeasures by name, so a pod's flares and chaff join the jet's own IR Flares and Radar Chaff (the counts go up, and down
         // again if the pod is lost). The flare's starting velocity is read from its ejection point's part, which a prefab cannot point
         // at: the instruments plugin gives it the wing's part when the pod is attached.
-        public const int CmPodRounds = 30;
+        public const int CmPodRounds = 60;   // the user's 30-60 a pod: 60 of one kind, or 30 + 30
         const float PodRadius = 0.075f, PodLength = 1.6f;
         // MiG frame: the wing tip face is at |x| 5.566, y -0.05, its chord from z -1.75 to -0.55 (mig29_mesh.json): the pod sits against
         // it, a little ahead of mid-chord
@@ -309,7 +309,7 @@ namespace MiG29Tools
             return mount;
         }
 
-        // A "Wingtips" station after the outer pylons: one hardpoint on each outer wing part, offering the countermeasure pods.
+        // A "Wingtips" station after the outer pylons: one hardpoint on each wing tip, offering the countermeasure pods.
         // Returns the set's index (loadouts get a slot there).
         public static int SetupWingtips(GameObject go, Vector3 modelOffset, Result w, int outerSet)
         {
@@ -333,7 +333,9 @@ namespace MiG29Tools
                 var hp = hps.GetArrayElementAtIndex(i);
                 var oldT = hp.FindPropertyRelative("transform").objectReferenceValue as Transform;
                 bool left = oldT != null && oldT.position.x < 0;
-                var wing = Child(root, left ? "wing2_L" : "wing2_R");
+                // on the wing tip's own damage part (it breaks off with the tip), else the outer wing's
+                var wing = root.GetComponentsInChildren<Transform>(true).FirstOrDefault(x => x.name == (left ? "wingtip_L" : "wingtip_R") && x.GetComponent(upType) != null)
+                           ?? Child(root, left ? "wing2_L" : "wing2_R");
                 var t = new GameObject(left ? "hardpoint_wingtip_L" : "hardpoint_wingtip_R").transform;
                 t.SetParent(wing, false);
                 t.SetPositionAndRotation(new Vector3((left ? -1 : 1) * WingtipStation.x, WingtipStation.y, WingtipStation.z) + modelOffset, Quaternion.identity);
@@ -346,7 +348,7 @@ namespace MiG29Tools
                 // HardpointIndex is only read when a weapon registers (WeaponManager.RegisterWeapon); the pods carry no weapon
             }
             so.ApplyModifiedPropertiesWithoutUndo();
-            Debug.Log($"[MiG29] wingtip countermeasure pods: set {tips}, {CmPodRounds} cartridges a pod");
+            Debug.Log($"[MiG29] wingtip countermeasure pods: set {tips}, {CmPodRounds} cartridges a pod ({CmPodRounds / 2} + {CmPodRounds / 2} in the mixed one)");
             return tips;
         }
 

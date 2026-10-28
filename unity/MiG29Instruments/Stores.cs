@@ -182,6 +182,23 @@ namespace MiG29Instruments
     // the aircraft it will hang on, and the game reads the part's rigidbody for a cartridge's starting velocity (a null there throws).
     // When the game attaches a mounted store's countermeasure to the aircraft (Hardpoint.SpawnMount), any ejection point without a
     // part gets the part the store hangs from: the wing.
+    // The game attaches only a store's first countermeasure (Hardpoint.SpawnMount: GetComponentInChildren): the flare + chaff pod has
+    // two, so the rest of a pod's are attached here once the store is spawned (its chaff then joins the jet's Radar Chaff).
+    [HarmonyLib.HarmonyPatch(typeof(Hardpoint), "SpawnMount")]
+    static class CmPodSpawn
+    {
+        static void Postfix(GameObject __result, Aircraft __0)
+        {
+            try
+            {
+                if (__result == null || __0 == null || !__result.name.StartsWith("mig29_cmpod")) return;
+                foreach (var c in __result.GetComponentsInChildren<Countermeasure>(true))
+                    if (c.aircraft == null) c.AttachToUnit(__0);
+            }
+            catch (System.Exception ex) { MiG29InstrumentsPlugin.Log.LogWarning($"countermeasure pod: {ex.Message}"); }
+        }
+    }
+
     [HarmonyLib.HarmonyPatch(typeof(Countermeasure), nameof(Countermeasure.AttachToUnit))]
     static class CmPodAttach
     {
