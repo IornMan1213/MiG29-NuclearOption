@@ -59,19 +59,8 @@ namespace MiG29Tools
             // chaff: a new ejector on the aircraft root, ejection points on the same engine parts as the flares
             var chaff = go.AddComponent(T("ChaffEjector"));
             var cso = new SerializedObject(chaff);
-            cso.FindProperty("displayName").stringValue = "Radar Chaff";
-            cso.FindProperty("displayImage").objectReferenceValue = new SerializedObject(jammer).FindProperty("displayImage").objectReferenceValue;
-            cso.FindProperty("chargeable").boolValue = false;
-            cso.FindProperty("ammo").intValue = Chaff;
+            ConfigureChaff(cso, jammer, flares, Chaff, grouping: 2);   // one cartridge from each dispenser
             cso.FindProperty("aircraft").objectReferenceValue = aircraft;
-            cso.FindProperty("chaffPrefab").objectReferenceValue = BuildChaffPrefab();
-            cso.FindProperty("ejectionVelocity").floatValue = 25f;
-            cso.FindProperty("ejectionVelocityVariance").floatValue = 0.3f;
-            cso.FindProperty("ejectionInterval").floatValue = 0.3f;
-            cso.FindProperty("ejectionGrouping").intValue = 2;     // one cartridge from each dispenser
-            cso.FindProperty("ejectionSound").objectReferenceValue = fso.FindProperty("ejectionSound").objectReferenceValue;
-            cso.FindProperty("ejectionVolume").floatValue = 0.8f;
-            cso.FindProperty("flareDoors").arraySize = 0;
             var cpts = cso.FindProperty("ejectionPoints");
             cpts.arraySize = 2;
             var upType = T("UnitPart");
@@ -89,6 +78,27 @@ namespace MiG29Tools
             cso.ApplyModifiedPropertiesWithoutUndo();
             Debug.Log($"[MiG29] countermeasures: {Flares} flares + {Chaff} chaff (BVP-30-26M), ECM kept");
         }
+
+        /// <summary>A chaff dispenser like the jet's own (the wingtip pods' too): its icon from the radar jammer, its sound from the flares.
+        /// The caller sets its aircraft and ejection points.</summary>
+        public static void ConfigureChaff(SerializedObject cso, Component jammer, Component flares, int ammo, int grouping)
+        {
+            cso.FindProperty("displayName").stringValue = "Radar Chaff";   // the station name: pods' chaff joins the jet's
+            cso.FindProperty("displayImage").objectReferenceValue = new SerializedObject(jammer).FindProperty("displayImage").objectReferenceValue;
+            cso.FindProperty("chargeable").boolValue = false;
+            cso.FindProperty("ammo").intValue = ammo;
+            cso.FindProperty("chaffPrefab").objectReferenceValue = ChaffPrefab();
+            cso.FindProperty("ejectionVelocity").floatValue = 25f;
+            cso.FindProperty("ejectionVelocityVariance").floatValue = 0.3f;
+            cso.FindProperty("ejectionInterval").floatValue = 0.3f;
+            cso.FindProperty("ejectionGrouping").intValue = grouping;
+            cso.FindProperty("ejectionSound").objectReferenceValue = new SerializedObject(flares).FindProperty("ejectionSound").objectReferenceValue;
+            cso.FindProperty("ejectionVolume").floatValue = 0.8f;
+            cso.FindProperty("flareDoors").arraySize = 0;
+        }
+
+        static GameObject chaffPrefab;
+        static GameObject ChaffPrefab() => chaffPrefab != null ? chaffPrefab : chaffPrefab = BuildChaffPrefab();   // once per build
 
         // One chaff cartridge: a RadarChaff (slows down fast, then drifts and falls for 6 s) carrying a cloud of glinting foil and a
         // faint grey bloom. Particles live in the chaff object's space so they move with it (and with the game's floating origin).

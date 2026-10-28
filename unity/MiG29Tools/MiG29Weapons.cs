@@ -27,7 +27,8 @@ namespace MiG29Tools
         [Serializable] class PartDump { public string name; public float[] vertices, normals, uvs; public int[] triangles; }
         [Serializable] class Dump { public PartDump[] parts; }
 
-        public class Result { public ScriptableObject r73Mount, r27Mount, r27tMount, r60Mount, gunMount, ptb1500Mount, ptb1150Mount, r73OuterMount, r60OuterMount; }
+        public class Result { public ScriptableObject r73Mount, r27Mount, r27tMount, r60Mount, gunMount, ptb1500Mount, ptb1150Mount, r73OuterMount, r60OuterMount,
+                                     podFlares, podChaff, podBoth; }
 
         public delegate T Saver<T>(T obj, string path) where T : UnityEngine.Object;
 
@@ -196,10 +197,157 @@ namespace MiG29Tools
             var ptb1150Mount = BuildDropTank("PTB1150", "PTB-1150", meshes["PTB1150"], meshes["PTB_PYLON_W"], mat, length: 4.6f, halfHeight: 0.32f, radius: 0.32f,
                 pylonDepth: 0.10f, fullMass: 1000f, pylonMass: 30f, drag: 0.08f, rcs: 0.05f,
                 desc: "PTB-1150 wing drop tanks: 1,150 litres (about 905 kg) of fuel each, used before the internal fuel. Select them and fire to drop them, or press the jettison key (Ctrl+J by default).");
-            Debug.Log("[MiG29] weapons built: R-73, R-27R, R-27T, R-60M, GSh-30-1, PTB-1500, PTB-1150");
+            // ---------- wingtip countermeasure pods ----------
+            var podMesh = (Mesh)save(CmPodMesh(), $"{Dir}/mig29_cmpod.asset");
+            var podFlares = BuildCmPod("flares", "Wingtip Flare Pod", podMesh, mat, flares: CmPodRounds, chaff: 0);
+            var podChaff = BuildCmPod("chaff", "Wingtip Chaff Pod", podMesh, mat, flares: 0, chaff: CmPodRounds);
+            var podBoth = BuildCmPod("mixed", "Wingtip Flare + Chaff Pod", podMesh, mat, flares: CmPodRounds / 2, chaff: CmPodRounds / 2);
+            Debug.Log("[MiG29] weapons built: R-73, R-27R, R-27T, R-60M, GSh-30-1, PTB-1500, PTB-1150, wingtip countermeasure pods");
             return new Result { r73Mount = r73Mount, r27Mount = r27Mount, r27tMount = r27tMount, r60Mount = r60Mount, gunMount = gunMount,
                 r73OuterMount = r73OuterMount, r60OuterMount = r60OuterMount,
-                ptb1500Mount = ptb1500Mount, ptb1150Mount = ptb1150Mount };
+                ptb1500Mount = ptb1500Mount, ptb1150Mount = ptb1150Mount, podFlares = podFlares, podChaff = podChaff, podBoth = podBoth };
+        }
+
+        // ---------------- wingtip countermeasure pods ----------------
+
+        // A slim pod on each wing tip with one BVP-30-26M load (30 cartridges): flares, chaff, or half and half. Like the game's ECM pod
+        // it is a store whose prefab carries a countermeasure: Hardpoint.SpawnMount attaches it to the aircraft, and the aircraft pools
+        // countermeasures by name, so a pod's flares and chaff join the jet's own IR Flares and Radar Chaff (the counts go up, and down
+        // again if the pod is lost). The flare's starting velocity is read from its ejection point's part, which a prefab cannot point
+        // at: the instruments plugin gives it the wing's part when the pod is attached.
+        public const int CmPodRounds = 30;
+        const float PodRadius = 0.075f, PodLength = 1.6f;
+        // MiG frame: the wing tip face is at |x| 5.566, y -0.05, its chord from z -1.75 to -0.55 (mig29_mesh.json): the pod sits against
+        // it, a little ahead of mid-chord
+        public static readonly Vector3 WingtipStation = new Vector3(5.566f + PodRadius + 0.004f, -0.05f, -0.95f);
+
+        // atlas cell centres (tools/missile_gen.py: 4 x 4, row-major from the top)
+        static Vector2 Cell(int i) => new Vector2((i % 4 + 0.5f) / 4f, 1f - (i / 4 + 0.5f) / 4f);
+
+        // a body of revolution along z, nose forward: light grey, dark grey end caps
+        static Mesh CmPodMesh()
+        {
+            var prof = new[] { (0.80f, 0f), (0.74f, 0.035f), (0.64f, 0.065f), (0.55f, PodRadius), (-0.62f, PodRadius), (-0.72f, 0.06f), (-0.80f, 0.03f), (-0.80f, 0f) };
+            int seg = 16;
+            var v = new List<Vector3>(); var n = new List<Vector3>(); var uv = new List<Vector2>(); var t = new List<int>();
+            for (int k = 0; k < prof.Length - 1; k++)
+            {
+                var (z0, r0) = prof[k]; var (z1, r1) = prof[k + 1];
+                var cell = Cell(k == 0 || k >= prof.Length - 3 ? 2 : 1);   // dgrey caps, lgrey body
+                float slope = Mathf.Atan2(r0 - r1, z0 - z1);
+                for (int i = 0; i < seg; i++)
+                {
+                    float a0 = 2 * Mathf.PI * i / seg, a1 = 2 * Mathf.PI * (i + 1) / seg;
+                    Vector3 P(float z, float r, float a) => new Vector3(r * Mathf.Cos(a), r * Mathf.Sin(a), z);
+                    Vector3 N(float a) => new Vector3(Mathf.Cos(a) * Mathf.Cos(slope), Mathf.Sin(a) * Mathf.Cos(slope), Mathf.Sin(slope)).normalized;
+                    int b = v.Count;
+                    v.Add(P(z0, r0, a0)); v.Add(P(z0, r0, a1)); v.Add(P(z1, r1, a1)); v.Add(P(z1, r1, a0));
+                    n.Add(N(a0)); n.Add(N(a1)); n.Add(N(a1)); n.Add(N(a0));
+                    for (int q = 0; q < 4; q++) uv.Add(cell);
+                    t.AddRange(new[] { b, b + 2, b + 1, b, b + 3, b + 2 });   // outward faces, Unity winding
+                }
+            }
+            var m = new Mesh { name = "mig29_cmpod", vertices = v.ToArray(), normals = n.ToArray(), uv = uv.ToArray(), triangles = t.ToArray() };
+            m.RecalculateBounds(); m.RecalculateTangents();
+            return m;
+        }
+
+        static ScriptableObject BuildCmPod(string id, string name, Mesh mesh, Material mat, int flares, int chaff)
+        {
+            var kr = AssetDatabase.LoadAssetAtPath<GameObject>(GO + "Multirole1_PLACEHOLDER.prefab");
+            var krFlares = kr.GetComponentInChildren(T("FlareEjector"), true);
+            var krJammer = kr.GetComponentInChildren(T("RadarJammer"), true);
+            var go = new GameObject("mig29_cmpod_" + id);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            go.AddComponent<MeshRenderer>().sharedMaterial = mat;
+            Transform Point(string n, float z)   // cartridges leave the pod's underside, a little aft
+            {
+                var p = new GameObject(n).transform;
+                p.SetParent(go.transform, false);
+                p.localPosition = new Vector3(0f, -PodRadius, z);
+                p.localRotation = Quaternion.LookRotation(new Vector3(0f, -1f, -0.2f).normalized, Vector3.forward);
+                return p;
+            }
+            if (flares > 0)
+            {
+                var fe = go.AddComponent(T("FlareEjector"));
+                EditorUtility.CopySerialized(krFlares, fe);   // the KR-67's flares: prefab, sound, icon, name ("IR Flares")
+                var so = new SerializedObject(fe);
+                so.FindProperty("ammo").intValue = flares;
+                so.FindProperty("aircraft").objectReferenceValue = null;
+                so.FindProperty("flareDoors").arraySize = 0;
+                var pts = so.FindProperty("ejectionPoints");
+                pts.arraySize = 1;
+                pts.GetArrayElementAtIndex(0).FindPropertyRelative("transform").objectReferenceValue = Point("flareEjector", -0.45f);
+                pts.GetArrayElementAtIndex(0).FindPropertyRelative("part").objectReferenceValue = null;   // the wing's, when attached
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
+            if (chaff > 0)
+            {
+                var ce = go.AddComponent(T("ChaffEjector"));
+                var so = new SerializedObject(ce);
+                MiG29Countermeasures.ConfigureChaff(so, krJammer, krFlares, chaff, grouping: 1);
+                so.FindProperty("aircraft").objectReferenceValue = null;
+                var pts = so.FindProperty("ejectionPoints");
+                pts.arraySize = 1;
+                pts.GetArrayElementAtIndex(0).FindPropertyRelative("transform").objectReferenceValue = Point("chaffEjector", -0.25f);
+                pts.GetArrayElementAtIndex(0).FindPropertyRelative("part").objectReferenceValue = null;
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
+            var prefab = SavePrefab(go, $"{Dir}/mig29_cmpod_{id}.prefab");
+            var mount = Clone("ECMPod1", $"mig29_cmpod_{id}_mount");
+            var mso = new SerializedObject(mount);
+            mso.FindProperty("prefab").objectReferenceValue = prefab;
+            mso.FindProperty("info").objectReferenceValue = null;
+            mso.FindProperty("jsonKey").stringValue = "mig29_cmpod_" + id;
+            mso.FindProperty("mountName").stringValue = name;
+            mso.FindProperty("ammo").intValue = flares + chaff;
+            mso.FindProperty("mass").floatValue = 45f + 0.5f * (flares + chaff);   // pod and dispenser, 26 mm cartridges
+            mso.FindProperty("emptyMass").floatValue = 45f;
+            mso.FindProperty("drag").floatValue = 0.004f;
+            mso.ApplyModifiedPropertiesWithoutUndo();
+            return mount;
+        }
+
+        // A "Wingtips" station after the outer pylons: one hardpoint on each outer wing part, offering the countermeasure pods.
+        // Returns the set's index (loadouts get a slot there).
+        public static int SetupWingtips(GameObject go, Vector3 modelOffset, Result w, int outerSet)
+        {
+            var root = go.transform;
+            var so = new SerializedObject(go.GetComponentInChildren(T("WeaponManager"), true));
+            var sets = so.FindProperty("hardpointSets");
+            int tips = outerSet + 1;
+            sets.InsertArrayElementAtIndex(outerSet);   // a copy of the outer set, then made the wingtips'
+            var ts = sets.GetArrayElementAtIndex(tips);
+            ts.FindPropertyRelative("name").stringValue = "Wingtips";
+            var opts = ts.FindPropertyRelative("weaponOptions");
+            opts.arraySize = 4;
+            opts.GetArrayElementAtIndex(0).objectReferenceValue = null;
+            opts.GetArrayElementAtIndex(1).objectReferenceValue = w.podFlares;
+            opts.GetArrayElementAtIndex(2).objectReferenceValue = w.podChaff;
+            opts.GetArrayElementAtIndex(3).objectReferenceValue = w.podBoth;
+            var hps = ts.FindPropertyRelative("hardpoints");
+            var upType = T("UnitPart");
+            for (int i = 0; i < hps.arraySize && i < 2; i++)
+            {
+                var hp = hps.GetArrayElementAtIndex(i);
+                var oldT = hp.FindPropertyRelative("transform").objectReferenceValue as Transform;
+                bool left = oldT != null && oldT.position.x < 0;
+                var wing = Child(root, left ? "wing2_L" : "wing2_R");
+                var t = new GameObject(left ? "hardpoint_wingtip_L" : "hardpoint_wingtip_R").transform;
+                t.SetParent(wing, false);
+                t.SetPositionAndRotation(new Vector3((left ? -1 : 1) * WingtipStation.x, WingtipStation.y, WingtipStation.z) + modelOffset, Quaternion.identity);
+                hp.FindPropertyRelative("transform").objectReferenceValue = t;
+                hp.FindPropertyRelative("part").objectReferenceValue = wing.GetComponent(upType);
+                hp.FindPropertyRelative("pylonOptions").arraySize = 0;
+                hp.FindPropertyRelative("Pylon").objectReferenceValue = null;
+                hp.FindPropertyRelative("Plug").objectReferenceValue = null;
+                hp.FindPropertyRelative("bayDoors").arraySize = 0;
+                // HardpointIndex is only read when a weapon registers (WeaponManager.RegisterWeapon); the pods carry no weapon
+            }
+            so.ApplyModifiedPropertiesWithoutUndo();
+            Debug.Log($"[MiG29] wingtip countermeasure pods: set {tips}, {CmPodRounds} cartridges a pod");
+            return tips;
         }
 
         // ---------------- drop tanks ----------------
@@ -800,18 +948,18 @@ namespace MiG29Tools
         }
 
         // Default loadout (loadouts[1]: the loadout screen's starting point and the fallback) and the standard loadouts AI-flown
-        // MiGs spawn with. Hardpoint sets: 0 gun, 1 centreline, 2 inner, 3 middle, 4 outer, 5 tail hook.
+        // MiGs spawn with. Hardpoint sets: 0 gun, 1 centreline, 2 inner, 3 middle, 4 outer, 5 wingtips, 6 tail hook.
         public static void SetLoadouts(SerializedObject pso, Result w)
         {
             UnityEngine.Object Stock(string n) => AssetDatabase.LoadAssetAtPath<ScriptableObject>(MB + n + "_PLACEHOLDER.asset");
-            var airSup = new UnityEngine.Object[] { w.gunMount, null, w.r27Mount, w.r73Mount, w.r73OuterMount, null };
+            var airSup = new UnityEngine.Object[] { w.gunMount, null, w.r27Mount, w.r73Mount, w.r73OuterMount, null, null };
             var presets = new (string name, float fuel, UnityEngine.Object[] weapons)[]
             {
                 ("Air Superiority (R-27R / R-73)", 0.8f, airSup),
-                ("Long-Range CAP (PTB-1500 / R-27R / R-73)", 1.0f, new UnityEngine.Object[] { w.gunMount, w.ptb1500Mount, w.r27Mount, w.r73Mount, w.r73OuterMount, null }),
-                ("Dogfight (R-27T / R-73 / R-60M)", 0.6f, new UnityEngine.Object[] { w.gunMount, null, w.r27tMount, w.r73Mount, w.r60OuterMount, null }),
-                ("Strike (FAB-500 / rockets / R-73)", 0.7f, new UnityEngine.Object[] { w.gunMount, null, Stock("bomb_500_single"), Stock("Rocket2_4Pod"), w.r73OuterMount, null }),
-                ("Ferry (3 drop tanks / R-73)", 1.0f, new UnityEngine.Object[] { w.gunMount, w.ptb1500Mount, w.ptb1150Mount, w.r73Mount, null, null }),
+                ("Long-Range CAP (PTB-1500 / R-27R / R-73)", 1.0f, new UnityEngine.Object[] { w.gunMount, w.ptb1500Mount, w.r27Mount, w.r73Mount, w.r73OuterMount, null, null }),
+                ("Dogfight (R-27T / R-73 / R-60M)", 0.6f, new UnityEngine.Object[] { w.gunMount, null, w.r27tMount, w.r73Mount, w.r60OuterMount, null, null }),
+                ("Strike (FAB-500 / rockets / R-73)", 0.7f, new UnityEngine.Object[] { w.gunMount, null, Stock("bomb_500_single"), Stock("Rocket2_4Pod"), w.r73OuterMount, null, null }),
+                ("Ferry (3 drop tanks / R-73)", 1.0f, new UnityEngine.Object[] { w.gunMount, w.ptb1500Mount, w.ptb1150Mount, w.r73Mount, null, null, null }),
             };
             void Fill(SerializedProperty weapons, UnityEngine.Object[] src)
             {

@@ -120,6 +120,7 @@ namespace MiG29Tools
             RemoveInternalBays(go);
             var centreSet = MiG29Weapons.SetupCentreline(go, ModelOffset, weapons);
             var outerPylonSet = MiG29Weapons.SetupPylons(go, ModelOffset, weapons);
+            var wingtipSet = MiG29Weapons.SetupWingtips(go, ModelOffset, weapons, outerPylonSet);
             MiG29Countermeasures.Setup(go, ModelOffset);
             var oldGun = MiG29Weapons.SetupGun(go, ModelOffset, weapons);
             var displays = MiG29Polish.BuildDisplays(go);
@@ -137,6 +138,7 @@ namespace MiG29Tools
             RemoveBayLoadouts(pso);
             MiG29Weapons.ClearLoadoutSlot(pso, centreSet);
             MiG29Weapons.InsertLoadoutSlot(pso, outerPylonSet);
+            MiG29Weapons.InsertLoadoutSlot(pso, wingtipSet);
             Debug.Log($"[MiG29] loadouts: {MiG29Weapons.ReplaceInLoadouts(pso, oldGun, weapons.gunMount)} gun entries switched to GSh-30-1");
             MiG29Weapons.SetLoadouts(pso, weapons);
             MiG29Polish.SetLiveries(pso);
