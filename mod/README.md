@@ -47,8 +47,8 @@ Multiplayer: everyone needs the same mod set (Blueprinter checks this).
   Their fuel is used first: the internal tanks stay full until the drop tanks run dry, and the aircraft's weight follows
   the fuel. Drop them by selecting them and firing (one per press), or all at once with **Ctrl+J** (blocked with the gear
   down). The **ПТБ** caution light comes on when the tanks you carry are empty. AI MiGs drop theirs when empty.
-- **Countermeasures** from the MiG-29's own BVP-30-26M dispensers on top of the tail booms, firing upward: 30 IR flares and
-  30 radar chaff cartridges (60 in all, as on the real jet), plus the Radar ECM jammer. Cycle countermeasures to choose.
+- **Countermeasures** from the MiG-29's own BVP-30-26M dispensers on top of the tail booms, firing upward: 90 IR flares and
+  90 radar chaff cartridges, plus the Radar ECM jammer. Cycle countermeasures to choose.
   Chaff decoys radar-guided missiles (active and semi-active). It works best when the missile sees you side-on (beam it) and
   is close, so pop it as you turn across the missile's path.
 - **Airbrakes**: the upper and lower speed-brake panels on the tail between the engines open with the throttle at idle (the

@@ -2,6 +2,10 @@
 
 ## 0.9.3 (unreleased)
 **Fixes and smoother frame rates.**
+- **Both antennas back.** The left fin now has the small rear-pointing spike at its tip that the right fin has (the source model
+  only had the right one: `tools/fin_antenna.py` mirrors it), and the blade antenna on the spine behind the canopy is back (0.9.2
+  took it out because it looked like a loose panel; that was the shading along its thin edges, fixed in this release).
+- **90 flares and 90 chaff** (was 30 of each).
 - **Canopy glass from every side.** The glass was one-sided: it vanished from inside the cockpit and wherever the open canopy
   showed its underside (the aircraft selection screen). It now has an inner layer, as the stock jets' canopies do.
 - **A plain grey base: no more star ghosts.** The default livery is now one flat grey (the old camouflage's lighter tone) with the

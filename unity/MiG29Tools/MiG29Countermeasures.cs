@@ -6,8 +6,9 @@ using UnityEngine;
 namespace MiG29Tools
 {
     // MiG-29 9.12 countermeasures: two BVP-30-26M dispensers in the tail booms, just inboard of the fins, each with 30 26 mm
-    // cartridges fired upward. One dispenser load is PPI-26 infrared flares, the other PPR-26 chaff (60 cartridges in all).
-    //   IR Flares   <- the KR-67's FlareEjector, moved from its engine tops to the MiG's dispensers, 30 flares
+    // cartridges fired upward. One dispenser load is PPI-26 infrared flares, the other PPR-26 chaff (60 cartridges in all on the real
+    // jet; in game 90 of each).
+    //   IR Flares   <- the KR-67's FlareEjector, moved from its engine tops to the MiG's dispensers, 90 flares
     //   Radar Chaff <- the game's own ChaffEjector (no stock aircraft carries one) with a chaff cloud built here: RadarChaff + particles.
     //                  Chaff decoys active and semi-active radar missiles; it works best when the missile sees you side-on (beaming)
     //                  and when it is close, exactly how the game's ARH / SARH seekers weigh a chaff burst.
@@ -18,7 +19,7 @@ namespace MiG29Tools
         const string Dir = "Assets/Blueprinter/Mods/mig29/weapons";
         const string Mat = "Assets/Blueprinter/_donotship/Material/";
 
-        public const int Flares = 30, Chaff = 30;
+        public const int Flares = 90, Chaff = 90;
 
         // MiG frame: top of the tail booms at x 1.5 (ray cast, blender/analysis/stores_pos.py): y 0.11 at z -2.0, 0.07 at z -2.5
         static readonly Vector3 FlarePoint = new Vector3(1.50f, 0.15f, -1.9f);
@@ -42,7 +43,7 @@ namespace MiG29Tools
             var flares = go.GetComponentInChildren(T("FlareEjector"), true);
             var jammer = go.GetComponentInChildren(T("RadarJammer"), true);
 
-            // flares: the MiG's dispensers, 30 rounds
+            // flares: the MiG's dispensers
             var fso = new SerializedObject(flares);
             fso.FindProperty("ammo").intValue = Flares;
             var pts = fso.FindProperty("ejectionPoints");
