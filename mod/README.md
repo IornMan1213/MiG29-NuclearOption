@@ -66,7 +66,7 @@ Multiplayer: everyone needs the same mod set (Blueprinter checks this).
 - **Every instrument works**: 20 needles, a rolling attitude ball, a turning compass card, a 24-light caution panel, the SPO-15
   radar warning receiver and gear lights, all driven by the aircraft's real state (see below).
 - **Cockpit damage display** and map icon drawn from the MiG itself.
-- **Liveries**: Two-Tone Grey, Desert Tan, Digital Grey, Display Blue, 29+20 Special, Tricolour Digital 741, OVT Splinter 917, White 44 and LII Gromov 84 (both factions can pick any).
+- **Liveries**: Grey (plain, no markings), Desert Tan, Digital Grey, Display Blue, 29+20 Special, Tricolour Digital 741, OVT Splinter 917, White 44 and LII Gromov 84 (both factions can pick any).
 - Four loading screens.
 
 ## Cockpit instruments

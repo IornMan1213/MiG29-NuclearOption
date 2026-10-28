@@ -63,6 +63,28 @@ namespace MiG29Tools
                 m.RecalculateBounds();
                 return saveMesh(m, $"{ModDir}/meshes/{name}.asset");
             }
+            // the glass seen from inside: the same triangles turned round. The outer glass culls its back faces, so on its own it
+            // vanished from the cockpit and wherever the open canopy shows its underside (the aircraft selection screen); the
+            // KR-67 does the same with canopy_R / canopy_R_int.
+            Mesh Inner(List<int> t, string name)
+            {
+                var r = new int[t.Count];
+                for (int i = 0; i < t.Count; i += 3) { r[i] = t[i]; r[i + 1] = t[i + 2]; r[i + 2] = t[i + 1]; }
+                var m = new Mesh { name = name, vertices = v, normals = Array.ConvertAll(n, x => -x), uv = uv, triangles = r };
+                m.RecalculateBounds();
+                return saveMesh(m, $"{ModDir}/meshes/{name}.asset");
+            }
+            var krInner = Find(root, "canopy_R_int");
+            var krInnerR = krInner != null ? krInner.GetComponent<Renderer>() : null;
+            var innerMat = krInnerR != null && krInnerR.sharedMaterial != null ? krInnerR.sharedMaterial : migGlass.sharedMaterial;   // the KR-67's interior glass
+            Renderer AddInner(Transform outer, List<int> t, string name)
+            {
+                var o = new GameObject(name);
+                o.transform.SetParent(outer, false);
+                o.AddComponent<MeshFilter>().sharedMesh = Inner(t, name);
+                var r = o.AddComponent<MeshRenderer>(); r.sharedMaterial = innerMat;
+                return r;
+            }
             mf.sharedMesh = Sub(front, "MiG29_windscreen");
             var glass = new GameObject("MiG29_canopy_glass");
             glass.AddComponent<MeshFilter>().sharedMesh = Sub(back, "MiG29_canopy_moving");
@@ -76,17 +98,19 @@ namespace MiG29Tools
             glass.transform.SetParent(frameR, false);
             glass.transform.SetPositionAndRotation(migGlass.transform.position, migGlass.transform.rotation);
 
+            var innerR = new[] { AddInner(migGlass.transform, front, "MiG29_canopy_windscreen_int"), AddInner(glass.transform, back, "MiG29_canopy_moving_int") };
+
             hinges.GetArrayElementAtIndex(0).FindPropertyRelative("transform").objectReferenceValue = pivot;
             hinges.GetArrayElementAtIndex(0).FindPropertyRelative("hingeAngle").floatValue = CanopyOpenDeg;
             var glassList = so.FindProperty("glassRenderers");
-            foreach (var r in new[] { migGlass, glassR })
+            foreach (var r in new[] { migGlass, glassR, innerR[0], innerR[1] })
             {
                 glassList.arraySize++;
                 glassList.GetArrayElementAtIndex(glassList.arraySize - 1).objectReferenceValue = r;
             }
             so.ApplyModifiedPropertiesWithoutUndo();
             exterior.Add(glassR);
-            Debug.Log($"[MiG29] canopy: {back.Count / 3} moving / {front.Count / 3} windscreen tris, hinge {pivot.position}");
+            Debug.Log($"[MiG29] canopy: {back.Count / 3} moving / {front.Count / 3} windscreen tris, hinge {pivot.position}; inside glass {innerMat.name}");
         }
 
         // ---------------- gear doors ----------------
@@ -439,8 +463,8 @@ namespace MiG29Tools
             int k = 0;
             foreach (var (faction, pala) in factions)
             {
-                var order = (pala ? new[] { ("Fulcrum Desert Tan", desert), ("Fulcrum Two-Tone Grey", grey), ("Fulcrum Digital Grey", digital), ("Fulcrum Display Blue", display) }
-                                  : new[] { ("Fulcrum Two-Tone Grey", grey), ("Fulcrum Desert Tan", desert), ("Fulcrum Digital Grey", digital), ("Fulcrum Display Blue", display) }).ToList();
+                var order = (pala ? new[] { ("Fulcrum Desert Tan", desert), ("Fulcrum Grey", grey), ("Fulcrum Digital Grey", digital), ("Fulcrum Display Blue", display) }
+                                  : new[] { ("Fulcrum Grey", grey), ("Fulcrum Desert Tan", desert), ("Fulcrum Digital Grey", digital), ("Fulcrum Display Blue", display) }).ToList();
                 order.AddRange(profiles);
                 if (custom != null) order.Add(("Fulcrum Custom", custom));
                 foreach (var (name, guid) in order)
