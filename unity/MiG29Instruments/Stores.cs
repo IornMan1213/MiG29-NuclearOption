@@ -191,7 +191,7 @@ namespace MiG29Instruments
         {
             try
             {
-                if (__result == null || __0 == null || !__result.name.StartsWith("mig29_cmpod")) return;
+                if (__result == null || __0 == null || !__result.name.Contains("_cmpod_")) return;
                 foreach (var c in __result.GetComponentsInChildren<Countermeasure>(true))
                     if (c.aircraft == null) c.AttachToUnit(__0);
             }
