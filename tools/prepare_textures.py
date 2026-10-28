@@ -4,7 +4,8 @@ python tools/prepare_textures.py <sketchfab textures dir> <project>/MiG29Source
 
 Writes mig29_basecolor.png, mig29_normal.png, mig29_metallic.png (game convention: RGB = metal, A = 1 - roughness)
 and copies the loading screens from assets/loading (the damage maps come from tools/damage_textures.py, run by the build).
-Run tools/livery_desert.py afterwards (it needs mig29_mesh.json from blender/export_mig29.py).
+Run tools/livery_desert.py afterwards (it needs mig29_mesh.json from blender/export_mig29.py). The normal map is copied as it
+comes (DirectX-style, green = -Y): tools/normal_map_y.py, run by every build, converts it to Unity's convention.
 """
 import os, shutil, sys
 from PIL import Image

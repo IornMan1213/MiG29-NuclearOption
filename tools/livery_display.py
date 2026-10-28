@@ -5,11 +5,12 @@ python tools/livery_display.py <mig29_basecolor.png> <mig29_mesh.json> <out.png>
 Unlike the desert/digital schemes (texture-space recolours), this one is designed on the airframe: every exterior triangle is
 rasterised into the texture with its interpolated MiG-frame position and normal, and the colour comes from those (upper/lower
 split by the surface normal, chevron in planform coordinates, bands on the fins by height). Only low-saturation paint texels
-change, so stars, numbers and stencils stay; panel lines are kept by shading relative to a blurred copy.
+change, so stars, numbers and stencils stay; panel lines are kept by shading relative to their own camouflage tone (livery_shade.py).
 """
 import json, sys
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
+from livery_shade import detail_shade
 
 SRC, MESH, DST = sys.argv[1], sys.argv[2], sys.argv[3]
 N = 2048
@@ -106,10 +107,7 @@ im = np.asarray(Image.open(SRC).convert("RGB").resize((N, N))).astype(np.float32
 r, g, b = im[..., 0], im[..., 1], im[..., 2]
 sat = (im.max(-1) - im.min(-1)) / (im.max(-1) + 1e-6); lum = 0.299 * r + 0.587 * g + 0.114 * b
 paint = covered & (sat < 0.28) & (lum > 0.42)
-lp = np.where(paint, lum, 0).astype(np.float32); wp = paint.astype(np.float32)
-blur = lambda a: np.asarray(Image.fromarray((a * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(10)), np.float32) / 255
-local = blur(lp) / np.maximum(blur(wp), 1e-3)
-shade = np.clip(lum / np.maximum(local, 1e-3), 0.6, 1.25)[..., None]
+shade = detail_shade(lum, paint)[..., None]   # panel lines, rivets and weathering, not the base's camouflage (livery_shade.py)
 out = im.copy()
 out[paint] = np.clip(target[paint] * shade[paint], 0, 1)
 Image.fromarray((out * 255).astype(np.uint8)).save(DST)

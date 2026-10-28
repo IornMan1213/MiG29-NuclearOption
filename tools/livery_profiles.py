@@ -11,12 +11,13 @@ Writes mig29_basecolor_<key>.png for
 
 Every exterior texel is rasterised once with its MiG-frame position and normal (control surfaces put back at their hinges); the
 colour rules work on those. Only paint texels change (low saturation, or the base texture's red stars and numbers), with panel
-lines kept by shading relative to a blurred copy. Numbers and insignia are drawn in side view per face direction, so they read
+lines kept by shading relative to their own camouflage tone (livery_shade.py). Numbers and insignia are drawn in side view per face direction, so they read
 the right way on both sides, and skipped on texels the left and right sides share.
 """
 import json, os, sys
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from livery_shade import detail_shade
 import fonts
 
 SRC, MESH, OUT = sys.argv[1], sys.argv[2], sys.argv[3]
@@ -266,10 +267,7 @@ sat = (im.max(-1) - im.min(-1)) / (im.max(-1) + 1e-6); lum = 0.299 * r + 0.587 *
 paint = covered & (sat < 0.28) & (lum > 0.42)
 redmark = covered & (r > 0.35) & (r > 1.35 * g) & (r > 1.35 * b)     # base stars and "51": painted over, then redrawn per scheme
 redmark = np.asarray(Image.fromarray(redmark.astype(np.uint8) * 255).filter(ImageFilter.MaxFilter(5)), bool) & covered   # with their soft edges
-lp = np.where(paint, lum, 0).astype(np.float32); wp = paint.astype(np.float32)
-blur = lambda a: np.asarray(Image.fromarray((np.clip(a, 0, 1) * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(10)), np.float32) / 255
-local = blur(lp) / np.maximum(blur(wp), 1e-3)
-shade = np.clip(lum / np.maximum(local, 1e-3), 0.6, 1.25)
+shade = detail_shade(lum, paint)   # panel lines, rivets and weathering, not the base's camouflage (livery_shade.py)
 shade[redmark] = 1.0
 
 

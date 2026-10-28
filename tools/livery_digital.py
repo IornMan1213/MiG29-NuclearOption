@@ -8,6 +8,7 @@ panel-line shading survive. The pattern lives in texture space: 16-texel blocks 
 import json, sys
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
+from livery_shade import detail_shade
 
 SRC, MESH, DST = sys.argv[1], sys.argv[2], sys.argv[3]
 d = json.load(open(MESH)); N = 2048
@@ -46,11 +47,7 @@ tones = np.array([[0.74, 0.76, 0.78], [0.53, 0.58, 0.63], [0.34, 0.37, 0.41]], n
 pattern = tones[np.kron(q, np.ones((B, B), int))]
 
 out = im.copy()
-# keep panel lines, rivets and weathering but not the old camo shapes: brightness relative to a blurred copy (paint texels only)
-lp = np.where(paint, lum, 0).astype(np.float32); wp = paint.astype(np.float32)
-blur = lambda a: np.asarray(Image.fromarray((a * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(10)), np.float32) / 255
-local = blur(lp) / np.maximum(blur(wp), 1e-3)
-shade = np.clip(lum / np.maximum(local, 1e-3), 0.6, 1.25)[..., None]
+shade = detail_shade(lum, paint)[..., None]   # panel lines, rivets and weathering, not the base's camouflage (livery_shade.py)
 out[paint] = np.clip(pattern[paint] * shade[paint], 0, 1)
 Image.fromarray((out * 255).astype(np.uint8)).save(DST)
 print("digital livery ->", DST)
