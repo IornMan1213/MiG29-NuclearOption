@@ -1,10 +1,14 @@
 # Changelog
 
-## 0.9.3 (unreleased)
+## 0.9.3 (Update 9.3)
 **Fixes and smoother frame rates.**
 - **Both antennas back.** The left fin now has the small rear-pointing spike at its tip that the right fin has (the source model
   only had the right one: `tools/fin_antenna.py` mirrors it), and the blade antenna on the spine behind the canopy is back (0.9.2
   took it out because it looked like a loose panel; that was the shading along its thin edges, fixed in this release).
+- **Cockpit setups** (new). Make your own cockpit in the [Cockpit Editor](https://github.com/IornMan1213/CockpitEditor/releases/tag/v1.1) (1.1 or newer): move, turn, resize
+  or hide any gauge, display or switch panel, add decals. Put the `.cpit` file in the `Cockpits` folder next to
+  `MiG29Instruments.dll` and pick it in Configuration Manager (MiG-29 Instruments > Cockpit > Cockpit layout), or cycle setups
+  in flight with the "Next cockpit layout key". Default is the stock cockpit, and a file that cannot be used falls back to it.
 - **90 flares and 90 chaff** (was 30 of each).
 - **Wingtip countermeasure pods** (new "Wingtips" station): a slim pod on each wing tip with 60 more cartridges each: flares,
   chaff, or 30 of each. They add to the jet's own flare and chaff counts while they are on.
