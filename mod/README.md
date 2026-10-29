@@ -102,6 +102,11 @@ The rudder pedals move with your rudder input and the gear lever with the gear. 
 (brightness: `BepInEx/config/iornman.mig29.instruments.cfg`, `Night panel lighting`, 0 = off; the same file has the
 drop-tank `Jettison key` and `Drop empty tanks automatically`).
 
+**Cockpit setups:** layouts made in the [Cockpit Editor](https://github.com/IornMan1213/CockpitEditor/releases/latest)
+(`.cpit` files) go in the `Cockpits` folder next to the DLL. Pick one in Configuration Manager (MiG-29 Instruments > Cockpit >
+Cockpit layout) or cycle them with the "Next cockpit layout key". A file that cannot be used falls back to the default
+cockpit, and the log says why.
+
 ## Troubleshooting
 - **The MiG-29 isn't in the aircraft list.** It spawns from medium hangars, shelters and revetments on land bases, and from the
   Hyperion carrier's hangars.
@@ -131,6 +136,7 @@ drop-tank `Jettison key` and `Drop empty tanks automatically`).
 ## Links
 - Project page: https://iornman1213.github.io/MiG29-NuclearOption/
 - Source, releases and issues: https://github.com/IornMan1213/MiG29-NuclearOption
+- Cockpit Editor (make your own cockpit): https://github.com/IornMan1213/CockpitEditor
 
 ## Credits
 - MiG-29 3D model: "MiG-29 - Fighter Jet - Free" by **bohmerang** (https://sketchfab.com/3d-models/mig-29-fighter-jet-free-0a21787096244220b246ec8747e7b09c),
