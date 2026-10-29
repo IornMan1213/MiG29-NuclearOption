@@ -244,7 +244,7 @@ namespace MiG29Tools
         // part has broken away you look into a structure-walled shell. Box-projected UVs at the stock texel density (0.46 tiles per
         // metre), one vertex colour (the stock structure shader tints by it). World space in and out, like the bucket.
         public const float InnerMax = 0.10f;
-        const float FlipMax = 0.25f, RimMax = 0.02f;
+        const float FlipMax = 0.25f, RimMax = 0.02f, ThinWall = 0.015f;
         public static (List<Vector3> v, List<Vector3> n, List<Vector2> uv, List<Color32> c, List<int> t) Interior(Bucket b, float tilesPerMetre, Color32 tint, Func<Vector3, Vector3, float> depth, Func<Vector3, bool> keepOut = null)
         {
             // one inset per position (the bucket splits vertices at UV seams; separate insets would crack the hull there)
@@ -280,6 +280,25 @@ namespace MiG29Tools
                 if (d < 0f) { open[p] = true; inner[p] = ppos[p]; inN[p] = nn; continue; }
                 inN[p] = nn;
                 inner[p] = ppos[p] - nn * Mathf.Clamp(d * 0.33f, InnerInset, rim[p] ? RimMax : InnerMax);   // at an edge the ray may have skimmed into another panel
+            }
+            // A triangle touching a thin wall goes no deeper than its shallowest corner. The intake ducts' side walls are a few long
+            // triangles, thin along most of their length but meeting the fuselage at one corner, where the far side is 65 cm away:
+            // that corner went in 10 cm, the others under 1 cm, and the tilted hull triangle cut through the thin wall into the duct
+            // (user screenshot). Where the airframe is thicker all round (no corner inset under ThinWall) nothing changes.
+            var amt = new float[ppos.Count];
+            for (int p = 0; p < ppos.Count; p++) amt[p] = open[p] ? float.MaxValue : (ppos[p] - inner[p]).magnitude;
+            var lim = (float[])amt.Clone();
+            for (int i = 0; i < b.t.Count; i += 3)
+            {
+                int p0 = pid[b.t[i]], p1 = pid[b.t[i + 1]], p2 = pid[b.t[i + 2]];
+                float m = Mathf.Min(amt[p0], Mathf.Min(amt[p1], amt[p2]));
+                if (m >= ThinWall) continue;
+                lim[p0] = Mathf.Min(lim[p0], m); lim[p1] = Mathf.Min(lim[p1], m); lim[p2] = Mathf.Min(lim[p2], m);
+            }
+            for (int p = 0; p < ppos.Count; p++)
+            {
+                if (open[p]) continue;
+                if (lim[p] < amt[p]) inner[p] = ppos[p] - inN[p] * lim[p];
                 if (keepOut != null && keepOut(inner[p])) open[p] = true;                                   // e.g. inside the cockpit
             }
             var v = new List<Vector3>(); var n = new List<Vector3>(); var uv = new List<Vector2>(); var col = new List<Color32>(); var t = new List<int>();

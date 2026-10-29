@@ -16,7 +16,7 @@ def git(*args, cwd=REPO):
 
 
 def version(name):
-    m = re.search(r"_(\d+\.\d+\.\d+)\.nobp$", name)
+    m = re.search(r"_(\d+(?:\.\d+){2,3})\.nobp$", name)
     if not m:
         sys.exit(f"can't read a version from {name!r} (expected 'MiG-29 Fulcrum_x.y.z.nobp')")
     return m.group(1)

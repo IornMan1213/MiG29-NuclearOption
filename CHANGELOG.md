@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.9.3.1 (Update 9.3.1)
+**Bug-fix update: shading and the intakes.** No new features, nothing else changes; update over 0.9.3 as usual.
+- **No more dark smears and shadow streaks on the skin, worst round the flaps and ailerons.** The model's normals (the
+  directions light and shadows use) were averaged across sharp edges, so whole panels were lit as if they faced 50 degrees away:
+  90% of the flaps' and ailerons' area, a quarter of the rest of the skin. They are now rebuilt the way Blender's "smooth by
+  angle" makes them (`tools/normals_by_angle.py`): smooth across curves, sharp across creases. This is the fix players were
+  making by hand with Reset Vectors in Blender.
+- **No structure poking out inside the intakes.** The inner hull (the structure behind the skin that bullet holes show) cut
+  through the intake ducts' thin side walls: a few long triangles there reach from the thin wall to the thick fuselage, and the
+  hull was set 10 cm deep at the thick end. A hull triangle touching a thin wall now goes no deeper than its shallowest corner.
+
 ## 0.9.3 (Update 9.3)
 **Fixes and smoother frame rates.**
 - **Both antennas back.** The left fin now has the small rear-pointing spike at its tip that the right fin has (the source model
