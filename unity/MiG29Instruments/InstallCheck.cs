@@ -12,7 +12,7 @@ namespace MiG29Instruments
     {
         // the names this mod's .nobp has had: "MiG-29 Fulcrum_x.y.z.nobp" (the build), "MiG-29.Fulcrum_x.y.z.nobp" (GitHub's bare
         // download until 0.9.2), "MiG-29_Fulcrum_x.y.z.nobp"
-        static readonly Regex Nobp = new Regex(@"^MiG-29[ ._]Fulcrum_(\d+\.\d+\.\d+)\.nobp$", RegexOptions.IgnoreCase);
+        static readonly Regex Nobp = new Regex(@"^MiG-29[ ._]Fulcrum_(\d+(?:\.\d+){2,3})\.nobp$", RegexOptions.IgnoreCase);
 
         public static string Problem { get; private set; }
 
