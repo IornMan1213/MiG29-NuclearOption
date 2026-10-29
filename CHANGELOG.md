@@ -8,6 +8,10 @@
 - **90 flares and 90 chaff** (was 30 of each).
 - **Wingtip countermeasure pods** (new "Wingtips" station): a slim pod on each wing tip with 60 more cartridges each: flares,
   chaff, or 30 of each. They add to the jet's own flare and chaff counts while they are on.
+- **Separate flare and chaff keys** (optional). Configuration Manager > Countermeasures > Flares key / Chaff key pop flares or
+  chaff directly while held, whichever countermeasure is selected; each can be a keyboard key or a HOTAS button
+  (`JoystickButton5`, `Joystick1Button5`). Unbound by default: the game's own Countermeasures and Next Countermeasure buttons
+  work as before, with or without them.
 - **Canopy glass from every side.** The glass was one-sided: it vanished from inside the cockpit and wherever the open canopy
   showed its underside (the aircraft selection screen). It now has an inner layer, as the stock jets' canopies do.
 - **A plain grey base: no more star ghosts.** The default livery is now one flat grey (the old camouflage's lighter tone) with the
