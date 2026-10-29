@@ -177,4 +177,51 @@ namespace MiG29Instruments
 
         static bool IsPlayer(Aircraft a) { var h = SceneSingleton<CombatHUD>.i; return h != null && h.aircraft == a; }
     }
+
+    // The wingtip countermeasure pods carry a FlareEjector / ChaffEjector whose ejection points have no part: a prefab cannot point at
+    // the aircraft it will hang on, and the game reads the part's rigidbody for a cartridge's starting velocity (a null there throws).
+    // When the game attaches a mounted store's countermeasure to the aircraft (Hardpoint.SpawnMount), any ejection point without a
+    // part gets the part the store hangs from: the wing.
+    // The game attaches only a store's first countermeasure (Hardpoint.SpawnMount: GetComponentInChildren): the flare + chaff pod has
+    // two, so the rest of a pod's are attached here once the store is spawned (its chaff then joins the jet's Radar Chaff).
+    [HarmonyLib.HarmonyPatch(typeof(Hardpoint), "SpawnMount")]
+    static class CmPodSpawn
+    {
+        static void Postfix(GameObject __result, Aircraft __0)
+        {
+            try
+            {
+                if (__result == null || __0 == null || !__result.name.Contains("_cmpod_")) return;
+                foreach (var c in __result.GetComponentsInChildren<Countermeasure>(true))
+                    if (c.aircraft == null) c.AttachToUnit(__0);
+            }
+            catch (System.Exception ex) { MiG29InstrumentsPlugin.Log.LogWarning($"countermeasure pod: {ex.Message}"); }
+        }
+    }
+
+    [HarmonyLib.HarmonyPatch(typeof(Countermeasure), nameof(Countermeasure.AttachToUnit))]
+    static class CmPodAttach
+    {
+        static void Postfix(Countermeasure __instance)
+        {
+            try
+            {
+                if (!(__instance is FlareEjector) && !(__instance is ChaffEjector)) return;
+                var points = HarmonyLib.AccessTools.Field(__instance.GetType(), "ejectionPoints")?.GetValue(__instance) as System.Collections.IList;
+                if (points == null) return;
+                UnitPart part = null;
+                for (int i = 0; i < points.Count; i++)
+                {
+                    var e = points[i];
+                    var f = e != null ? HarmonyLib.AccessTools.Field(e.GetType(), "part") : null;
+                    if (f == null || f.GetValue(e) as UnitPart != null) continue;
+                    if (part == null) part = __instance.GetComponentInParent<UnitPart>();
+                    if (part == null) return;
+                    f.SetValue(e, part);
+                    if (e.GetType().IsValueType) points[i] = e;   // a struct element: write the copy back
+                }
+            }
+            catch (System.Exception ex) { MiG29InstrumentsPlugin.Log.LogWarning($"countermeasure pod: {ex.Message}"); }
+        }
+    }
 }

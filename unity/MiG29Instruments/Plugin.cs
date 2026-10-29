@@ -30,13 +30,16 @@ namespace MiG29Instruments
         internal static BepInEx.Configuration.ConfigEntry<float> CobraSeconds;
         internal static BepInEx.Configuration.ConfigEntry<bool> CobraSound;
         internal static BepInEx.Configuration.ConfigEntry<bool> R27RCue;
+        internal static BepInEx.Configuration.ConfigEntry<BepInEx.Configuration.KeyboardShortcut> FlaresKey, ChaffKey;
 
         void Awake()
         {
             Log = Logger;
             var harmony = new HarmonyLib.Harmony("iornman1213.mig29.instruments");
             harmony.PatchAll(typeof(R27RNoTarget));
+            harmony.PatchAll(typeof(CmKeysBlock));   // the optional flare / chaff keys hold the countermeasure trigger (CmKeys.cs)
             harmony.PatchAll(typeof(BulletHolePatch)); harmony.PatchAll(typeof(BlastHolePatch));   // holes where the shots land (Holes.cs)
+            harmony.PatchAll(typeof(CmPodSpawn)); harmony.PatchAll(typeof(CmPodAttach));   // the wingtip countermeasure pods: all their dispensers attached, their ejection points given the wing's part (Stores.cs)
             PanelLighting = Config.Bind("Cockpit", "Night panel lighting", 1f,
                 new BepInEx.Configuration.ConfigDescription("Brightness of the cockpit flood lights at night (0 = off)", new BepInEx.Configuration.AcceptableValueRange<float>(0f, 4f)));
             JettisonKey = Config.Bind("Drop tanks", "Jettison key", new BepInEx.Configuration.KeyboardShortcut(KeyCode.J, KeyCode.LeftControl),
@@ -53,6 +56,12 @@ namespace MiG29Instruments
                 "With the NO Mirrors plugin installed they reflect; without it they are plain grey");
             MirrorFoldKey = Config.Bind("Cockpit", "Mirror fold key", new BepInEx.Configuration.KeyboardShortcut(KeyCode.M, KeyCode.LeftControl),
                 "Folds or unfolds the mirrors in flight (flips \"Fold mirrors\"). " + Hotkeys.JoystickHelp);
+            FlaresKey = Config.Bind("Countermeasures", "Flares key", BepInEx.Configuration.KeyboardShortcut.Empty,
+                "Optional: pops flares while held, whichever countermeasure is selected. Unbound by default: the game's own Countermeasures " +
+                "and Next Countermeasure buttons work as always, with or without it. " + Hotkeys.JoystickHelp);
+            ChaffKey = Config.Bind("Countermeasures", "Chaff key", BepInEx.Configuration.KeyboardShortcut.Empty,
+                "Optional: pops chaff while held, whichever countermeasure is selected. Unbound by default: the game's own Countermeasures " +
+                "and Next Countermeasure buttons work as always, with or without it. " + Hotkeys.JoystickHelp);
             CobraKey = Config.Bind("Flight", "Cobra key", new BepInEx.Configuration.KeyboardShortcut(KeyCode.C, KeyCode.LeftControl),
                 "Turns Stability Assist (the pitch, g and AoA limiters) off for a few seconds for a Cobra or other post-stall move, then back on. " +
                 "Press again to end it early. " + Hotkeys.JoystickHelp);
@@ -71,6 +80,7 @@ namespace MiG29Instruments
             go.AddComponent<GlassHudHider>();
             go.AddComponent<MirrorFolder>();
             go.AddComponent<CobraSwitch>();
+            go.AddComponent<CmKeys>();   // the optional flare / chaff keys
             go.AddComponent<R27RCue>();
             Log.LogInfo("MiG-29 instruments ready");
         }

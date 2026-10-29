@@ -43,6 +43,7 @@ if (-not ($Quick -and $hasGroups)) {
 $tools = $PSScriptRoot
 Push-Location (Split-Path $tools)
 & $py "$tools/fix_winding.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "fix_winding failed" }   # before anything copies body triangles
+& $py "$tools/fin_antenna.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "fin_antenna failed" }   # the left fin's spike, mirrored from the right
 & $py "$tools/clean_insignia.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "clean_insignia failed" }
 & $py "$tools/base_flat.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "base_flat failed" }   # the flat grey base, before every livery
 & $py "$tools/normal_map_y.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "normal_map_y failed" }   # the skin's normal map in Unity's convention

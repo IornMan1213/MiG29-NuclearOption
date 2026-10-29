@@ -51,8 +51,6 @@ namespace MiG29Tools
                 MiG29MainGear.CutBodySkin(ref p.vertices, ref p.normals, ref p.uvs, ref p.triangles);
                 p.triangles = MiG29Nozzles.StripModelNozzles(p.vertices, p.triangles, out int stripped);
                 Debug.Log($"[MiG29] nozzles: {stripped} model nozzle triangles stripped");
-                p.triangles = StripDorsalAntenna(p.vertices, p.triangles, out int antenna);
-                Debug.Log($"[MiG29] dorsal antenna: {antenna} triangles stripped");
             }
             MoveStabWicks(data);
             AssetDatabase.DeleteAsset(ModDir + "/meshes"); // no stale meshes in the bundle
@@ -122,6 +120,7 @@ namespace MiG29Tools
             RemoveInternalBays(go);
             var centreSet = MiG29Weapons.SetupCentreline(go, ModelOffset, weapons);
             var outerPylonSet = MiG29Weapons.SetupPylons(go, ModelOffset, weapons);
+            var wingtipSet = MiG29Weapons.SetupWingtips(go, ModelOffset, weapons, outerPylonSet);
             MiG29Countermeasures.Setup(go, ModelOffset);
             var oldGun = MiG29Weapons.SetupGun(go, ModelOffset, weapons);
             var displays = MiG29Polish.BuildDisplays(go);
@@ -139,6 +138,7 @@ namespace MiG29Tools
             RemoveBayLoadouts(pso);
             MiG29Weapons.ClearLoadoutSlot(pso, centreSet);
             MiG29Weapons.InsertLoadoutSlot(pso, outerPylonSet);
+            MiG29Weapons.InsertLoadoutSlot(pso, wingtipSet);
             Debug.Log($"[MiG29] loadouts: {MiG29Weapons.ReplaceInLoadouts(pso, oldGun, weapons.gunMount)} gun entries switched to GSh-30-1");
             MiG29Weapons.SetLoadouts(pso, weapons);
             MiG29Polish.SetLiveries(pso);
@@ -218,18 +218,6 @@ namespace MiG29Tools
         // ------------------------------------------------------------------
 
         class Mats { public Material skin, glass; }
-
-        // The model's dorsal antenna behind the canopy (a separate 104-triangle piece, 4.6 cm wide, 0.37 m tall, raked forward) read as
-        // a stray panel standing off the spine in game (user screenshot, v0.9.2): every triangle wholly inside its box goes (MiG frame).
-        static int[] StripDorsalAntenna(float[] v, int[] tris, out int removed)
-        {
-            bool In(int i) { float x = v[i * 3], y = v[i * 3 + 1], z = v[i * 3 + 2]; return Mathf.Abs(x) < 0.03f && y > 1.06f && y < 1.45f && z > 4.405f && z < 4.735f; }
-            var keep = new List<int>(tris.Length); removed = 0;
-            for (int i = 0; i < tris.Length; i += 3)
-                if (In(tris[i]) && In(tris[i + 1]) && In(tris[i + 2])) removed++;
-                else { keep.Add(tris[i]); keep.Add(tris[i + 1]); keep.Add(tris[i + 2]); }
-            return keep.ToArray();
-        }
 
         static Mats BuildMaterials()
         {

@@ -4,12 +4,13 @@ using UnityEngine.EventSystems;
 
 namespace MiG29Instruments
 {
-    // The plugin's own keys (Cobra, jettison, mirrors, cockpit setups) are BepInEx shortcuts, outside the game's control settings.
+    // The plugin's own keys (Cobra, jettison, mirrors, cockpit setups, flares / chaff) are BepInEx shortcuts, outside the game's control settings.
     // They are ignored while the player types in a text field (multiplayer chat, the mission editor: Ctrl+C is copy there) and while
     // the game is paused.
     static class Hotkeys
     {
         public static bool Down(ConfigEntry<KeyboardShortcut> key) => key != null && key.Value.IsDown() && !Blocked();
+        public static bool Held(ConfigEntry<KeyboardShortcut> key) => key != null && key.Value.MainKey != KeyCode.None && key.Value.IsPressed() && !Blocked();
 
         static bool Blocked()
         {
