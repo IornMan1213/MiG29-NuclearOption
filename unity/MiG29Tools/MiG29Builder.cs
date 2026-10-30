@@ -181,7 +181,7 @@ namespace MiG29Tools
             PrefabUtility.UnloadPrefabContents(prefabRoot);
 
             BuildHangarOp();
-            MiG29Polish.BuildLoadingScreens(); MiG29Polish.BuildHints();
+            MiG29Polish.BuildLoadingScreens(); MiG29Polish.BuildHints(); MiG29Polish.BuildAryxWeapons(ModDir, new[] { (JsonKey, false) });
             ModInfo(DisplayName, Version);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();

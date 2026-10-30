@@ -480,6 +480,64 @@ namespace MiG29Tools
 
         // ---------------- loading screens ----------------
 
+        // Aryx's Weaponry Pack (github.com/Aryx3D/AryxWeaponryPack), optional: Blueprinter's add-weapon op names his weapon mounts by
+        // key for our pylons, so when his pack is installed its weapons are offered on them; without it Blueprinter logs one
+        // "weapon not found" line per key and skips it (ops run once at load, after every mod's bundles: no dependency, no cost in
+        // flight). Only his keys are named here; nothing of his is copied. A fighter's set of his external weapons (bay mounts
+        // left out: no bays): stations by name (centre, inner, middle, outer, outboard on the K airframe's fourth pair).
+        static readonly (string key, string[] stations, bool bigWingOnly)[] AryxWeapons =
+        {
+            ("Aryx_LRIRM1_Single", new[] { "inner", "middle", "outer" }, false),
+            ("Aryx_LRIRM1_Double", new[] { "inner" }, false),
+            ("Aryx_SRIRM1_Single", new[] { "inner", "middle", "outer", "outboard" }, false),
+            ("Aryx_SRIRM1_Double", new[] { "inner" }, false),
+            ("Aryx_Wep_ARM2_single", new[] { "inner", "middle" }, false),
+            ("Aryx_Wep_ARM2_double", new[] { "inner" }, false),
+            ("Aryx_FastAGM1_x1", new[] { "inner", "middle" }, false),
+            ("Aryx_FastAGM1_x2", new[] { "inner" }, false),
+            ("Aryx_FastAGM1_x3", new[] { "inner" }, false),
+            ("Aryx_ClusterBomb1_Single", new[] { "inner", "middle" }, false),
+            ("Aryx_ClusterBomb1_Double", new[] { "inner" }, false),
+            ("aryx_glidebomb400_single", new[] { "inner", "middle" }, false),
+            ("aryx_glidebomb400_double", new[] { "inner" }, false),
+            ("Aryx_SmallCruiseMissile1_Single", new[] { "inner", "middle" }, false),
+            ("Aryx_SmallCruiseMissile1_Double", new[] { "inner" }, false),
+            ("Aryx_HeavyRocket1_x1", new[] { "inner", "middle" }, false),
+            ("Aryx_HeavyRocket1_x2", new[] { "inner" }, false),
+            ("Aryx_FastAShM1_Single", new[] { "inner", "middle" }, true),
+            ("Aryx_DropTank450", new[] { "centre" }, false),
+            ("Aryx_DropTank1200", new[] { "centre" }, false),
+            ("Aryx_SmallJammingPod", new[] { "centre" }, false),
+            ("Aryx_ExternalTargetingPod", new[] { "centre" }, false),
+            ("Aryx_Gunpod_Swivel30mm", new[] { "centre" }, false),
+        };
+
+        // the ops for these jets (key, and whether it has the K airframe's outboard pair, which moves the wingtips and hook on by one)
+        public static void BuildAryxWeapons(string root, IList<(string key, bool bigWing)> jets)
+        {
+            var dir = root + "/AryxSupport";
+            if (AssetDatabase.IsValidFolder(dir)) AssetDatabase.DeleteAsset(dir);   // afresh: an entry dropped here is gone from the build
+            AssetDatabase.CreateFolder(root, "AryxSupport");
+            int Index(string station, bool bigWing) => station == "centre" ? 1 : station == "inner" ? 2 : station == "middle" ? 3
+                : station == "outer" ? 4 : station == "outboard" && bigWing ? 5 : -1;
+            int made = 0;
+            foreach (var (key, stations, bigWingOnly) in AryxWeapons)
+            {
+                var op = ScriptableObject.CreateInstance<Blueprinter.OpAddWeaponToHardpoint>();
+                op.weaponJsonKey = key;
+                foreach (var (jet, bigWing) in jets)
+                {
+                    if (bigWingOnly && !bigWing) continue;
+                    var sets = stations.Select(s => Index(s, bigWing)).Where(i => i >= 0).Distinct().ToList();
+                    if (sets.Count > 0) op.aircraft.Add(new Blueprinter.OpAddWeaponToHardpoint.AircraftTarget { aircraftJsonKey = jet, hardpointIndices = sets });
+                }
+                if (op.aircraft.Count == 0) continue;
+                AssetDatabase.CreateAsset(op, $"{dir}/OpAddWeaponToHardpoint_{key}.asset");
+                made++;
+            }
+            Debug.Log($"[MiG29] Aryx's Weaponry Pack: {made} of his weapons offered on {jets.Count} jet(s) when it is installed");
+        }
+
         // Blueprinter 2.1.1's loading-screen hints (OpAddHints, at most 10 per mod by default): the features players most often miss.
         static readonly string[] Hints =
         {
