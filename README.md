@@ -18,6 +18,9 @@ doors, a custom cockpit damage display, and nine liveries. Its three rear-view m
 
 ![MiG-29 banking](docs/img/hero_bank.jpg)
 
+![MiG-29 taking off at dusk on afterburner](docs/img/calensk_dusk_takeoff.jpg)
+*Taking off at dusk. Photo by **@calensk.11** on Discord: thank you for the wonderful shot!*
+
 ## Install (players)
 1. Install [BepInEx 5](https://github.com/BepInEx/BepInEx) into the Nuclear Option folder.
 2. Install [Blueprinter](https://github.com/nikkorap/NOBlueprinter-Releases) 2.1.1 or newer into `BepInEx/plugins`.

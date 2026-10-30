@@ -14,6 +14,9 @@ Requires BepInEx 5 and Blueprinter 2.0.1 or newer.
 Cockpit, instrument faces, missiles and launchers
   Modelled and drawn from scratch for this mod.
 
+Preview picture (DOORMAN, README)
+  The MiG-29 taking off at dusk, photographed in game by @calensk.11 on Discord. Thank you for the wonderful shot!
+
 MiG29Instruments.dll
   Open source (MIT): unity/MiG29Instruments in the repository above.
 
