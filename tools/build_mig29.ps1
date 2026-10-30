@@ -127,7 +127,10 @@ Get-ChildItem $env:MIG29_OUT -Filter MiG29Instruments.dll | ForEach-Object { "OU
 $zip = Join-Path $env:MIG29_OUT "MiG-29-Fulcrum_$ver.zip"
 Remove-Item "$env:MIG29_OUT/MiG-29-Fulcrum_*.zip" -ErrorAction SilentlyContinue
 Copy-Item (Join-Path $repo "mod/CREDITS.txt") $env:MIG29_OUT -Force
-Compress-Archive -Path "$env:MIG29_OUT/MiG-29 Fulcrum_$ver.nobp", "$env:MIG29_OUT/MiG29Instruments.dll", "$env:MIG29_OUT/CREDITS.txt" -DestinationPath $zip -Force
+# DOORMAN's card for the .nobp (mod/doorman; the plugin's own is embedded in its DLL), beside it in the zip
+Copy-Item (Join-Path $repo "mod/doorman/MiG-29 Fulcrum.doorman.json") $env:MIG29_OUT -Force
+Copy-Item (Join-Path $repo "docs/img/hero_bank.jpg") (Join-Path $env:MIG29_OUT "MiG-29 Fulcrum.preview.jpg") -Force
+Compress-Archive -Path "$env:MIG29_OUT/MiG-29 Fulcrum_$ver.nobp", "$env:MIG29_OUT/MiG29Instruments.dll", "$env:MIG29_OUT/CREDITS.txt", "$env:MIG29_OUT/MiG-29 Fulcrum.doorman.json", "$env:MIG29_OUT/MiG-29 Fulcrum.preview.jpg" -DestinationPath $zip -Force
 "OUTPUT $zip $((Get-Item $zip).Length)"
 if ($Release -and $code -eq 0) {
     Get-ChildItem $env:MIG29_OUT -Filter *.nobp | ForEach-Object { & $py (Join-Path $PSScriptRoot "backup_build.py") $_.FullName --note $Note }

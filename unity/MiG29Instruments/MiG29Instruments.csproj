@@ -41,4 +41,10 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
   </ItemGroup>
+  <!-- DOORMAN's card for this plugin (mod/doorman, its guide's option 1: embedded, so the DLL carries it); the .nobp's card ships
+       beside it in the release zip (build_mig29.ps1) -->
+  <ItemGroup>
+    <EmbeddedResource Include="../../mod/doorman/plugin.doorman.json" LogicalName="doorman.json" />
+    <EmbeddedResource Include="../../docs/img/hero_bank.jpg" LogicalName="preview.jpg" />
+  </ItemGroup>
 </Project>
