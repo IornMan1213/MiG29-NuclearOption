@@ -45,6 +45,6 @@
        beside it in the release zip (build_mig29.ps1) -->
   <ItemGroup>
     <EmbeddedResource Include="../../mod/doorman/plugin.doorman.json" LogicalName="doorman.json" />
-    <EmbeddedResource Include="../../docs/img/hero_bank.jpg" LogicalName="preview.jpg" />
+    <EmbeddedResource Include="../../docs/img/calensk_dusk_takeoff.jpg" LogicalName="preview.jpg" />
   </ItemGroup>
 </Project>

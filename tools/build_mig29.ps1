@@ -129,7 +129,7 @@ Remove-Item "$env:MIG29_OUT/MiG-29-Fulcrum_*.zip" -ErrorAction SilentlyContinue
 Copy-Item (Join-Path $repo "mod/CREDITS.txt") $env:MIG29_OUT -Force
 # DOORMAN's card for the .nobp (mod/doorman; the plugin's own is embedded in its DLL), beside it in the zip
 Copy-Item (Join-Path $repo "mod/doorman/MiG-29 Fulcrum.doorman.json") $env:MIG29_OUT -Force
-Copy-Item (Join-Path $repo "docs/img/hero_bank.jpg") (Join-Path $env:MIG29_OUT "MiG-29 Fulcrum.preview.jpg") -Force
+Copy-Item (Join-Path $repo "docs/img/calensk_dusk_takeoff.jpg") (Join-Path $env:MIG29_OUT "MiG-29 Fulcrum.preview.jpg") -Force   # the preview: photo by @calensk.11
 Compress-Archive -Path "$env:MIG29_OUT/MiG-29 Fulcrum_$ver.nobp", "$env:MIG29_OUT/MiG29Instruments.dll", "$env:MIG29_OUT/CREDITS.txt", "$env:MIG29_OUT/MiG-29 Fulcrum.doorman.json", "$env:MIG29_OUT/MiG-29 Fulcrum.preview.jpg" -DestinationPath $zip -Force
 "OUTPUT $zip $((Get-Item $zip).Length)"
 if ($Release -and $code -eq 0) {

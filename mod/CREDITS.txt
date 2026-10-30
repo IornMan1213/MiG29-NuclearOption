@@ -2,7 +2,7 @@ MiG-29 Fulcrum for Nuclear Option - credits and licences
 https://github.com/IornMan1213/MiG29-NuclearOption
 
 Install: put "MiG-29 Fulcrum_<version>.nobp" and "MiG29Instruments.dll" in BepInEx/plugins/MiG-29_Fulcrum/.
-Requires BepInEx 5 and Blueprinter 2.0.1 or newer.
+Requires BepInEx 5 and Blueprinter 2.1.1 or newer.
 
 3D model
   "MiG-29 - Fighter Jet - Free" by bohmerang
