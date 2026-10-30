@@ -480,6 +480,30 @@ namespace MiG29Tools
 
         // ---------------- loading screens ----------------
 
+        // Blueprinter 2.1.1's loading-screen hints (OpAddHints, at most 10 per mod by default): the features players most often miss.
+        static readonly string[] Hints =
+        {
+            "Press C at low speed to pull Pugachev's Cobra. Change the key and how long it holds in Configuration Manager > Flight.",
+            "Press J to jettison the drop tanks, or let them drop on their own when empty (Configuration Manager > Drop tanks).",
+            "The R-27R is guided by your radar all the way: keep the target locked until it hits. The lock cue reminds you.",
+            "Press M to fold the cockpit mirrors away.",
+            "Give flares and chaff their own keys, keyboard or HOTAS, in Configuration Manager > Countermeasures.",
+            "Install the NO Mirrors mod and the rear-view mirrors really reflect.",
+            "Rearrange the cockpit with the Cockpit Editor and load your own cockpit setup.",
+            "Prefer the gauges? Hide the flight HUD in Configuration Manager > HUD and keep the weapon and damage readouts.",
+            "The SPO-15 panel shows which way radar threats are, how close, and when one has locked you.",
+            "Turn the cockpit's night lighting up or down in Configuration Manager > Cockpit.",
+        };
+
+        public static void BuildHints()
+        {
+            var path = ModDir + "/OpAddHints.asset";
+            var op = AssetDatabase.LoadAssetAtPath<Blueprinter.Editor.Ops.OpAddHints>(path);
+            if (op == null) { op = ScriptableObject.CreateInstance<Blueprinter.Editor.Ops.OpAddHints>(); AssetDatabase.CreateAsset(op, path); }
+            op.hints = Hints.Select(h => new Blueprinter.Editor.Ops.OpAddHints.HintEntry { type = "MiG-29 tip", text = h }).ToArray();
+            EditorUtility.SetDirty(op);
+        }
+
         public static void BuildLoadingScreens()
         {
             EnsureUiDir();
