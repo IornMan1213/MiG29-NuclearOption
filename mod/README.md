@@ -6,7 +6,7 @@ its own damage display, nine liveries and loading screens.
 
 ## Install
 1. Install [BepInEx 5](https://github.com/BepInEx/BepInEx) into the Nuclear Option folder.
-2. Install [Blueprinter](https://github.com/nikkorap/NOBlueprinter-Releases) (2.0.1 or newer) into `BepInEx/plugins`.
+2. Install [Blueprinter](https://github.com/nikkorap/NOBlueprinter-Releases) (2.1.1 or newer) into `BepInEx/plugins`.
 3. Put `MiG-29 Fulcrum_0.9.3.1.nobp` and `MiG29Instruments.dll` (both in `MiG-29-Fulcrum_0.9.3.1.zip`) in
    `BepInEx/plugins/MiG-29_Fulcrum/`, or install the mod with a NOMNOM mod manager such as NOMM.
    Remove older `MiG-29 Fulcrum_*.nobp` (or `MiG-29.Fulcrum_*.nobp`) files. The DLL makes the cockpit instruments work, gives the drop tanks their fuel and

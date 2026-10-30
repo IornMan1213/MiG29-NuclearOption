@@ -29,7 +29,7 @@ def main():
     if not os.path.exists(zipf): sys.exit(f"{zipf} not found: build with tools/build_mig29.ps1 -Release first")
     notes += (f"\n\n**Install:** with a NOMNOM mod manager (NOMM), or unzip `MiG-29-Fulcrum_{ver}.zip` into `BepInEx/plugins/MiG-29_Fulcrum/` "
               f"(it holds `MiG-29 Fulcrum_{ver}.nobp` and `MiG29Instruments.dll`; delete older versions first). "
-              "Requires BepInEx 5 and Blueprinter 2.0.1+.\n\nThe mod contains a modified version of \"MiG-29 - Fighter Jet - Free\" by bohmerang "
+              "Requires BepInEx 5 and Blueprinter 2.1.1+.\n\nThe mod contains a modified version of \"MiG-29 - Fighter Jet - Free\" by bohmerang "
               "(CC BY-NC-SA 4.0).")
     tok = token()
     sha = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, cwd=ROOT).stdout.strip()
