@@ -484,7 +484,8 @@ namespace MiG29Tools
         // key for our pylons, so when his pack is installed its weapons are offered on them; without it Blueprinter logs one
         // "weapon not found" line per key and skips it (ops run once at load, after every mod's bundles: no dependency, no cost in
         // flight). Only his keys are named here; nothing of his is copied. A fighter's set of his external weapons (bay mounts
-        // left out: no bays): stations by name (centre, inner, middle, outer, outboard on the K airframe's fourth pair).
+        // left out: no bays; nor his drop tanks: the MiGs have their own PTB-1500 / PTB-1150): stations by name (centre, inner, middle,
+        // outer, outboard on the K airframe's fourth pair).
         static readonly (string key, string[] stations, bool bigWingOnly)[] AryxWeapons =
         {
             ("Aryx_LRIRM1_Single", new[] { "inner", "middle", "outer" }, false),
@@ -505,8 +506,6 @@ namespace MiG29Tools
             ("Aryx_HeavyRocket1_x1", new[] { "inner", "middle" }, false),
             ("Aryx_HeavyRocket1_x2", new[] { "inner" }, false),
             ("Aryx_FastAShM1_Single", new[] { "inner", "middle" }, true),
-            ("Aryx_DropTank450", new[] { "centre" }, false),
-            ("Aryx_DropTank1200", new[] { "centre" }, false),
             ("Aryx_SmallJammingPod", new[] { "centre" }, false),
             ("Aryx_ExternalTargetingPod", new[] { "centre" }, false),
             ("Aryx_Gunpod_Swivel30mm", new[] { "centre" }, false),

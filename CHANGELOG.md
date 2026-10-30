@@ -6,7 +6,7 @@
   lock, folding the mirrors, separate flare and chaff keys, NO Mirrors, cockpit setups, the SPO-15 panel, night lighting).
 - **Works with Aryx's Weaponry Pack** (optional): if [his pack](https://github.com/Aryx3D/AryxWeaponryPack) is installed, a fighter's
   set of his weapons is offered on the MiG-29's pylons (his IR and anti-radiation missiles, fast AGMs, glide and cluster bombs, small
-  cruise missile and rockets on the wing pylons; his drop tanks and pods on the centreline). Without it nothing changes.
+  cruise missile and rockets on the wing pylons; his pods and gun pod on the centreline (not his drop tanks: the MiGs have their own)). Without it nothing changes.
 - **Clearer install problems**: once Blueprinter has loaded, the log confirms the jet is in the game, or says plainly that its
   .nobp is missing or did not load.
 - Built with the new Blueprinter editor, which also fixes material textures not loading properly.
