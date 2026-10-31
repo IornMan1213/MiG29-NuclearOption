@@ -66,11 +66,18 @@ namespace MiG29Tools
             // the glass seen from inside: the same triangles turned round. The outer glass culls its back faces, so on its own it
             // vanished from the cockpit and wherever the open canopy shows its underside (the aircraft selection screen); the
             // KR-67 does the same with canopy_R / canopy_R_int.
+            // The inside layer's own UVs: the canopy seen from the side, laid inside the light pane of the KR-67 interior glass's mask
+            // (multirole1_canopy_int_b: two light panes on a near-black border, u 0.12-0.45 / v 0.25-0.75 is all pane). With the MiG's own
+            // UVs a quarter of the glass (44% of the windscreen) sampled the dark border: a dark patch on the glass seen from the cockpit,
+            // at every angle (user screenshot). The grime and scratches still vary across it; the outer glass keeps the MiG's UVs.
+            var lo = v[0]; var hi = v[0];
+            foreach (var p in v) { lo = Vector3.Min(lo, p); hi = Vector3.Max(hi, p); }
+            var innerUv = Array.ConvertAll(v, p => new Vector2(Mathf.Lerp(0.12f, 0.45f, Mathf.InverseLerp(lo.z, hi.z, p.z)), Mathf.Lerp(0.25f, 0.75f, Mathf.InverseLerp(lo.y, hi.y, p.y))));
             Mesh Inner(List<int> t, string name)
             {
                 var r = new int[t.Count];
                 for (int i = 0; i < t.Count; i += 3) { r[i] = t[i]; r[i + 1] = t[i + 2]; r[i + 2] = t[i + 1]; }
-                var m = new Mesh { name = name, vertices = v, normals = Array.ConvertAll(n, x => -x), uv = uv, triangles = r };
+                var m = new Mesh { name = name, vertices = v, normals = Array.ConvertAll(n, x => -x), uv = innerUv, triangles = r };
                 m.RecalculateBounds();
                 return saveMesh(m, $"{ModDir}/meshes/{name}.asset");
             }
@@ -479,6 +486,87 @@ namespace MiG29Tools
         }
 
         // ---------------- loading screens ----------------
+
+        // Aryx's Weaponry Pack (github.com/Aryx3D/AryxWeaponryPack), optional: Blueprinter's add-weapon op names his weapon mounts by
+        // key for our pylons, so when his pack is installed its weapons are offered on them; without it Blueprinter logs one
+        // "weapon not found" line per key and skips it (ops run once at load, after every mod's bundles: no dependency, no cost in
+        // flight). Only his keys are named here; nothing of his is copied. A fighter's set of his external weapons (bay mounts
+        // left out: no bays; nor his drop tanks: the MiGs have their own PTB-1500 / PTB-1150): stations by name (centre, inner, middle,
+        // outer, outboard on the K airframe's fourth pair).
+        static readonly (string key, string[] stations, bool bigWingOnly)[] AryxWeapons =
+        {
+            ("Aryx_LRIRM1_Single", new[] { "inner", "middle", "outer" }, false),
+            ("Aryx_LRIRM1_Double", new[] { "inner" }, false),
+            ("Aryx_SRIRM1_Single", new[] { "inner", "middle", "outer", "outboard" }, false),
+            ("Aryx_SRIRM1_Double", new[] { "inner" }, false),
+            ("Aryx_Wep_ARM2_single", new[] { "inner", "middle" }, false),
+            ("Aryx_Wep_ARM2_double", new[] { "inner" }, false),
+            ("Aryx_FastAGM1_x1", new[] { "inner", "middle" }, false),
+            ("Aryx_FastAGM1_x2", new[] { "inner" }, false),
+            ("Aryx_FastAGM1_x3", new[] { "inner" }, false),
+            ("Aryx_ClusterBomb1_Single", new[] { "inner", "middle" }, false),
+            ("Aryx_ClusterBomb1_Double", new[] { "inner" }, false),
+            ("aryx_glidebomb400_single", new[] { "inner", "middle" }, false),
+            ("aryx_glidebomb400_double", new[] { "inner" }, false),
+            ("Aryx_SmallCruiseMissile1_Single", new[] { "inner", "middle" }, false),
+            ("Aryx_SmallCruiseMissile1_Double", new[] { "inner" }, false),
+            ("Aryx_HeavyRocket1_x1", new[] { "inner", "middle" }, false),
+            ("Aryx_HeavyRocket1_x2", new[] { "inner" }, false),
+            ("Aryx_FastAShM1_Single", new[] { "inner", "middle" }, true),
+            ("Aryx_SmallJammingPod", new[] { "centre" }, false),
+            ("Aryx_ExternalTargetingPod", new[] { "centre" }, false),
+            ("Aryx_Gunpod_Swivel30mm", new[] { "centre" }, false),
+        };
+
+        // the ops for these jets (key, and whether it has the K airframe's outboard pair, which moves the wingtips and hook on by one)
+        public static void BuildAryxWeapons(string root, IList<(string key, bool bigWing)> jets)
+        {
+            var dir = root + "/AryxSupport";
+            if (AssetDatabase.IsValidFolder(dir)) AssetDatabase.DeleteAsset(dir);   // afresh: an entry dropped here is gone from the build
+            AssetDatabase.CreateFolder(root, "AryxSupport");
+            int Index(string station, bool bigWing) => station == "centre" ? 1 : station == "inner" ? 2 : station == "middle" ? 3
+                : station == "outer" ? 4 : station == "outboard" && bigWing ? 5 : -1;
+            int made = 0;
+            foreach (var (key, stations, bigWingOnly) in AryxWeapons)
+            {
+                var op = ScriptableObject.CreateInstance<Blueprinter.OpAddWeaponToHardpoint>();
+                op.weaponJsonKey = key;
+                foreach (var (jet, bigWing) in jets)
+                {
+                    if (bigWingOnly && !bigWing) continue;
+                    var sets = stations.Select(s => Index(s, bigWing)).Where(i => i >= 0).Distinct().ToList();
+                    if (sets.Count > 0) op.aircraft.Add(new Blueprinter.OpAddWeaponToHardpoint.AircraftTarget { aircraftJsonKey = jet, hardpointIndices = sets });
+                }
+                if (op.aircraft.Count == 0) continue;
+                AssetDatabase.CreateAsset(op, $"{dir}/OpAddWeaponToHardpoint_{key}.asset");
+                made++;
+            }
+            Debug.Log($"[MiG29] Aryx's Weaponry Pack: {made} of his weapons offered on {jets.Count} jet(s) when it is installed");
+        }
+
+        // Blueprinter 2.1.1's loading-screen hints (OpAddHints, at most 10 per mod by default): the features players most often miss.
+        static readonly string[] Hints =
+        {
+            "Press C at low speed to pull Pugachev's Cobra. Change the key and how long it holds in Configuration Manager > Flight.",
+            "Press J to jettison the drop tanks, or let them drop on their own when empty (Configuration Manager > Drop tanks).",
+            "The R-27R is guided by your radar all the way: keep the target locked until it hits. The lock cue reminds you.",
+            "Press M to fold the cockpit mirrors away.",
+            "Give flares and chaff their own keys, keyboard or HOTAS, in Configuration Manager > Countermeasures.",
+            "Install the NO Mirrors mod and the rear-view mirrors really reflect.",
+            "Rearrange the cockpit with the Cockpit Editor and load your own cockpit setup.",
+            "Prefer the gauges? Hide the flight HUD in Configuration Manager > HUD and keep the weapon and damage readouts.",
+            "The SPO-15 panel shows which way radar threats are, how close, and when one has locked you.",
+            "Turn the cockpit's night lighting up or down in Configuration Manager > Cockpit.",
+        };
+
+        public static void BuildHints()
+        {
+            var path = ModDir + "/OpAddHints.asset";
+            var op = AssetDatabase.LoadAssetAtPath<Blueprinter.Editor.Ops.OpAddHints>(path);
+            if (op == null) { op = ScriptableObject.CreateInstance<Blueprinter.Editor.Ops.OpAddHints>(); AssetDatabase.CreateAsset(op, path); }
+            op.hints = Hints.Select(h => new Blueprinter.Editor.Ops.OpAddHints.HintEntry { type = "MiG-29 tip", text = h }).ToArray();
+            EditorUtility.SetDirty(op);
+        }
 
         public static void BuildLoadingScreens()
         {

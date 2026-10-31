@@ -13,11 +13,12 @@ namespace MiG29Instruments
     // a "needle" child, MiG29_lamp_<id> lamps); this plugin finds them on the aircraft you fly and drives them from its live state.
     // The instruments are visual only. The plugin also gives the MiG's drop tanks their fuel (StoresDriver, Stores.cs): on MiGs
     // simulated on this machine it feeds tank fuel to the internal tanks; releases go through the game's own networked weapon stations.
+    [BepInDependency("com.nikkorap.blueprinter", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInPlugin("iornman.mig29.instruments", "MiG-29 Instruments", ModVersion)]
     public class MiG29InstrumentsPlugin : BaseUnityPlugin
     {
         // same as MiG29Builder.Version (build_mig29.ps1 checks): mod managers match the release version against this DLL's version
-        public const string ModVersion = "0.9.3.1";
+        public const string ModVersion = "0.9.3.2";
         internal static ManualLogSource Log;
         internal static BepInEx.Configuration.ConfigEntry<float> PanelLighting;
         internal static BepInEx.Configuration.ConfigEntry<BepInEx.Configuration.KeyboardShortcut> JettisonKey;
@@ -71,6 +72,7 @@ namespace MiG29Instruments
             R27RCue = Config.Bind("Weapons", "R-27R lock cue", true,
                 "While an R-27R you fired is guiding, a line under the crosshair says to hold the lock, with the time to impact; it says so when the lock is lost");
             InstallCheck.Run();
+            BlueprinterState.Hook("MiG-29 Fulcrum mod", new[] { ("mig29_Fulcrum", "MiG-29") }, true);
             CockpitSetups.Init(Config);   // cockpit setups (.cpit) in the Cockpits folder
             // some games destroy BepInEx's manager object on scene loads: scan from an object of our own
             var go = new GameObject("MiG29InstrumentsScanner");

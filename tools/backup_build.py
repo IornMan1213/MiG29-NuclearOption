@@ -69,7 +69,7 @@ def main():
         open(os.path.join(wt, "README.md"), "w", encoding="utf-8").write(
             "# MiG-29 Fulcrum builds\n\n"
             "Every released build of the mod, kept here so nothing gets lost. Put **one** `.nobp` in "
-            "`BepInEx/plugins/MiG-29_Fulcrum/` (delete older ones). Requires BepInEx 5 and Blueprinter 2.0.1+. From 0.7.0 also put "
+            "`BepInEx/plugins/MiG-29_Fulcrum/` (delete older ones). Requires BepInEx 5 and Blueprinter 2.1.1+. From 0.7.0 also put "
             "`MiG29Instruments_<version>.dll` there, renamed to `MiG29Instruments.dll`: it makes the cockpit instruments work.\n\n"
             "| Version | File | Size | SHA-256 | Notes |\n|---|---|---|---|---|\n" + "\n".join(rows) + "\n\n"
             "Builds before 0.4.1 predate the repository and were not kept; 0.4.2 was not kept either.\n\n"

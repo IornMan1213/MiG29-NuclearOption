@@ -1,0 +1,30 @@
+{
+  "bundle": "mig29",
+  "name": "MiG-29 Fulcrum",
+  "author": "IornMan1213",
+  "description": "A flyable MiG-29 (9.12) with its own flight model tuned to real-world data, a cockpit modelled from scratch where every instrument works (20 needles, a rolling attitude ball, HSI, 24-light caution panel, SPO-15 radar warning receiver, gear lights), R-27R / R-27T / R-73 / R-60M missiles, the GSh-30-1 cannon, droppable PTB-1500 / PTB-1150 fuel tanks, flares and radar chaff from its own tail-boom dispensers, a working canopy and gear doors, its own damage display, nine liveries, and rear-view mirrors that really reflect with the NO Mirrors plugin.",
+  "image": "MiG-29 Fulcrum.preview.jpg",
+  "links": [
+    {
+      "label": "GitHub",
+      "url": "https://github.com/IornMan1213/MiG29-NuclearOption"
+    },
+    {
+      "label": "Project page",
+      "url": "https://iornman1213.github.io/MiG29-NuclearOption/"
+    }
+  ],
+  "requisites": [
+    {
+      "plugin": "com.nikkorap.blueprinter",
+      "name": "Blueprinter",
+      "repository": "nikkorap/NOBlueprinter-Releases",
+      "minimumVersion": "2.1.1"
+    },
+    {
+      "plugin": "iornman.mig29.instruments",
+      "name": "MiG-29 Fulcrum plugin",
+      "repository": "IornMan1213/MiG29-NuclearOption"
+    }
+  ]
+}

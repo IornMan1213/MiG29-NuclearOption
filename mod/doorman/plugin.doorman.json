@@ -1,0 +1,29 @@
+{
+  "plugin": "iornman.mig29.instruments",
+  "name": "MiG-29 Fulcrum: cockpit and systems",
+  "author": "IornMan1213",
+  "description": "The MiG-29 Fulcrum mod's plugin: the cockpit's working instruments, the SPO-15 radar warning, drop tanks, the Cobra key, folding mirrors (they reflect with NO Mirrors), Cockpit Editor setups, bullet holes and an install check. It comes with the MiG-29 Fulcrum .nobp in the same download.",
+  "image": "preview.jpg",
+  "links": [
+    {
+      "label": "GitHub",
+      "url": "https://github.com/IornMan1213/MiG29-NuclearOption"
+    },
+    {
+      "label": "Project page",
+      "url": "https://iornman1213.github.io/MiG29-NuclearOption/"
+    }
+  ],
+  "requisites": [
+    {
+      "plugin": "com.nikkorap.blueprinter",
+      "name": "Blueprinter",
+      "repository": "nikkorap/NOBlueprinter-Releases",
+      "minimumVersion": "2.1.1"
+    }
+  ],
+  "update": {
+    "repository": "IornMan1213/MiG29-NuclearOption",
+    "asset": "MiG-29-Fulcrum_*.zip"
+  }
+}

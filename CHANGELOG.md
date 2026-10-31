@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.9.3.2 (Update 9.3.2)
+**Blueprinter 2.1.1.** Requires Blueprinter 2.1.1 or newer.
+- **No dark patch on the canopy from inside.** The glass's inside layer sampled the dark border of the game's interior-glass mask
+  on about a quarter of the canopy (the side of the glass from the cockpit, at every angle); it now has UVs of its own inside the glass pane.
+- **Loading-screen tips**: ten short hints on the features players miss (the Cobra key, dropping tanks, holding the R-27R's
+  lock, folding the mirrors, separate flare and chaff keys, NO Mirrors, cockpit setups, the SPO-15 panel, night lighting).
+- **Works with Aryx's Weaponry Pack** (optional): if [his pack](https://github.com/Aryx3D/AryxWeaponryPack) is installed, a fighter's
+  set of his weapons is offered on the MiG-29's pylons (his IR and anti-radiation missiles, fast AGMs, glide and cluster bombs, small
+  cruise missile and rockets on the wing pylons; his pods and gun pod on the centreline; not his drop tanks, as the MiGs have their own). Without it nothing changes.
+- **Shows up in DOORMAN**: with DOORMAN 1.4 or newer, its Mods page shows the MiG-29's name, description, links and a picture
+  (the dusk take-off photo by @calensk.11). Without DOORMAN nothing changes.
+- **Clearer install problems**: once Blueprinter has loaded, the log confirms the jet is in the game, or says plainly that its
+  .nobp is missing or did not load.
+- Built with the new Blueprinter editor, which also fixes material textures not loading properly.
+
 ## 0.9.3.1 (Update 9.3.1)
 **Bug-fix update: shading and the intakes.** No new features, nothing else changes; update over 0.9.3 as usual.
 - **No more dark smears and shadow streaks on the skin, worst round the flaps and ailerons.** The model's normals (the

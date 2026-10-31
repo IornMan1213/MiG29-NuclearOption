@@ -7,7 +7,7 @@
     <AssemblyName>MiG29Instruments</AssemblyName>
     <RootNamespace>MiG29Instruments</RootNamespace>
     <LangVersion>latest</LangVersion>
-    <Version Condition="'$(Version)' == ''">0.9.3.1</Version>
+    <Version Condition="'$(Version)' == ''">0.9.3.2</Version>
     <GameDir Condition="'$(GameDir)' == '' And $([MSBuild]::IsOSPlatform('Windows'))">C:\Program Files (x86)\Steam\steamapps\common\Nuclear Option</GameDir>
     <GameDir Condition="'$(GameDir)' == ''">$(HOME)/.steam/steam/steamapps/common/Nuclear Option</GameDir>
     <Managed>$(GameDir)/NuclearOption_Data/Managed</Managed>
@@ -40,5 +40,11 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+  <!-- DOORMAN's card for this plugin (mod/doorman, its guide's option 1: embedded, so the DLL carries it); the .nobp's card ships
+       beside it in the release zip (build_mig29.ps1) -->
+  <ItemGroup>
+    <EmbeddedResource Include="../../mod/doorman/plugin.doorman.json" LogicalName="doorman.json" />
+    <EmbeddedResource Include="../../docs/img/calensk_dusk_takeoff.jpg" LogicalName="preview.jpg" />
   </ItemGroup>
 </Project>
