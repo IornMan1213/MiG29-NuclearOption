@@ -66,11 +66,18 @@ namespace MiG29Tools
             // the glass seen from inside: the same triangles turned round. The outer glass culls its back faces, so on its own it
             // vanished from the cockpit and wherever the open canopy shows its underside (the aircraft selection screen); the
             // KR-67 does the same with canopy_R / canopy_R_int.
+            // The inside layer's own UVs: the canopy seen from the side, laid inside the light pane of the KR-67 interior glass's mask
+            // (multirole1_canopy_int_b: two light panes on a near-black border, u 0.12-0.45 / v 0.25-0.75 is all pane). With the MiG's own
+            // UVs a quarter of the glass (44% of the windscreen) sampled the dark border: a dark patch on the glass seen from the cockpit,
+            // at every angle (user screenshot). The grime and scratches still vary across it; the outer glass keeps the MiG's UVs.
+            var lo = v[0]; var hi = v[0];
+            foreach (var p in v) { lo = Vector3.Min(lo, p); hi = Vector3.Max(hi, p); }
+            var innerUv = Array.ConvertAll(v, p => new Vector2(Mathf.Lerp(0.12f, 0.45f, Mathf.InverseLerp(lo.z, hi.z, p.z)), Mathf.Lerp(0.25f, 0.75f, Mathf.InverseLerp(lo.y, hi.y, p.y))));
             Mesh Inner(List<int> t, string name)
             {
                 var r = new int[t.Count];
                 for (int i = 0; i < t.Count; i += 3) { r[i] = t[i]; r[i + 1] = t[i + 2]; r[i + 2] = t[i + 1]; }
-                var m = new Mesh { name = name, vertices = v, normals = Array.ConvertAll(n, x => -x), uv = uv, triangles = r };
+                var m = new Mesh { name = name, vertices = v, normals = Array.ConvertAll(n, x => -x), uv = innerUv, triangles = r };
                 m.RecalculateBounds();
                 return saveMesh(m, $"{ModDir}/meshes/{name}.asset");
             }

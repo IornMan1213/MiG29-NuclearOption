@@ -2,6 +2,8 @@
 
 ## 0.9.4 (unreleased)
 **Blueprinter 2.1.1.** Requires Blueprinter 2.1.1 or newer.
+- **No dark patch on the canopy from inside.** The glass's inside layer sampled the dark border of the game's interior-glass mask
+  on about a quarter of the canopy (the side of the glass from the cockpit, at every angle); it now has UVs of its own inside the glass pane.
 - **Loading-screen tips**: ten short hints on the features players miss (the Cobra key, dropping tanks, holding the R-27R's
   lock, folding the mirrors, separate flare and chaff keys, NO Mirrors, cockpit setups, the SPO-15 panel, night lighting).
 - **Works with Aryx's Weaponry Pack** (optional): if [his pack](https://github.com/Aryx3D/AryxWeaponryPack) is installed, a fighter's
