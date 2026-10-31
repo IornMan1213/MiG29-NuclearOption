@@ -36,8 +36,8 @@ namespace MiG29Tools
             var mat = (Material)save(CockpitMaterial(skin), ModDir + "/materials/MiG29_cockpit.mat");
             mirrorGrey = null;
 
-            // MiG canopy + windscreen glass show in both views
-            int glassCount = exterior.RemoveAll(r => r != null && (r.name.StartsWith("MiG29_canopy") || r.name.Contains("windscreen")));
+            // MiG canopy + windscreen glass show in both views; their inside layers (*_int) only outside (MiG29Polish.SetupCanopy)
+            int glassCount = exterior.RemoveAll(r => r != null && (r.name.StartsWith("MiG29_canopy") || r.name.Contains("windscreen")) && !r.name.EndsWith("_int"));
             int hidden = 0;
             foreach (var t in root.GetComponentsInChildren<Transform>(true).Where(t => KrHidden.Contains(t.name)))
                 if (t.TryGetComponent<MeshFilter>(out var mf) && mf.sharedMesh != null) { mf.sharedMesh = null; hidden++; }

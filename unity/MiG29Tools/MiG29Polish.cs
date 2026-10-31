@@ -64,12 +64,14 @@ namespace MiG29Tools
                 return saveMesh(m, $"{ModDir}/meshes/{name}.asset");
             }
             // the glass seen from inside: the same triangles turned round. The outer glass culls its back faces, so on its own it
-            // vanished from the cockpit and wherever the open canopy shows its underside (the aircraft selection screen); the
-            // KR-67 does the same with canopy_R / canopy_R_int.
+            // vanished wherever the open canopy shows its underside (the aircraft selection screen); the KR-67 does the same with
+            // canopy_R / canopy_R_int. Outside views only, like the KR-67's: the cockpit view draws the default layer with the main
+            // camera's near clip at 1 m on spawn and 0.2 m after any other view, so from the cockpit this tinted layer was cut away at
+            // first and covered the canopy's sides after a trip to the outside view (user screenshots).
             // The inside layer's own UVs: the canopy seen from the side, laid inside the light pane of the KR-67 interior glass's mask
             // (multirole1_canopy_int_b: two light panes on a near-black border, u 0.12-0.45 / v 0.25-0.75 is all pane). With the MiG's own
-            // UVs a quarter of the glass (44% of the windscreen) sampled the dark border: a dark patch on the glass seen from the cockpit,
-            // at every angle (user screenshot). The grime and scratches still vary across it; the outer glass keeps the MiG's UVs.
+            // UVs a quarter of the glass (44% of the windscreen) sampled the dark border. The grime and scratches still vary across it;
+            // the outer glass keeps the MiG's UVs.
             var lo = v[0]; var hi = v[0];
             foreach (var p in v) { lo = Vector3.Min(lo, p); hi = Vector3.Max(hi, p); }
             var innerUv = Array.ConvertAll(v, p => new Vector2(Mathf.Lerp(0.12f, 0.45f, Mathf.InverseLerp(lo.z, hi.z, p.z)), Mathf.Lerp(0.25f, 0.75f, Mathf.InverseLerp(lo.y, hi.y, p.y))));
@@ -117,6 +119,7 @@ namespace MiG29Tools
             }
             so.ApplyModifiedPropertiesWithoutUndo();
             exterior.Add(glassR);
+            exterior.AddRange(innerR);   // hidden in the cockpit view (MiG29Cockpit keeps them in the list)
             Debug.Log($"[MiG29] canopy: {back.Count / 3} moving / {front.Count / 3} windscreen tris, hinge {pivot.position}; inside glass {innerMat.name}");
         }
 
