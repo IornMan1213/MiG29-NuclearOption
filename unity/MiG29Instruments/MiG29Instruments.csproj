@@ -7,7 +7,7 @@
     <AssemblyName>MiG29Instruments</AssemblyName>
     <RootNamespace>MiG29Instruments</RootNamespace>
     <LangVersion>latest</LangVersion>
-    <Version Condition="'$(Version)' == ''">0.9.3.1</Version>
+    <Version Condition="'$(Version)' == ''">0.9.3.2</Version>
     <GameDir Condition="'$(GameDir)' == '' And $([MSBuild]::IsOSPlatform('Windows'))">C:\Program Files (x86)\Steam\steamapps\common\Nuclear Option</GameDir>
     <GameDir Condition="'$(GameDir)' == ''">$(HOME)/.steam/steam/steamapps/common/Nuclear Option</GameDir>
     <Managed>$(GameDir)/NuclearOption_Data/Managed</Managed>
