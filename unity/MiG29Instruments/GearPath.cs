@@ -33,7 +33,15 @@ namespace MiG29Instruments
         static readonly Quaternion KeyRot = Quaternion.AngleAxis(KeyFold, KeyAxis);
         static readonly Quaternion StowRot = Quaternion.Euler(StowFold, 0f, 0f);
 
-        void Start() => ac = GetComponent<Aircraft>();
+        void Start()
+        {
+            ac = GetComponent<Aircraft>();
+            if (fHinge == null || fAircraft == null || fFoldAmount == null || fStrutT == null)
+            {
+                MiG29InstrumentsPlugin.Log.LogWarning("gear path: the game's LandingGear fields have changed; the gear folds the stock way");
+                enabled = false;
+            }
+        }
 
         void Find()
         {
@@ -46,7 +54,7 @@ namespace MiG29Instruments
                 var hinge = fHinge.GetValue(g) as Transform;
                 if (hinge == null || (hinge.name != "gearHinge_L" && hinge.name != "gearHinge_R") || hinge.parent == null) continue;
                 var strut = fStrutT.GetValue(g) as Transform;
-                if (strut == null && fUnsprung.GetValue(g) is GameObject us) strut = us.transform;
+                if (strut == null && fUnsprung?.GetValue(g) is GameObject us) strut = us.transform;
                 legs.Add(new Leg { gear = g, hinge = hinge, parent = hinge.parent, strut = strut });
             }
         }
@@ -79,11 +87,12 @@ namespace MiG29Instruments
             // in-between value (~0.01): steering on that held the leg ~1 degree short of down, its hinge read x ~359 > 10, and the
             // game broke the wheel on touchdown after any gear cycle (user video, v0.8.9).
             bool moving = ac.gearState == LandingGear.GearState.Extending || ac.gearState == LandingGear.GearState.Retracting;
+            if (!moving) { foreach (var leg in legs) leg.lastT = -1f; return; }   // at rest: no reflection reads
             foreach (var leg in legs)
             {
                 if (leg.gear == null || leg.hinge == null || leg.hinge.parent != leg.parent) continue;   // broken off
                 float t = (float)fFoldAmount.GetValue(leg.gear);
-                bool legMoving = moving && t != leg.lastT;   // a leg that has latched stops changing even if the other is still moving
+                bool legMoving = t != leg.lastT;   // a leg that has latched stops changing even if the other is still moving
                 leg.lastT = t;
                 if (!legMoving || t <= 0.001f || t >= 0.999f) continue;
                 Sample(t, out var rot, out float strut);

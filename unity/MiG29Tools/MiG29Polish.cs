@@ -550,10 +550,10 @@ namespace MiG29Tools
         // Blueprinter 2.1.1's loading-screen hints (OpAddHints, at most 10 per mod by default): the features players most often miss.
         static readonly string[] Hints =
         {
-            "Press C at low speed to pull Pugachev's Cobra. Change the key and how long it holds in Configuration Manager > Flight.",
-            "Press J to jettison the drop tanks, or let them drop on their own when empty (Configuration Manager > Drop tanks).",
+            "Press Ctrl+C at low speed to pull Pugachev's Cobra. Change the key and how long it holds in Configuration Manager > Flight.",
+            "Press Ctrl+J to jettison the drop tanks, or let them drop on their own when empty (Configuration Manager > Drop tanks).",
             "The R-27R is guided by your radar all the way: keep the target locked until it hits. The lock cue reminds you.",
-            "Press M to fold the cockpit mirrors away.",
+            "Press Ctrl+M to fold the cockpit mirrors away.",
             "Give flares and chaff their own keys, keyboard or HOTAS, in Configuration Manager > Countermeasures.",
             "Install the NO Mirrors mod and the rear-view mirrors really reflect.",
             "Rearrange the cockpit with the Cockpit Editor and load your own cockpit setup.",

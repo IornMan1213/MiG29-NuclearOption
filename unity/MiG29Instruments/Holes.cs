@@ -126,7 +126,7 @@ namespace MiG29Instruments
             Texture src = null;
             // in flight every part is its own physics root, no longer under the aircraft: its parts come from the unit's part list
             var renderers = new List<MeshRenderer>(u.GetComponentsInChildren<MeshRenderer>(true));
-            foreach (var p in u.partLookup) if (p != null && !p.transform.IsChildOf(u.transform)) renderers.AddRange(p.GetComponentsInChildren<MeshRenderer>(true));
+            if (u.partLookup != null) foreach (var p in u.partLookup) if (p != null && !p.transform.IsChildOf(u.transform)) renderers.AddRange(p.GetComponentsInChildren<MeshRenderer>(true));
             foreach (var r in renderers)
             {
                 if (!r.name.StartsWith("MiG29_skin_") && !r.name.StartsWith("MiG29_lod")) continue;

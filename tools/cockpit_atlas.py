@@ -6,7 +6,7 @@ python tools/cockpit_atlas.py <MiG29Source dir>
 Everything is drawn here (no external art). Rects in the JSON are pixel boxes [x, y, w, h], y down from the top; the Blender
 builder (blender/cockpit_build.py) turns them into UVs. Drawn at 4x and downsampled for clean edges.
 """
-import json, math, os, random, sys
+import json, math, os, random, sys, zlib
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 import fonts
 
@@ -98,7 +98,7 @@ def noise_fill(w, h, col, amp=6, grime=0.0, seed=0):
 for name, col in PAINT.items():
     grime = 0.6 if name in ("turq", "turq_dark", "floor", "dgrey", "seat") else 0.0
     amp = 10 if name in ("cushion", "floor") else 5
-    img = noise_fill(128, 128, col, amp, grime, seed=hash(name) % 1000)
+    img = noise_fill(128, 128, col, amp, grime, seed=zlib.crc32(name.encode()) % 1000)   # not hash(): Python salts it per run, so the grain changed every build
     # (cushions are separate padded blocks now: plain fabric, no printed quilting, which planar mapping turned into stray slashes)
     if name == "floor":     # anti-slip tread
         d = ImageDraw.Draw(img)

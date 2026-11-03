@@ -21,6 +21,7 @@ namespace MiG29Instruments
 
         Aircraft active;
         float started, until, peak;
+        int errors;
         AudioSource audioSource;
         AudioClip toneOff, toneOn;
 
@@ -70,7 +71,22 @@ namespace MiG29Instruments
                 var report = SceneSingleton<AircraftActionsReport>.i;
                 if (report != null) report.ReportText($"Cobra: limiters off (up to {MiG29InstrumentsPlugin.CobraSeconds.Value:0.#} s)", 2f);
             }
-            catch (Exception e) { MiG29InstrumentsPlugin.Log.LogError(e); enabled = false; }
+            catch (Exception e)
+            {
+                // never leave the pilot without the limiters: hand assist back, and only give up after repeated errors
+                MiG29InstrumentsPlugin.Log.LogError(e);
+                Restore();
+                if (++errors >= 3) enabled = false;
+            }
+        }
+
+        void OnDisable() => Restore();
+
+        void Restore()
+        {
+            try { if (active != null && !active.flightAssist) active.SetFlightAssist(true); }
+            catch (Exception e) { MiG29InstrumentsPlugin.Log.LogError(e); }
+            active = null;
         }
 
         // angle of attack and indicated airspeed, as the cockpit instruments read them

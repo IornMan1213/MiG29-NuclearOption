@@ -557,7 +557,12 @@ namespace MiG29Tools
                                 foreach (var (mf, verts) in rends)
                                 {
                                     var m = mf.transform.localToWorldMatrix;
-                                    foreach (var v in verts) { float mg = BayMargin(m.MultiplyPoint3x4(v) - ModelOffset); if (mg < score) score = mg; }
+                                    foreach (var v in verts)
+                                    {
+                                        float mg = BayMargin(m.MultiplyPoint3x4(v) - ModelOffset); if (mg < score) score = mg;
+                                        if (score <= best) break;   // this pose can no longer beat the best: same result, sooner
+                                    }
+                                    if (score <= best) break;
                                 }
                                 if (score > best) { best = score; bestFold = stock + ef; bestStow = stow; }
                             }
@@ -843,7 +848,11 @@ namespace MiG29Tools
                             if (nrm.sqrMagnitude < 1e-8f) continue;
                             var pl = new MiG29Cut.Plane(nrm, Vector3.Dot(nrm, hv[a]));
                             float lo = float.MaxValue, hi = float.MinValue;
-                            foreach (var v in hv) { var s = pl.Dist(v); lo = Mathf.Min(lo, s); hi = Mathf.Max(hi, s); }
+                            foreach (var v in hv)
+                            {
+                                var s = pl.Dist(v); lo = Mathf.Min(lo, s); hi = Mathf.Max(hi, s);
+                                if (lo < -0.005f && hi > 0.005f) break;   // points on both sides: not a face either way
+                            }
                             if (hi <= 0.005f) set.Add(pl);
                             if (lo >= -0.005f) set.Add(new MiG29Cut.Plane(-pl.n, -pl.d));
                         }
