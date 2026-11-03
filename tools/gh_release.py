@@ -23,8 +23,9 @@ def api(method, url, tok, data=None, ctype="application/json"):
 def main():
     ver = sys.argv[1]; pre = "--prerelease" in sys.argv
     log = open(os.path.join(ROOT, "CHANGELOG.md"), encoding="utf-8").read()
-    m = re.search(rf"^## {re.escape(ver)}[^\n]*\n(.*?)(?=^## )", log, re.S | re.M)
-    notes = m.group(1).strip() if m else ""
+    m = re.search(rf"^## {re.escape(ver)}[^\n]*\n(.*?)(?=^## |\Z)", log, re.S | re.M)   # \Z: the last section too
+    if not m: sys.exit(f"no '## {ver}' section in CHANGELOG.md: write the release notes first")
+    notes = m.group(1).strip()
     zipf = os.path.join(ROOT, "builds", f"MiG-29-Fulcrum_{ver}.zip")
     if not os.path.exists(zipf): sys.exit(f"{zipf} not found: build with tools/build_mig29.ps1 -Release first")
     notes += (f"\n\n**Install:** with a NOMNOM mod manager (NOMM), or unzip `MiG-29-Fulcrum_{ver}.zip` into `BepInEx/plugins/MiG-29_Fulcrum/` "
