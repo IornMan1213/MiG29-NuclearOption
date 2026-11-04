@@ -14,7 +14,8 @@ from PIL import Image, ImageDraw
 
 src, out, name = sys.argv[1], sys.argv[2], sys.argv[3]
 tex = sys.argv[4] if len(sys.argv) > 4 else os.path.join(src, "mig29_basecolor.png")
-SKIN = ("body", "aileron_L", "aileron_R", "flap_L", "flap_R", "rudder_L", "rudder_R", "stab_L", "stab_R", "rails", "gear_doors_closed")
+SKIN = ("body", "aileron_L", "aileron_R", "flap_L", "flap_R", "rudder_L", "rudder_R", "stab_L", "stab_R", "rails", "gear_doors_closed",
+        "pylon_L1", "pylon_R1", "pylon_L2", "pylon_R2", "pylon_L3", "pylon_R3")   # rails: before tools/pylon_split.py
 GLASS = ("canopy",)
 
 mesh = json.load(open(os.path.join(src, "mig29_mesh.json")))

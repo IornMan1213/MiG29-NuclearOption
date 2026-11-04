@@ -25,7 +25,8 @@ namespace MiG29Tools
             (n.StartsWith("MiG29_door_") && !n.EndsWith("_inner")) ||
             (n.StartsWith("MiG29_airbrake_") && n.EndsWith("_panel")) ||
             n == "MiG29_ck_frames_ext" ||
-            n.StartsWith("MiG29_gear_");                // the MiG main gear legs (MiG29MainGear)
+            n.StartsWith("MiG29_gear_") ||              // the MiG main gear legs (MiG29MainGear)
+            n.StartsWith("MiG29_pylon_");               // the wing pylon fairings (MiG29Weapons.SetupPylonFairings)
 
         public static void Apply(GameObject go)
         {

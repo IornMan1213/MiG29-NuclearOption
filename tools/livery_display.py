@@ -24,7 +24,7 @@ def smooth(e0, e1, x):
 
 
 # planform leading edge from the mesh: the most forward point of the airframe per 5 cm spanwise bin (|x|)
-_allv = np.concatenate([np.array(p_["vertices"], np.float32).reshape(-1, 3) for p_ in d["parts"] if p_["name"] not in ("canopy", "cockpit", "rails")])
+_allv = np.concatenate([np.array(p_["vertices"], np.float32).reshape(-1, 3) for p_ in d["parts"] if p_["name"] not in ("canopy", "cockpit", "rails") and not p_["name"].startswith("pylon_")])
 _bins = np.arange(0, 6.0, 0.05)
 _le = np.array([(_allv[(np.abs(_allv[:, 0]) >= b0) & (np.abs(_allv[:, 0]) < b0 + 0.05), 2].max()
                  if ((np.abs(_allv[:, 0]) >= b0) & (np.abs(_allv[:, 0]) < b0 + 0.05)).any() else np.nan) for b0 in _bins])
