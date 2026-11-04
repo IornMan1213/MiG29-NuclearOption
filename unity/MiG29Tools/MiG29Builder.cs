@@ -69,8 +69,10 @@ namespace MiG29Tools
             var root = go.transform;
 
             HideBaseExterior(root);
+            MiG29NoseGear.Build(root, null, (o, path) => CreateOrReplace(o, path));   // before the nose gear's stow search, which fits its meshes
             MoveGearAndEffects(root, data.info);
             MiG29MainGear.Setup(root, ModelOffset, materials.skin, TypeByName("LandingGear"), (o, path) => CreateOrReplace(o, path));
+            MiG29NoseGear.SetMaterial(root, AssetDatabase.LoadAssetAtPath<Material>(ModDir + "/materials/MiG29_gear.mat"));
             LogStowed(root, "wheel_F");
 
             var visual = new GameObject("MiG29_visual").transform;
