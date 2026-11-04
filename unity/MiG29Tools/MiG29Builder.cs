@@ -69,8 +69,10 @@ namespace MiG29Tools
             var root = go.transform;
 
             HideBaseExterior(root);
+            MiG29NoseGear.Build(root, null, (o, path) => CreateOrReplace(o, path));   // before the nose gear's stow search, which fits its meshes
             MoveGearAndEffects(root, data.info);
             MiG29MainGear.Setup(root, ModelOffset, materials.skin, TypeByName("LandingGear"), (o, path) => CreateOrReplace(o, path));
+            MiG29NoseGear.SetMaterial(root, AssetDatabase.LoadAssetAtPath<Material>(ModDir + "/materials/MiG29_gear.mat"));
             LogStowed(root, "wheel_F");
 
             var visual = new GameObject("MiG29_visual").transform;
@@ -94,7 +96,7 @@ namespace MiG29Tools
 
             // airframe split into the KR-67 damage parts: pieces detach with their part, get damage shading,
             // and become that part's hitbox
-            var airframe = data.parts.Where(p => (p.pivot == null || p.pivot.Length != 3) && p.name != "canopy" && p.name != "cockpit" && p.name != "gear_doors_closed").ToList();
+            var airframe = data.parts.Where(p => (p.pivot == null || p.pivot.Length != 3) && p.name != "canopy" && p.name != "cockpit" && p.name != "gear_doors_closed" && !p.name.StartsWith("pylon_")).ToList();
             SplitAirframe(root, visual, airframe, materials.skin, surfaces);
             UnityEngine.Object.DestroyImmediate(visual.gameObject);
             var doorsPart = data.parts.First(p => p.name == "gear_doors_closed");
@@ -115,15 +117,19 @@ namespace MiG29Tools
             MiG29Cockpit.Build(go, cockpitPart, ModelOffset, materials.skin, materials.glass, exterior, (o, path) => CreateOrReplace(o, path), (t, r) => AddDamageRenderer(t, r));
             AppendExteriorRenderers(go, exterior);
             TuneToMiG(root);
+            TuneRadar(root);
             MiG29Nozzles.RoundAfterburners(root, (o, path) => CreateOrReplace(o, path));
             bayIndices = BayIndices(go);
             RemoveInternalBays(go);
             var centreSet = MiG29Weapons.SetupCentreline(go, ModelOffset, weapons);
             var outerPylonSet = MiG29Weapons.SetupPylons(go, ModelOffset, weapons);
+            MiG29Weapons.SetupPylonFairings(go, ModelOffset, meshes.Where(kv => kv.Key.StartsWith("pylon_")).ToDictionary(kv => kv.Key, kv => kv.Value), materials.skin,
+                (t, r) => AddDamageRenderer(t, r));
             var wingtipSet = MiG29Weapons.SetupWingtips(go, ModelOffset, weapons, outerPylonSet);
             MiG29Countermeasures.Setup(go, ModelOffset);
             var oldGun = MiG29Weapons.SetupGun(go, ModelOffset, weapons);
             var displays = MiG29Polish.BuildDisplays(go);
+            MiG29Cleanup.RemoveDeadShells(go, new HashSet<string>(src.GetComponentsInChildren<Transform>(true).Select(t => t.name)), MiG29Cleanup.GameStrings());   // the KR-67's dead leftovers, before the LOD levels are rebuilt
             MiG29Lod.Apply(go);   // last: every renderer exists now
 
             var prefabPath = ModDir + "/MiG29.prefab";
@@ -987,6 +993,30 @@ namespace MiG29Tools
 
         const float MassScale = 0.72f;   // KR-67 16.0 t empty -> 11.5 t (MiG-29: ~11 t)
         const float FuelScale = 0.45f;   // 8.2 t internal fuel -> 3.7 t (MiG-29: ~3.5 t)
+
+        // The 9.12's N019 in place of the KR-67's radar (the SMT has its Zhuk-ME). The game's radar sees a target while
+        // (maxRange / distance) x RCS^0.25 - clutter x clutterFactor stays above minSignal, inside radarCone (half-angle, deg) of
+        // the nose (RadarParams.GetSignalStrength, Radar.RadarCheck), so:
+        //   maxRange 50 -> 45 km   the N019 sees roughly 0.6x as far as the SMT's Zhuk-ME (~70 against ~120 km against a fighter);
+        //                          on the game's scale 45 km against the SMT's 70
+        //   radarCone 30 -> 50 deg it scans wider than the KR-67 (about +-67 deg on the real set), less than the SMT
+        //   clutterFactor 0.12 -> 0.16   its look-down / shoot-down was weak: low targets drop out sooner
+        //   jamTolerance 0.7 -> 0.6      older ECCM: easier to jam, and (for the R-27R it guides) easier to chaff
+        // The R-27R's seeker takes its range from this radar too (SARHSeeker.Initialize).
+        const float RadarRange = 45000f, RadarCone = 50f, RadarClutter = 0.16f, RadarJamTolerance = 0.6f;
+
+        static void TuneRadar(Transform root)
+        {
+            var radar = root.GetComponentInChildren(TypeByName("Radar"), true);
+            if (radar == null) { Debug.LogError("[MiG29] radar: not found"); return; }
+            var so = new SerializedObject(radar);
+            so.FindProperty("RadarParameters.maxRange").floatValue = RadarRange;
+            so.FindProperty("radarCone").floatValue = RadarCone;
+            so.FindProperty("RadarParameters.clutterFactor").floatValue = RadarClutter;
+            so.FindProperty("jamTolerance").floatValue = RadarJamTolerance;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            Debug.Log($"[MiG29] radar: N019, {RadarRange / 1000:0} km, +-{RadarCone:0} deg, clutter {RadarClutter}, jam tolerance {RadarJamTolerance}");
+        }
 
         static void TuneToMiG(Transform root)
         {

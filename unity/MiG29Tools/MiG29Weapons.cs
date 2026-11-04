@@ -708,7 +708,7 @@ namespace MiG29Tools
         {
             var go = Instance(basePrefab, name);
             var rootMf = go.GetComponent<MeshFilter>();
-            if (rootMf != null) rootMf.sharedMesh = null; // stock "large pylon" fairing on the root
+            if (rootMf != null) rootMf.sharedMesh = null; // the stock mount's root mesh (a large pylon): never drawn, it has no renderer (issue #13)
 
             var pylon = Child(go.transform, pylonChild);
             pylon.localPosition = Vector3.zero; pylon.localRotation = Quaternion.identity; pylon.localScale = Vector3.one; // stock children carry scales for the stock meshes; ours are true size
@@ -897,6 +897,47 @@ namespace MiG29Tools
             so.ApplyModifiedPropertiesWithoutUndo();
             Debug.Log($"[MiG29] pylons: inner {inner}, middle {middle}, outer {outer}; {sets.arraySize} hardpoint sets");
             return outer;
+        }
+
+        // The wing pylon fairings (tools/pylon_split.py: parts pylon_L1 ... pylon_R3, in the MiG frame), each on its own renderer on
+        // its station's part and as that hardpoint's only pylon option: the game's Hardpoint.ShowPylon then shows it while the
+        // station carries a store and hides it when it is empty, as on its own jets (GitHub issue #13). The KR-67's pylon and plug
+        // renderers had no mesh: they are dropped from the options (no plug: the wing skin under a fairing is whole).
+        public static void SetupPylonFairings(GameObject go, Vector3 modelOffset, Dictionary<string, Mesh> fairings, Material skin, Action<Transform, Renderer> addDamage)
+        {
+            var so = new SerializedObject(go.GetComponentInChildren(T("WeaponManager"), true));
+            var sets = so.FindProperty("hardpointSets");
+            int done = 0;
+            for (int s = 0; s < sets.arraySize; s++)
+            {
+                var hps = sets.GetArrayElementAtIndex(s).FindPropertyRelative("hardpoints");
+                for (int i = 0; i < hps.arraySize; i++)
+                {
+                    var hp = hps.GetArrayElementAtIndex(i);
+                    var t = hp.FindPropertyRelative("transform").objectReferenceValue as Transform;
+                    if (t == null || !t.name.StartsWith("hardpoint_pylon_")) continue;
+                    string id = t.name.Substring("hardpoint_".Length);   // pylon_L1 ...
+                    if (!fairings.TryGetValue(id, out var mesh)) continue;
+                    var part = hp.FindPropertyRelative("part").objectReferenceValue as Component;
+                    var o = new GameObject("MiG29_" + id);
+                    o.transform.SetParent(part != null ? part.transform : t, false);
+                    o.transform.SetPositionAndRotation(modelOffset, Quaternion.identity);   // the mesh is in the MiG frame
+                    o.AddComponent<MeshFilter>().sharedMesh = mesh;
+                    var r = o.AddComponent<MeshRenderer>(); r.sharedMaterial = skin;
+                    addDamage(o.transform, r);
+                    var opts = hp.FindPropertyRelative("pylonOptions");
+                    opts.arraySize = 1;
+                    var opt = opts.GetArrayElementAtIndex(0);
+                    opt.FindPropertyRelative("cargo").boolValue = false;
+                    opt.FindPropertyRelative("mount").objectReferenceValue = null;
+                    opt.FindPropertyRelative("renderer").objectReferenceValue = r;
+                    hp.FindPropertyRelative("Plug").objectReferenceValue = null;
+                    done++;
+                }
+            }
+            so.ApplyModifiedPropertiesWithoutUndo();
+            Debug.Log($"[MiG29] pylon fairings: {done} of {fairings.Count} on their stations (hidden while empty)");
+            if (done != fairings.Count) Debug.LogError("[MiG29] pylon fairings: not every fairing found its station");
         }
 
         // ---------------- centreline station (PTB-1500) ----------------

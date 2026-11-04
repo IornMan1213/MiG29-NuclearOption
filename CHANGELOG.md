@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.9.4 (unreleased)
+- **MiG-29 nose gear and wheels.** The last KR-67 parts you could see are gone: the nose leg is a slim oleo strut with a
+  trailing fork, the 9.12's twin nose wheels and its mudguard behind them, and the main wheels are new tyres and hubs at the
+  same size. The ride height, suspension and retraction are unchanged.
+- Under the hood: the KR-67's leftover objects that did nothing (empty shells and unused pivots) are removed.
+- **The MiG-29's own radar, the N019.** It used the KR-67's radar unchanged; it now sees 45 km on the game's scale (the SMT's
+  Zhuk-ME 70), scans +-50 degrees instead of +-30, loses low targets against the ground sooner and is easier to jam, as
+  the real 9.12's set was.
+- **Empty wing pylons are hidden**, as on the game's own jets: a pylon only shows while it carries something (issue #13, thanks
+  FIM43-Redeye).
+- **Chaff that behaves like chaff.** One press now runs a chaff programme (Configuration Manager > Countermeasures > Chaff
+  programme: Single, Short, Standard (default, 8 pairs over about 2 s) or Long). Chaff works when you fly side-on to the
+  missile (beaming), the cloud keeps working for a couple of seconds while it stays near you in the missile's view, active
+  radar missiles are harder to fool than semi-active ones, and it works better low down when the missile is above you
+  (ground clutter). A "Chaff programme" message shows when one starts. The flare and chaff load is unchanged.
+
 ## 0.9.3.2 (Update 9.3.2)
 **Blueprinter 2.1.1.** Requires Blueprinter 2.1.1 or newer.
 - **No dark tint on the canopy from inside after visiting the outside view.** The game draws the cockpit view with a different
