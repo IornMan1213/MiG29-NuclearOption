@@ -467,12 +467,13 @@ namespace MiG29Tools
             lamp.rotation = Quaternion.FromToRotation(n0.normalized, face) * lamp.rotation;
             // strut front at lamp height (MiG frame y -0.45: on the sprung part, above the shock strut, below the bay)
             const float y = -0.45f;
-            var sm = sprung.localToWorldMatrix;
-            var w = sprung.GetComponent<MeshFilter>().sharedMesh.vertices.Select(v => sm.MultiplyPoint3x4(v) - ModelOffset)
-                          .Where(p => Mathf.Abs(p.y - y) < 0.06f && Mathf.Abs(p.x) < 0.07f).ToList();
-            float front = w.Count > 0 ? w.Max(p => p.z) : Find(root, "wheel_F").position.z - ModelOffset.z + 0.15f;
+            // (from the strut's axis at that height: the MiG barrel is a plain cylinder with no vertices part-way up, so the old search
+            // for strut vertices at lamp height found none and left the lamp on the axis, inside the barrel)
+            var up = sprung.up;
+            var axisPt = sprung.position + up * ((y + ModelOffset.y - sprung.position.y) / up.y) - ModelOffset;
+            float front = axisPt.z + 0.068f * sprung.lossyScale.x;   // the barrel's radius (MiG29NoseGear)
             var centre = lamp.TransformPoint(mf.sharedMesh.bounds.center);
-            var target = new Vector3(0f, y, front + 0.025f) + ModelOffset;
+            var target = new Vector3(axisPt.x, y, front + 0.025f) + ModelOffset;
             lamp.position += target - centre;
             var beam = Find(lamp, "gearLight_F_effects");
             var aim = new Vector3(0f, -Mathf.Sin(9f * Mathf.Deg2Rad), Mathf.Cos(9f * Mathf.Deg2Rad));
@@ -484,7 +485,8 @@ namespace MiG29Tools
             }
             foreach (var l in beam.GetComponentsInChildren<Light>(true))
                 l.spotAngle = 30f;
-            Debug.Log($"[MiG29] landing light on the nose strut front (z {front:F2}), lamp {lamp.position - ModelOffset:F3}, normal was {n0.normalized:F2}, {w.Count} strut verts at lamp height");
+            MiG29NoseGear.Lamp(lamp, sprung, face, AssetDatabase.LoadAssetAtPath<Material>(ModDir + "/materials/MiG29_gear.mat"), (o, path) => CreateOrReplace(o, path));
+            Debug.Log($"[MiG29] landing light on the nose strut front (z {front:F2}), lamp {lamp.position - ModelOffset:F3}, normal was {n0.normalized:F2}, strut axis at {axisPt:F2}");
         }
 
         // Poses a leg as LandingGear does when retracted (hinge + foldDegrees, + hingeFoldMotion) and logs where each visible piece
