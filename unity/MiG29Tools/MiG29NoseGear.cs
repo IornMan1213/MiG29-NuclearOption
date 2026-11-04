@@ -10,8 +10,10 @@ namespace MiG29Tools
     // fold) and the ride height stay exactly as they are; the wheels keep the KR-67's rolling radius (0.33 m nose, 0.43 m main).
     //   wheel_F         twin wheels on one axle (the real 9.12 has two 570 x 140 mm wheels; the KR-67's pair is already 0.64 m wide)
     //   gear_F_unsprung chrome piston, a short trailing fork to the axle (0.17 m behind the strut) and the MiG's mudguard behind the
-    //                   wheels, which keeps debris out of the intakes on rough fields
-    //   gear_F_sprung   a slim oleo barrel up to the hinge, with its trunnion and the steering unit below it
+    //                   wheels, which keeps debris out of the intakes on rough fields, on side brackets with rolled edges; a brake line
+    //                   over the fork to the axle
+    //   gear_F_sprung   a slim oleo barrel up to the hinge, with its trunnion and the steering unit below it; a wiper seal, two bands,
+    //                   the charging valve, the uplock roller and two clamped hydraulic lines down its back
     //   both            the torque links across the front of the piston, one arm on each part
     //   wheel_L / R     a KT-150-style main wheel (840 x 290 mm, the KR-67's size already): tyre, rim and hub with lightening holes
     //   gearLight_F     a round lamp in its can on the strut (Lamp, from the builder's PlaceLandingLight)
@@ -101,6 +103,12 @@ namespace MiG29Tools
             {
                 var up = Mathf.Abs(Vector3.Dot(axis.normalized, Vector3.up)) > 0.9f ? Vector3.forward : Vector3.up;
                 Revolve(c, axis, up, new[] { (0f, 0f), (r, 0f) }, new[] { (0f, 1f) }, zone, seg);
+            }
+
+            // a hose or pipe through the points, one short cylinder per run (hydraulic and brake lines)
+            public void Tube(Vector2 zone, float r, params Vector3[] pts)
+            {
+                for (int k = 0; k + 1 < pts.Length; k++) Cylinder(pts[k], pts[k + 1], r, zone, 8);
             }
 
             public Mesh Mesh(string name)
@@ -193,7 +201,7 @@ namespace MiG29Tools
                 var ua = new Builder();
                 ua.Bar(Vector3.zero, new Vector3(0f, 0f, LinkArm), 0.04f, 0.03f, Paint);
                 Link(sprung, "MiG29_nose_link_upper", new Vector3(0f, 0.02f, 0.08f), ua.Mesh("MiG29_nose_link_upper"));
-                Debug.Log($"[MiG29] nose leg: barrel bottom at piston y {barrelBottom:F2}, torque link arms {LinkArm} m");
+                Debug.Log($"[MiG29] nose leg: barrel bottom at piston y {barrelBottom:F2}, axle at {axle}, torque link arms {LinkArm} m");
                 u.Cylinder(Vector3.zero, new Vector3(0f, barrelBottom + 0.28f, 0f), 0.042f, Chrome);
                 u.Box(new Vector3(0f, axle.y * 0.5f, axle.z * 0.5f), new Vector3(0.032f, 0.045f, Mathf.Abs(axle.z) * 0.5f + 0.04f), Paint);
                 u.Cylinder(axle + new Vector3(-0.04f, 0f, 0f), axle + new Vector3(0.04f, 0f, 0f), 0.04f, Paint);
@@ -204,6 +212,21 @@ namespace MiG29Tools
                 u.Revolve(axle, Vector3.right, Vector3.up,
                     new[] { (rNose + 0.038f, -0.23f), (rNose + 0.038f, 0.23f) }, new[] { (-1f, 0f) }, Paint, 12, -125f, -10f);
                 u.Box(axle + new Vector3(0f, rNose * 0.75f, -0.06f), new Vector3(0.028f, rNose * 0.3f, 0.025f), Paint);   // the guard's stay, between the wheels
+                // the guard's side brackets: a V of flat bars from each axle end out to its edges, and a rolled lip along both edges
+                Vector3 OnGuard(float x, float deg, float r) { float a = deg * Mathf.Deg2Rad; return axle + new Vector3(x, Mathf.Cos(a) * r, Mathf.Sin(a) * r); }
+                for (int sd = -1; sd <= 1; sd += 2)
+                {
+                    u.Cylinder(axle + new Vector3(sd * 0.2f, 0f, 0f), axle + new Vector3(sd * 0.225f, 0f, 0f), 0.032f, Paint);   // axle-end boss
+                    u.Bar(axle + new Vector3(sd * 0.215f, 0f, 0f), OnGuard(sd * 0.215f, -30f, rNose + 0.04f), 0.02f, 0.016f, Paint);
+                    u.Bar(axle + new Vector3(sd * 0.215f, 0f, 0f), OnGuard(sd * 0.215f, -95f, rNose + 0.04f), 0.02f, 0.016f, Paint);
+                    var lip = new Vector3[13];
+                    for (int k = 0; k <= 12; k++) lip[k] = OnGuard(sd * 0.23f, Mathf.Lerp(-125f, -10f, k / 12f), rNose + 0.0415f);
+                    u.Tube(Paint, 0.007f, lip);
+                }
+                // brake line down the back of the fork to the axle, from a fitting on the piston foot
+                u.Box(new Vector3(0f, 0.06f, -0.05f), new Vector3(0.022f, 0.02f, 0.014f), Paint);
+                float forkTop = axle.y * 0.5f + 0.045f;
+                u.Tube(Dark, 0.009f, new Vector3(0f, 0.06f, -0.064f), new Vector3(0f, forkTop + 0.01f, axle.z * 0.55f), axle + new Vector3(0f, 0.05f, 0.02f));
                 Put(unsprung, u.Mesh("MiG29_nose_unsprung"));
             }
 
@@ -222,7 +245,24 @@ namespace MiG29Tools
                     s.Cylinder(new Vector3(sd * 0.105f, top - 0.24f, 0.03f), new Vector3(sd * 0.105f, top - 0.24f, -0.17f), 0.024f, Paint);
                     s.Cylinder(new Vector3(sd * 0.105f, top - 0.24f, -0.17f), new Vector3(sd * 0.105f, top - 0.24f, -0.25f), 0.012f, Chrome);
                 }
-                Debug.Log($"[MiG29] nose leg: hinge at sprung y {top:F2}, steering collar y {top - 0.30f:F2}..{top - 0.18f:F2}");
+                // wiper seal under the gland, two bands round the barrel, the charging valve and the uplock roller under the hinge
+                s.Cylinder(new Vector3(0f, -0.055f, 0f), new Vector3(0f, -0.04f, 0f), 0.05f, Dark);
+                s.Cylinder(new Vector3(0f, 0.30f, 0f), new Vector3(0f, 0.33f, 0f), 0.074f, Paint);
+                s.Cylinder(new Vector3(0f, top - 0.45f, 0f), new Vector3(0f, top - 0.42f, 0f), 0.074f, Paint);
+                s.Cylinder(new Vector3(0.06f, top - 0.38f, 0f), new Vector3(0.1f, top - 0.38f, 0f), 0.013f, Chrome);
+                s.Cylinder(new Vector3(0.1f, top - 0.38f, 0f), new Vector3(0.112f, top - 0.38f, 0f), 0.018f, Paint);
+                s.Box(new Vector3(0f, top - 0.10f, -0.085f), new Vector3(0.02f, 0.025f, 0.03f), Paint);
+                s.Cylinder(new Vector3(-0.04f, top - 0.10f, -0.115f), new Vector3(0.04f, top - 0.10f, -0.115f), 0.022f, Chrome);
+                // two hydraulic lines (steering and brakes) down the back of the barrel, clamped, ending in fittings on the gland
+                for (int sd = -1; sd <= 1; sd += 2)
+                {
+                    Vector3 H(float y) => new Vector3(sd * 0.057f, y, -0.057f);
+                    s.Tube(Dark, 0.011f, H(top - 0.04f), H(top - 0.18f));
+                    s.Tube(Dark, 0.011f, H(top - 0.30f), H(0.07f));
+                    for (float y = 0.20f; y < top - 0.35f; y += 0.25f) s.Box(H(y), new Vector3(0.017f, 0.008f, 0.017f), Paint);
+                    s.Box(H(0.065f), new Vector3(0.018f, 0.016f, 0.018f), Chrome);
+                }
+                Debug.Log($"[MiG29] nose leg: hinge at sprung y {top:F2}, steering collar y {top - 0.30f:F2}..{top - 0.18f:F2}, lines, bands, valve and uplock roller");
                 Put(sprung, s.Mesh("MiG29_nose_sprung"));
             }
 

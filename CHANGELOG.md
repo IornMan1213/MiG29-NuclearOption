@@ -3,7 +3,8 @@
 ## 0.9.4 (unreleased)
 - **MiG-29 nose gear and wheels.** The last KR-67 parts you could see are gone: the nose leg is a slim oleo strut with a
   trailing fork, torque links and a steering unit, the 9.12's twin nose wheels and its mudguard behind them, and a round
-  landing light in its housing on the front of the leg. The main wheels are new tyres and hubs with lightening holes, at the
+  landing light in its housing on the front of the leg. Up close the leg shows its hydraulic and brake lines, clamped down the
+  back of the strut, a wiper seal, the charging valve and the uplock roller, and the mudguard sits on side brackets. The main wheels are new tyres and hubs with lightening holes, at the
   same size. The ride height, suspension and retraction are unchanged.
 - Under the hood: the KR-67's leftover objects that did nothing (empty shells and unused pivots) are removed.
 - **The MiG-29's own radar, the N019.** It used the KR-67's radar unchanged; it now sees 45 km on the game's scale (the SMT's
