@@ -115,6 +115,7 @@ namespace MiG29Tools
             MiG29Cockpit.Build(go, cockpitPart, ModelOffset, materials.skin, materials.glass, exterior, (o, path) => CreateOrReplace(o, path), (t, r) => AddDamageRenderer(t, r));
             AppendExteriorRenderers(go, exterior);
             TuneToMiG(root);
+            TuneRadar(root);
             MiG29Nozzles.RoundAfterburners(root, (o, path) => CreateOrReplace(o, path));
             bayIndices = BayIndices(go);
             RemoveInternalBays(go);
@@ -989,6 +990,30 @@ namespace MiG29Tools
 
         const float MassScale = 0.72f;   // KR-67 16.0 t empty -> 11.5 t (MiG-29: ~11 t)
         const float FuelScale = 0.45f;   // 8.2 t internal fuel -> 3.7 t (MiG-29: ~3.5 t)
+
+        // The 9.12's N019 in place of the KR-67's radar (the SMT has its Zhuk-ME). The game's radar sees a target while
+        // (maxRange / distance) x RCS^0.25 - clutter x clutterFactor stays above minSignal, inside radarCone (half-angle, deg) of
+        // the nose (RadarParams.GetSignalStrength, Radar.RadarCheck), so:
+        //   maxRange 50 -> 45 km   the N019 sees roughly 0.6x as far as the SMT's Zhuk-ME (~70 against ~120 km against a fighter);
+        //                          on the game's scale 45 km against the SMT's 70
+        //   radarCone 30 -> 50 deg it scans wider than the KR-67 (about +-67 deg on the real set), less than the SMT
+        //   clutterFactor 0.12 -> 0.16   its look-down / shoot-down was weak: low targets drop out sooner
+        //   jamTolerance 0.7 -> 0.6      older ECCM: easier to jam, and (for the R-27R it guides) easier to chaff
+        // The R-27R's seeker takes its range from this radar too (SARHSeeker.Initialize).
+        const float RadarRange = 45000f, RadarCone = 50f, RadarClutter = 0.16f, RadarJamTolerance = 0.6f;
+
+        static void TuneRadar(Transform root)
+        {
+            var radar = root.GetComponentInChildren(TypeByName("Radar"), true);
+            if (radar == null) { Debug.LogError("[MiG29] radar: not found"); return; }
+            var so = new SerializedObject(radar);
+            so.FindProperty("RadarParameters.maxRange").floatValue = RadarRange;
+            so.FindProperty("radarCone").floatValue = RadarCone;
+            so.FindProperty("RadarParameters.clutterFactor").floatValue = RadarClutter;
+            so.FindProperty("jamTolerance").floatValue = RadarJamTolerance;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            Debug.Log($"[MiG29] radar: N019, {RadarRange / 1000:0} km, +-{RadarCone:0} deg, clutter {RadarClutter}, jam tolerance {RadarJamTolerance}");
+        }
 
         static void TuneToMiG(Transform root)
         {

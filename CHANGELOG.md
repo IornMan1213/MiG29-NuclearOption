@@ -1,6 +1,9 @@
 # Changelog
 
 ## 0.9.4 (unreleased)
+- **The MiG-29's own radar, the N019.** It used the KR-67's radar unchanged; it now sees 45 km on the game's scale (the SMT's
+  Zhuk-ME 70), scans +-50 degrees instead of +-30, loses low targets against the ground sooner and is easier to jam, as
+  the real 9.12's set was.
 - **Empty wing pylons are hidden**, as on the game's own jets: a pylon only shows while it carries something (issue #13, thanks
   FIM43-Redeye).
 - **Chaff that behaves like chaff.** One press now runs a chaff programme (Configuration Manager > Countermeasures > Chaff
