@@ -164,6 +164,7 @@ namespace MiG29Instruments
                             if (a.GetComponent<GearPathDriver>() == null) a.gameObject.AddComponent<GearPathDriver>();
                             if (a.GetComponent<IntakeDriver>() == null) a.gameObject.AddComponent<IntakeDriver>();
                             if (a.GetComponent<ChuteDriver>() == null) a.gameObject.AddComponent<ChuteDriver>();
+                            if (a.GetComponent<TorqueLinkDriver>() == null) a.gameObject.AddComponent<TorqueLinkDriver>();
                         }
                     Holes.MiGsPresent = any;
                 }

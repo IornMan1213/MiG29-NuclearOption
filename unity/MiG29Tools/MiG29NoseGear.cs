@@ -19,7 +19,8 @@ namespace MiG29Tools
     public static class MiG29NoseGear
     {
         const string ModDir = "Assets/Blueprinter/Mods/mig29";
-        static readonly Vector2 Paint = new Vector2(0.02f, 0.48f), Chrome = new Vector2(0.52f, 0.73f), Dark = new Vector2(0.77f, 0.98f);
+        public const float LinkArm = 0.36f;   // each torque-link arm, hinge to apex pin: the oleo stands near full extension (0.62 m between the hinges in game), so the scissor keeps a bend (the plugin reads it from the meshes)
+        static readonly Vector2 Paint =new Vector2(0.02f, 0.48f), Chrome = new Vector2(0.52f, 0.73f), Dark = new Vector2(0.77f, 0.98f);
 
         class Builder
         {
@@ -34,7 +35,8 @@ namespace MiG29Tools
                 v.AddRange(new[] { a, b, c, d }); n.AddRange(new[] { na, nb, nc, nd });
                 float u0 = zone.x, u1 = zone.y;
                 uv.AddRange(new[] { new Vector2(u0, v0), new Vector2(u1, v0), new Vector2(u1, v1), new Vector2(u0, v1) });
-                bool flip = Vector3.Dot(Vector3.Cross(b - a, c - a), outward) < 0f;
+                // facing from the diagonals: a quad whose first two corners meet (a disc's centre) still gets its winding right
+                bool flip = Vector3.Dot(Vector3.Cross(c - a, d - b), outward) < 0f;
                 if (flip) t.AddRange(new[] { i, i + 2, i + 1, i, i + 3, i + 2 });
                 else t.AddRange(new[] { i, i + 1, i + 2, i, i + 2, i + 3 });
             }
@@ -149,6 +151,18 @@ namespace MiG29Tools
                 if (gearMat != null) mr.sharedMaterials = new[] { gearMat };
                 done++;
             }
+            // a torque-link arm: its own object at its hinge, the arm along +z, first posed at 45 deg towards the other arm
+            void Link(Transform parent, string name, Vector3 pivot, Mesh mesh)
+            {
+                var go = new GameObject(name);
+                go.transform.SetParent(parent, false);
+                go.transform.localPosition = pivot;
+                go.transform.localRotation = Quaternion.LookRotation(new Vector3(0f, name.EndsWith("_upper") ? -1f : 1f, 1f));
+                go.AddComponent<MeshFilter>().sharedMesh = (Mesh)save(mesh, $"{ModDir}/meshes/{mesh.name}.asset");
+                var mr = go.AddComponent<MeshRenderer>();
+                if (gearMat != null) mr.sharedMaterials = new[] { gearMat };
+                done++;
+            }
 
             var wheelF = Find("wheel_F"); var sprung = Find("gear_F_sprung"); var unsprung = Find("gear_F_unsprung");
             float rNose = WheelRadius(wheelF, 0.33f), rMain = WheelRadius(Find("wheel_L"), 0.427f);
@@ -160,8 +174,6 @@ namespace MiG29Tools
             nw.Cylinder(new Vector3(-0.2f, 0f, 0f), new Vector3(0.2f, 0f, 0f), 0.025f, Chrome);
             Put(wheelF, nw.Mesh("MiG29_nose_wheels"));
 
-            // torque links: a scissor across the front of the piston, lower arm on the piston, upper arm on the barrel, meeting at the
-            // apex pin (the arms close up a little as the oleo compresses, as on the real leg)
             var s = new Builder();
             // unsprung: piston up into the barrel, trailing fork to the axle, mudguard over the back of the wheels
             if (unsprung != null && wheelF != null && sprung != null)
@@ -169,15 +181,19 @@ namespace MiG29Tools
                 var axle = unsprung.InverseTransformPoint(wheelF.position);
                 float barrelBottom = unsprung.InverseTransformPoint(sprung.position).y;
                 var u = new Builder();
-                var low = new Vector3(0f, 0.05f, 0.05f);
-                var apex = new Vector3(0f, (0.05f + barrelBottom) / 2f, 0.15f);
-                u.Bar(low, apex, 0.05f, 0.03f, Paint);
-                u.Box(low, new Vector3(0.035f, 0.025f, 0.02f), Paint);                                       // lug on the piston
-                u.Cylinder(apex + new Vector3(-0.035f, 0f, 0f), apex + new Vector3(0.035f, 0f, 0f), 0.016f, Chrome);   // apex pin
-                var apexS = sprung.InverseTransformPoint(unsprung.TransformPoint(apex));
-                s.Bar(new Vector3(0f, 0.02f, 0.075f), apexS, 0.04f, 0.03f, Paint);
-                s.Box(new Vector3(0f, 0.02f, 0.08f), new Vector3(0.03f, 0.02f, 0.02f), Paint);                // lug on the barrel
-                Debug.Log($"[MiG29] nose leg: barrel bottom at piston y {barrelBottom:F2}, torque link apex {apex:F2}");
+                // torque links: a scissor across the front of the piston, the lower arm hinged on the piston, the upper on the barrel.
+                // The oleo stands at a different extension in game than in the prefab, so each arm is its own object along its +z
+                // and the plugin's TorqueLinkDriver swings both every frame to meet at the apex pin.
+                u.Box(new Vector3(0f, 0.05f, 0.05f), new Vector3(0.035f, 0.025f, 0.02f), Paint);                    // lug on the piston
+                s.Box(new Vector3(0f, 0.02f, 0.08f), new Vector3(0.03f, 0.02f, 0.02f), Paint);                     // lug on the barrel
+                var la = new Builder();
+                la.Bar(Vector3.zero, new Vector3(0f, 0f, LinkArm), 0.05f, 0.03f, Paint);
+                la.Cylinder(new Vector3(-0.035f, 0f, LinkArm), new Vector3(0.035f, 0f, LinkArm), 0.016f, Chrome);  // apex pin
+                Link(unsprung, "MiG29_nose_link_lower", new Vector3(0f, 0.05f, 0.05f), la.Mesh("MiG29_nose_link_lower"));
+                var ua = new Builder();
+                ua.Bar(Vector3.zero, new Vector3(0f, 0f, LinkArm), 0.04f, 0.03f, Paint);
+                Link(sprung, "MiG29_nose_link_upper", new Vector3(0f, 0.02f, 0.08f), ua.Mesh("MiG29_nose_link_upper"));
+                Debug.Log($"[MiG29] nose leg: barrel bottom at piston y {barrelBottom:F2}, torque link arms {LinkArm} m");
                 u.Cylinder(Vector3.zero, new Vector3(0f, barrelBottom + 0.28f, 0f), 0.042f, Chrome);
                 u.Box(new Vector3(0f, axle.y * 0.5f, axle.z * 0.5f), new Vector3(0.032f, 0.045f, Mathf.Abs(axle.z) * 0.5f + 0.04f), Paint);
                 u.Cylinder(axle + new Vector3(-0.04f, 0f, 0f), axle + new Vector3(0.04f, 0f, 0f), 0.04f, Paint);
