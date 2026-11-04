@@ -94,7 +94,7 @@ namespace MiG29Tools
 
             // airframe split into the KR-67 damage parts: pieces detach with their part, get damage shading,
             // and become that part's hitbox
-            var airframe = data.parts.Where(p => (p.pivot == null || p.pivot.Length != 3) && p.name != "canopy" && p.name != "cockpit" && p.name != "gear_doors_closed").ToList();
+            var airframe = data.parts.Where(p => (p.pivot == null || p.pivot.Length != 3) && p.name != "canopy" && p.name != "cockpit" && p.name != "gear_doors_closed" && !p.name.StartsWith("pylon_")).ToList();
             SplitAirframe(root, visual, airframe, materials.skin, surfaces);
             UnityEngine.Object.DestroyImmediate(visual.gameObject);
             var doorsPart = data.parts.First(p => p.name == "gear_doors_closed");
@@ -120,6 +120,8 @@ namespace MiG29Tools
             RemoveInternalBays(go);
             var centreSet = MiG29Weapons.SetupCentreline(go, ModelOffset, weapons);
             var outerPylonSet = MiG29Weapons.SetupPylons(go, ModelOffset, weapons);
+            MiG29Weapons.SetupPylonFairings(go, ModelOffset, meshes.Where(kv => kv.Key.StartsWith("pylon_")).ToDictionary(kv => kv.Key, kv => kv.Value), materials.skin,
+                (t, r) => AddDamageRenderer(t, r));
             var wingtipSet = MiG29Weapons.SetupWingtips(go, ModelOffset, weapons, outerPylonSet);
             MiG29Countermeasures.Setup(go, ModelOffset);
             var oldGun = MiG29Weapons.SetupGun(go, ModelOffset, weapons);
