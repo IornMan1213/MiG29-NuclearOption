@@ -11,13 +11,16 @@ namespace MiG29Tools
     //   wheel_F         twin wheels on one axle (the real 9.12 has two 570 x 140 mm wheels; the KR-67's pair is already 0.64 m wide)
     //   gear_F_unsprung chrome piston, a short trailing fork to the axle (0.17 m behind the strut) and the MiG's mudguard behind the
     //                   wheels, which keeps debris out of the intakes on rough fields
-    //   gear_F_sprung   a slim oleo barrel up to the hinge, with its trunnion
-    //   wheel_L / R     a KT-150-style main wheel (840 x 290 mm, the KR-67's size already): tyre, rim and hub
+    //   gear_F_sprung   a slim oleo barrel up to the hinge, with its trunnion and the steering unit below it
+    //   both            the torque links across the front of the piston, one arm on each part
+    //   wheel_L / R     a KT-150-style main wheel (840 x 290 mm, the KR-67's size already): tyre, rim and hub with lightening holes
+    //   gearLight_F     a round lamp in its can on the strut (Lamp, from the builder's PlaceLandingLight)
     // Texture: the main gear's atlas (tools/main_gear_gen.py zones: paint, chrome, dark rubber).
     public static class MiG29NoseGear
     {
         const string ModDir = "Assets/Blueprinter/Mods/mig29";
-        static readonly Vector2 Paint = new Vector2(0.02f, 0.48f), Chrome = new Vector2(0.52f, 0.73f), Dark = new Vector2(0.77f, 0.98f);
+        public const float LinkArm = 0.36f;   // each torque-link arm, hinge to apex pin: the oleo stands near full extension (0.62 m between the hinges in game), so the scissor keeps a bend (the plugin reads it from the meshes)
+        static readonly Vector2 Paint =new Vector2(0.02f, 0.48f), Chrome = new Vector2(0.52f, 0.73f), Dark = new Vector2(0.77f, 0.98f);
 
         class Builder
         {
@@ -32,7 +35,8 @@ namespace MiG29Tools
                 v.AddRange(new[] { a, b, c, d }); n.AddRange(new[] { na, nb, nc, nd });
                 float u0 = zone.x, u1 = zone.y;
                 uv.AddRange(new[] { new Vector2(u0, v0), new Vector2(u1, v0), new Vector2(u1, v1), new Vector2(u0, v1) });
-                bool flip = Vector3.Dot(Vector3.Cross(b - a, c - a), outward) < 0f;
+                // facing from the diagonals: a quad whose first two corners meet (a disc's centre) still gets its winding right
+                bool flip = Vector3.Dot(Vector3.Cross(c - a, d - b), outward) < 0f;
                 if (flip) t.AddRange(new[] { i, i + 2, i + 1, i, i + 3, i + 2 });
                 else t.AddRange(new[] { i, i + 1, i + 2, i, i + 2, i + 3 });
             }
@@ -79,6 +83,26 @@ namespace MiG29Tools
                     }
             }
 
+            // a flat bar from a to b, `width` across x, `thick` in the plane the bar swings in (torque links)
+            public void Bar(Vector3 a, Vector3 b, float width, float thick, Vector2 zone)
+            {
+                var dir = (b - a).normalized; var sx = Vector3.right * (width / 2f);
+                var sn = Vector3.Cross(dir, Vector3.right).normalized * (thick / 2f);
+                Vector3 P(Vector3 o, float i, float j) => o + sx * i + sn * j;
+                var nx = Vector3.right; var nn = sn.normalized;
+                Quad(P(a, 1, -1), P(b, 1, -1), P(b, 1, 1), P(a, 1, 1), nx, nx, nx, nx, zone, 0f, 1f, nx);
+                Quad(P(a, -1, -1), P(b, -1, -1), P(b, -1, 1), P(a, -1, 1), -nx, -nx, -nx, -nx, zone, 0f, 1f, -nx);
+                Quad(P(a, -1, 1), P(b, -1, 1), P(b, 1, 1), P(a, 1, 1), nn, nn, nn, nn, zone, 0f, 1f, nn);
+                Quad(P(a, -1, -1), P(b, -1, -1), P(b, 1, -1), P(a, 1, -1), -nn, -nn, -nn, -nn, zone, 0f, 1f, -nn);
+            }
+
+            // a flat disc facing along `axis`
+            public void Disc(Vector3 c, Vector3 axis, float r, Vector2 zone, int seg = 12)
+            {
+                var up = Mathf.Abs(Vector3.Dot(axis.normalized, Vector3.up)) > 0.9f ? Vector3.forward : Vector3.up;
+                Revolve(c, axis, up, new[] { (0f, 0f), (r, 0f) }, new[] { (0f, 1f) }, zone, seg);
+            }
+
             public Mesh Mesh(string name)
             {
                 var m = new Mesh { name = name };
@@ -103,6 +127,15 @@ namespace MiG29Tools
             b.Revolve(o, Vector3.right, Vector3.up,
                 new[] { (rIn, w), (rIn, hw), (0.06f, hw), (0.06f, hw + 0.02f), (0f, hw + 0.02f) },
                 new[] { (-1f, 0f), (0f, 1f), (1f, 0f), (0f, 1f) }, Paint, 24);
+            // six lightening holes round each hub face (dark discs just proud of it; they turn with the wheel)
+            float rh = (0.06f + rIn) / 2f, hr = Mathf.Min((rIn - 0.06f) * 0.3f, 0.04f);
+            for (int k = 0; k < 6; k++)
+            {
+                float a = k * 60f * Mathf.Deg2Rad;
+                var off = new Vector3(0f, Mathf.Cos(a), Mathf.Sin(a)) * rh;
+                b.Disc(o + off + Vector3.right * (hw + 0.003f), Vector3.right, hr, Dark);
+                b.Disc(o + off - Vector3.right * (hw + 0.003f), -Vector3.right, hr, Dark);
+            }
         }
 
         public static void Build(Transform root, Material gearMat, Func<UnityEngine.Object, string, UnityEngine.Object> save)
@@ -118,6 +151,18 @@ namespace MiG29Tools
                 if (gearMat != null) mr.sharedMaterials = new[] { gearMat };
                 done++;
             }
+            // a torque-link arm: its own object at its hinge, the arm along +z, first posed at 45 deg towards the other arm
+            void Link(Transform parent, string name, Vector3 pivot, Mesh mesh)
+            {
+                var go = new GameObject(name);
+                go.transform.SetParent(parent, false);
+                go.transform.localPosition = pivot;
+                go.transform.localRotation = Quaternion.LookRotation(new Vector3(0f, name.EndsWith("_upper") ? -1f : 1f, 1f));
+                go.AddComponent<MeshFilter>().sharedMesh = (Mesh)save(mesh, $"{ModDir}/meshes/{mesh.name}.asset");
+                var mr = go.AddComponent<MeshRenderer>();
+                if (gearMat != null) mr.sharedMaterials = new[] { gearMat };
+                done++;
+            }
 
             var wheelF = Find("wheel_F"); var sprung = Find("gear_F_sprung"); var unsprung = Find("gear_F_unsprung");
             float rNose = WheelRadius(wheelF, 0.33f), rMain = WheelRadius(Find("wheel_L"), 0.427f);
@@ -129,12 +174,26 @@ namespace MiG29Tools
             nw.Cylinder(new Vector3(-0.2f, 0f, 0f), new Vector3(0.2f, 0f, 0f), 0.025f, Chrome);
             Put(wheelF, nw.Mesh("MiG29_nose_wheels"));
 
+            var s = new Builder();
             // unsprung: piston up into the barrel, trailing fork to the axle, mudguard over the back of the wheels
             if (unsprung != null && wheelF != null && sprung != null)
             {
                 var axle = unsprung.InverseTransformPoint(wheelF.position);
                 float barrelBottom = unsprung.InverseTransformPoint(sprung.position).y;
                 var u = new Builder();
+                // torque links: a scissor across the front of the piston, the lower arm hinged on the piston, the upper on the barrel.
+                // The oleo stands at a different extension in game than in the prefab, so each arm is its own object along its +z
+                // and the plugin's TorqueLinkDriver swings both every frame to meet at the apex pin.
+                u.Box(new Vector3(0f, 0.05f, 0.05f), new Vector3(0.035f, 0.025f, 0.02f), Paint);                    // lug on the piston
+                s.Box(new Vector3(0f, 0.02f, 0.08f), new Vector3(0.03f, 0.02f, 0.02f), Paint);                     // lug on the barrel
+                var la = new Builder();
+                la.Bar(Vector3.zero, new Vector3(0f, 0f, LinkArm), 0.05f, 0.03f, Paint);
+                la.Cylinder(new Vector3(-0.035f, 0f, LinkArm), new Vector3(0.035f, 0f, LinkArm), 0.016f, Chrome);  // apex pin
+                Link(unsprung, "MiG29_nose_link_lower", new Vector3(0f, 0.05f, 0.05f), la.Mesh("MiG29_nose_link_lower"));
+                var ua = new Builder();
+                ua.Bar(Vector3.zero, new Vector3(0f, 0f, LinkArm), 0.04f, 0.03f, Paint);
+                Link(sprung, "MiG29_nose_link_upper", new Vector3(0f, 0.02f, 0.08f), ua.Mesh("MiG29_nose_link_upper"));
+                Debug.Log($"[MiG29] nose leg: barrel bottom at piston y {barrelBottom:F2}, torque link arms {LinkArm} m");
                 u.Cylinder(Vector3.zero, new Vector3(0f, barrelBottom + 0.28f, 0f), 0.042f, Chrome);
                 u.Box(new Vector3(0f, axle.y * 0.5f, axle.z * 0.5f), new Vector3(0.032f, 0.045f, Mathf.Abs(axle.z) * 0.5f + 0.04f), Paint);
                 u.Cylinder(axle + new Vector3(-0.04f, 0f, 0f), axle + new Vector3(0.04f, 0f, 0f), 0.04f, Paint);
@@ -153,10 +212,17 @@ namespace MiG29Tools
             {
                 var hinge = Find("gearHinge_F");
                 float top = hinge != null ? sprung.InverseTransformPoint(hinge.position).y : 1.3f;
-                var s = new Builder();
                 s.Cylinder(new Vector3(0f, -0.02f, 0f), new Vector3(0f, top, 0f), 0.068f, Paint);
                 s.Cylinder(new Vector3(0f, -0.04f, 0f), new Vector3(0f, 0.05f, 0f), 0.078f, Paint);   // gland collar
                 s.Cylinder(new Vector3(-0.16f, top, 0f), new Vector3(0.16f, top, 0f), 0.045f, Paint);
+                // steering unit below the trunnion: a collar round the barrel and its two actuators either side, pointing aft
+                s.Cylinder(new Vector3(0f, top - 0.30f, 0f), new Vector3(0f, top - 0.18f, 0f), 0.092f, Paint);
+                for (int sd = -1; sd <= 1; sd += 2)
+                {
+                    s.Cylinder(new Vector3(sd * 0.105f, top - 0.24f, 0.03f), new Vector3(sd * 0.105f, top - 0.24f, -0.17f), 0.024f, Paint);
+                    s.Cylinder(new Vector3(sd * 0.105f, top - 0.24f, -0.17f), new Vector3(sd * 0.105f, top - 0.24f, -0.25f), 0.012f, Chrome);
+                }
+                Debug.Log($"[MiG29] nose leg: hinge at sprung y {top:F2}, steering collar y {top - 0.30f:F2}..{top - 0.18f:F2}");
                 Put(sprung, s.Mesh("MiG29_nose_sprung"));
             }
 
@@ -169,6 +235,37 @@ namespace MiG29Tools
             Put(wheelL, mainMesh);
             Put(Find("wheel_R"), mainMesh);
             Debug.Log($"[MiG29] nose gear and wheels: {done} meshes (nose wheel r {rNose:F3} m, main r {rMain:F3} m)");
+        }
+
+        // The landing light as a MiG lamp: the KR-67's flat panel (NavLights swaps its material to a glowing one with the gear down)
+        // becomes a round lens, set in a deep can with a rim and a bracket back to the strut. Run once the lamp is placed on the
+        // strut, facing `face` (world); the can hangs on the sprung leg so it folds with it.
+        public static void Lamp(Transform lamp, Transform sprung, Vector3 face, Material gearMat, Func<UnityEngine.Object, string, UnityEngine.Object> save)
+        {
+            const float rLens = 0.055f, rCan = 0.068f, depth = 0.075f;
+            var mf = lamp.GetComponent<MeshFilter>();
+            if (mf == null || mf.sharedMesh == null || mf.sharedMesh.subMeshCount != 1) { Debug.LogWarning("[MiG29] lamp: unexpected landing light mesh, kept"); return; }
+            var centreW = lamp.TransformPoint(mf.sharedMesh.bounds.center);
+            var lens = new Builder();
+            var faceL = lamp.InverseTransformDirection(face).normalized;
+            lens.Disc(mf.sharedMesh.bounds.center, faceL, rLens / lamp.lossyScale.x, Chrome, 20);
+            mf.sharedMesh = (Mesh)save(lens.Mesh("MiG29_nose_lamp_lens"), $"{ModDir}/meshes/MiG29_nose_lamp_lens.asset");
+
+            var go = new GameObject("MiG29_nose_lamp");
+            go.transform.SetParent(sprung, false);
+            go.transform.SetPositionAndRotation(centreW, Quaternion.LookRotation(face, Vector3.up));
+            var c = new Builder();
+            c.Revolve(Vector3.zero, Vector3.forward, Vector3.up,
+                new[] { (rLens, 0.004f), (rCan, 0.004f), (rCan, -depth), (rCan * 0.6f, -depth - 0.02f), (0f, -depth - 0.02f) },
+                new[] { (0f, 1f), (1f, 0f), (0.7f, -0.7f), (0f, -1f) }, Paint, 20);
+            c.Revolve(Vector3.zero, Vector3.forward, Vector3.up, new[] { (rLens, 0.004f), (rLens, -0.01f) }, new[] { (-1f, 0f) }, Chrome, 20);
+            // bracket from the back of the can to the strut
+            var strutW = sprung.TransformPoint(new Vector3(0f, sprung.InverseTransformPoint(centreW).y, 0f));
+            var back = go.transform.InverseTransformPoint(strutW);
+            c.Bar(new Vector3(0f, 0f, -depth), back, 0.035f, 0.03f, Paint);
+            go.AddComponent<MeshFilter>().sharedMesh = (Mesh)save(c.Mesh("MiG29_nose_lamp"), $"{ModDir}/meshes/MiG29_nose_lamp.asset");
+            go.AddComponent<MeshRenderer>().sharedMaterials = new[] { gearMat };
+            Debug.Log($"[MiG29] landing light: round lens r {rLens} m in a {depth} m can, bracket {back.magnitude:F2} m to the strut");
         }
 
         // the gear material once MiG29MainGear has made it (Build runs before the nose gear's stow search, which fits the real meshes)
