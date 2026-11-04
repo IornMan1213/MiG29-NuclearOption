@@ -127,6 +127,7 @@ namespace MiG29Tools
             MiG29Countermeasures.Setup(go, ModelOffset);
             var oldGun = MiG29Weapons.SetupGun(go, ModelOffset, weapons);
             var displays = MiG29Polish.BuildDisplays(go);
+            MiG29Cleanup.RemoveDeadShells(go, new HashSet<string>(src.GetComponentsInChildren<Transform>(true).Select(t => t.name)), MiG29Cleanup.GameStrings());   // the KR-67's dead leftovers, before the LOD levels are rebuilt
             MiG29Lod.Apply(go);   // last: every renderer exists now
 
             var prefabPath = ModDir + "/MiG29.prefab";
