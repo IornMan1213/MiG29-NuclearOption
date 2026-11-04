@@ -14,11 +14,17 @@ namespace MiG29Instruments
     //
     //   Programmes: one press of chaff runs a burst (Configuration Manager > Countermeasures > Chaff programme), as real dispensers
     //     do: Single 1 pair, Short 4, Standard 8 (about 2 s, the semi-active lock time), Long 12 (for active missiles).
-    //   The cloud keeps working: each cartridge counts for 2 s while its cloud is still in the missile's range gate (within 150 m of
-    //     the jet along the line of sight, fading out by 300 m) and inside its beam (4 degrees, fading out by 8). Beaming keeps the jet
-    //     in that gate; running away from your own chaff does not.
-    //   Notching: the angle comes from the jet's velocity against the line of sight, so beaming counts fully and flying straight at
-    //     or away from the missile counts nothing, at any frame rate.
+    //   The cloud keeps working: each cartridge counts for 4 s while its cloud is still in the missile's range gate (within 150 m of
+    //     the jet along the line of sight, fading out by 300 m) and inside its beam (6 degrees, fading out by 12). Beaming keeps the jet
+    //     in that gate; running away from your own chaff does not. A fresh cloud takes hold within about a second.
+    //   Notching: from the jet's velocity against the line of sight, squared: beaming counts fully, 60 degrees off the line a
+    //     quarter, 45 degrees under a tenth, flying straight at or away from the missile nothing, at any frame rate.
+    //   Seduction: while the jam total is over the missile's tolerance, an active missile is steered at the clouds (Decoy), in its
+    //     own homing and on its datalink alike.
+    // Measured with real AAM2s fired by an AI KR-67 (tests/ingame/chaff_run.txt, 2026-11-04): beaming with no chaff, every missile
+    // reached the jet; beaming with one Standard press at 8 km, it lost lock at 4.3 km and missed by 134 m; with Long, 2 of 3
+    // missed (the third came from 2.9 km head-on); at 45 degrees the jam total peaked at 0.62 and the missile hit; head-on chaff
+    // added nothing. The first settings (a 1.5 s build-up, a 4 degree beam, no seduction) never made a missile miss.
     //   Seekers: semi-active ones (the R-27R, the game's SAMs) are fooled more easily than active ones (x0.7).
     //   Ground clutter: below 1,000 m, with the missile looking down at the jet, chaff counts up to 50% more (full at 10 degrees down
     //     and at ground level). A missile below or level with the jet gets no bonus.
@@ -27,8 +33,8 @@ namespace MiG29Instruments
     public static class Chaff
     {
         const float ProgrammeGap = 0.31f;           // the dispenser refuses faster than its 0.3 s ejection interval
-        const float CloudLife = 2f, NormTime = 1.5f, Bloom = 0.3f;
-        const float RangeGate = 150f, RangeGateOut = 300f, BeamGate = 4f, BeamGateOut = 8f;
+        const float CloudLife = 4f, NormTime = 0.35f, Bloom = 0.3f;
+        const float RangeGate = 150f, RangeGateOut = 300f, BeamGate = 6f, BeamGateOut = 12f;
         const float ActiveFactor = 0.7f, ClutterBonus = 0.5f, ClutterAlt = 1000f, ClutterLookDown = 10f;
 
         public static int Pairs(string programme)
@@ -125,12 +131,64 @@ namespace MiG29Instruments
             }
         }
 
-        // jam added per second by one cloud against one seeker
-        static float Rate(Cloud c, float age)
+        // Seduction: while a missile's jam total is over its tolerance and clouds still count against it, it is steered at their
+        // centre (weighted by how much each counts), in active and in datalink mode. In the game a jammed active missile otherwise
+        // switches to its datalink, which hands it the jet's true position whenever anything on its side tracks the jet, so chaff
+        // never made it miss (measured: jam pinned at 1, missiles still within 4-12 m). On the real thing the midcourse updates come
+        // from the launcher's radar, which a notching jet's chaff fools as well. When the clouds fade it may find the jet again.
+        internal static bool Decoy(MissileSeeker seeker, out Vector3 aim)
         {
+            aim = Vector3.zero;
+            float tol, jam;
+            if (seeker is ARHSeeker a) { tol = ArhTol(a); jam = ArhJam(a); }
+            else if (seeker is SARHSeeker sa) { tol = SarhTol(sa); jam = SarhJam(sa); }
+            else return false;
+            if (jam <= tol) return false;
+            float w = 0f; Vector3 sum = Vector3.zero;
+            foreach (var c in clouds)
+            {
+                if (c.seeker != seeker || c.chaff == null) continue;
+                float r = Rate(c, Time.time - c.born);
+                if (r <= 0f) continue;
+                sum += c.chaff.transform.position * r; w += r;
+            }
+            if (w <= 0f) return false;
+            aim = sum / w;
+            return true;
+        }
+
+        internal static void Seduce(MissileSeeker seeker)
+        {
+            if (!Decoy(seeker, out var aim)) return;
+            var m = MissileOf(seeker);
+            if (m != null) m.SetAimpoint(aim.ToGlobalPosition(), Vector3.zero);
+        }
+
+        // for the in-game tests: the clouds counting against a seeker now, their summed jam per second, and the mean of each factor
+        public static string Stats(MissileSeeker seeker)
+        {
+            int n = 0, live = 0; float total = 0f, gR = 0f, gB = 0f, notch = 0f;
+            foreach (var c in clouds)
+            {
+                if (c.seeker != seeker) continue;
+                n++;
+                float r = Rate(c, Time.time - c.born, out var f);
+                if (r > 0f) { live++; total += r; gR += f.x; gB += f.y; notch += f.z; }
+            }
+            return live > 0 ? $"{live}/{n} clouds, {total:F2}/s, range gate {gR / live:F2}, beam gate {gB / live:F2}, notch {notch / live:F2}" : $"0/{n} clouds";
+        }
+
+        static float Rate(Cloud c, float age) => Rate(c, age, out _);
+
+        // jam added per second by one cloud against one seeker (factors: range gate, beam gate, notch)
+        static float Rate(Cloud c, float age, out Vector3 factors)
+        {
+            factors = Vector3.zero;
             var m = MissileOf(c.seeker);
             var target = TargetOf(c.seeker);
-            if (m == null || target == null || m.targetID.NotValid || SeekerMode == null || Convert.ToInt32(SeekerMode.GetValue(m)) != 1) return 0f;
+            if (m == null || target == null || m.targetID.NotValid || SeekerMode == null) return 0f;
+            int mode = Convert.ToInt32(SeekerMode.GetValue(m));   // 1 active lock, 2 active search (datalink), 3 passive
+            if (mode != 1 && mode != 2) return 0f;
             Vector3 msl = c.seeker.transform.position, tgt = target.transform.position, cloud = c.chaff.transform.position;
             Vector3 los = tgt - msl;
             float d = los.magnitude;
@@ -144,7 +202,8 @@ namespace MiG29Instruments
             // notch: the jet's speed toward or away from the missile is what a Doppler seeker sees; side-on it vanishes into the chaff
             var rb = target.rb;
             Vector3 v = rb != null ? rb.velocity : target.transform.forward * target.speed;
-            float notch = v.sqrMagnitude > 25f ? 1f - Mathf.Abs(Vector3.Dot(los, v.normalized)) : 1f;
+            float side = v.sqrMagnitude > 25f ? 1f - Mathf.Abs(Vector3.Dot(los, v.normalized)) : 1f;
+            float notch = side * side;   // a Doppler seeker only loses you near a true beam: 1 at 90 deg, 0.55 at 75, 0.25 at 60, 0.09 at 45
 
             // the cloud is only a decoy while it shares the jet's range cell and the seeker's beam
             float alongLos = Mathf.Abs(Vector3.Dot(cloud - tgt, los));
@@ -157,6 +216,7 @@ namespace MiG29Instruments
             float lookDown = Mathf.Asin(Mathf.Clamp(-los.y, -1f, 1f)) * Mathf.Rad2Deg;
             float clutter = 1f + ClutterBonus * Mathf.Clamp01(lookDown / ClutterLookDown) * Mathf.Clamp01(1f - target.radarAlt / ClutterAlt);
 
+            factors = new Vector3(gateR, gateB, notch);
             float strength = range * notch * (c.active ? ActiveFactor : 1f) * clutter / (1f + tol);
             return strength * gateR * gateB * bloom / NormTime;
         }
@@ -177,6 +237,18 @@ namespace MiG29Instruments
     static class ChaffProgrammePatch
     {
         static bool Prefix(ChaffEjector __instance) => Chaff.OnFire(__instance);
+    }
+
+    [HarmonyPatch(typeof(ARHSeeker), "DatalinkMode")]
+    static class ChaffDatalinkPatch
+    {
+        static void Postfix(ARHSeeker __instance) => Chaff.Seduce(__instance);
+    }
+
+    [HarmonyPatch(typeof(ARHSeeker), "TerminalMode")]
+    static class ChaffTerminalPatch
+    {
+        static void Postfix(ARHSeeker __instance) => Chaff.Seduce(__instance);
     }
 
     [HarmonyPatch(typeof(SARHSeeker), "SARHSeeker_OnChaff")]
