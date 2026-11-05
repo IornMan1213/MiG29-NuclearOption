@@ -8,6 +8,8 @@
   the uplock roller. Every wheel looks like the real ones: round-shouldered tyres with tread grooves and the green dished hubs
   of Russian service wheels, with ribs, a bolt ring and a chrome cap. No mudguard on the nose wheels, as on the SMT in service.
   The wheel sizes, ride height, suspension and retraction are unchanged.
+- **Square nose wheel well.** Its ceiling followed the structure above it into facets and a lump at the back. It is now a
+  square box: a flat ceiling, and a flat step down over its last few centimetres to a plain back wall.
 - **No structure under the pylons.** With an empty pylon hidden, a piece of the wing's inner structure showed below the skin
   at the outer pylon station. Inner structure that ends up outside the skin is now left out everywhere.
 - Under the hood: the KR-67's leftover objects that did nothing (empty shells and unused pivots) are removed.

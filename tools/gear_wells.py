@@ -23,6 +23,10 @@ BAYS = {
     "main_R": (lambda c: (c[:, 0] > 1.0) & (c[:, 0] < 1.8) & (c[:, 2] > -0.3) & (c[:, 2] < 2.95), 0.42),
 }
 RIM_LIFT = 0.006          # walls start just above the closed door surface
+# The nose well's ceiling followed the structure above it into facets, and at the rear down into a lump (0.42 m falling to 0.12 m
+# at the back wall's centre; user screenshot, 4 Nov). It is now square: one flat ceiling, and behind NOSE_STEP_Z a flat, lower one,
+# so the well ends in a square step and a rectangular back wall.
+NOSE_STEP_Z, NOSE_REAR_CEIL, NOSE_CEIL = 3.65, 0.235, 0.40
 CEIL_GAP = 0.03           # ceiling this far under the outer skin
 UVS = 1.0                 # metres per texture repeat (tools/bay_texture.py: one tile per metre)
 
@@ -81,8 +85,35 @@ for name, (rule, depth) in BAYS.items():
             uvs.append(((q[0] + q[2]) / UVS, q[1] / UVS) if abs(nrm[1]) < 0.7 else (q[2] / UVS, q[0] / UVS))
         tris.extend([b, b + 1, b + 2] + ([b, b + 2, b + 3] if len(p) == 4 else []))
 
+    def nose_ceil(z): return NOSE_REAR_CEIL if z < NOSE_STEP_Z else NOSE_CEIL
+
+    def clip(poly, keep_aft):
+        """The part of a polygon (points with x, z) aft of (or forward of) z = NOSE_STEP_Z."""
+        out = []
+        for i in range(len(poly)):
+            p, q = poly[i], poly[(i + 1) % len(poly)]
+            pin, qin = (p[2] < NOSE_STEP_Z) == keep_aft, (q[2] < NOSE_STEP_Z) == keep_aft
+            if pin: out.append(p)
+            if pin != qin: out.append(p + (q - p) * (NOSE_STEP_Z - p[2]) / (q[2] - p[2]))
+        return out
+
     for t in TW:     # ceiling, facing down
-        quad_or_tri([np.array([W[v][0], ceil[v], W[v][2]]) for v in t], np.array([0, -1.0, 0]))
+        if name != "nose":
+            quad_or_tri([np.array([W[v][0], ceil[v], W[v][2]]) for v in t], np.array([0, -1.0, 0]))
+            continue
+        # the nose well's ceiling is flat in two levels: each triangle cut at the step, its parts at their level, and a vertical
+        # step face where it crosses
+        tri = [W[v].copy() for v in t]
+        for keep_aft, yc in ((True, NOSE_REAR_CEIL), (False, NOSE_CEIL)):
+            part = clip(tri, keep_aft)
+            if len(part) >= 3:
+                pts = [np.array([q[0], yc, q[2]]) for q in part]
+                for k in range(1, len(pts) - 1): quad_or_tri([pts[0], pts[k], pts[k + 1]], np.array([0, -1.0, 0]))
+        cut = [q for q in clip(tri, True) if abs(q[2] - NOSE_STEP_Z) < 1e-6]
+        if len(cut) == 2 and np.linalg.norm(cut[0] - cut[1]) > 1e-5:
+            a0, a1 = cut
+            quad_or_tri([np.array([a0[0], NOSE_REAR_CEIL, NOSE_STEP_Z]), np.array([a1[0], NOSE_REAR_CEIL, NOSE_STEP_Z]),
+                         np.array([a1[0], NOSE_CEIL, NOSE_STEP_Z]), np.array([a0[0], NOSE_CEIL, NOSE_STEP_Z])], np.array([0, 0, 1.0]))
     for (a, b), owners in edges.items():
         if len(owners) != 1: continue          # outline edges only
         oc = W[owners[0]].mean(0)
@@ -90,11 +121,21 @@ for name, (rule, depth) in BAYS.items():
         mid = (pa + pb) / 2
         hint = oc - mid; hint[1] = 0
         if np.linalg.norm(hint) < 1e-6: continue
-        quad_or_tri([pa + [0, RIM_LIFT, 0], pb + [0, RIM_LIFT, 0], np.array([pb[0], ceil[b], pb[2]]), np.array([pa[0], ceil[a], pa[2]])],
-                    hint / np.linalg.norm(hint))
+        hint /= np.linalg.norm(hint)
+        if name == "nose":
+            # walls up to the two flat levels, split where the rim crosses the step
+            segs = [(pa, pb)]
+            if (pa[2] < NOSE_STEP_Z) != (pb[2] < NOSE_STEP_Z):
+                m = pa + (pb - pa) * (NOSE_STEP_Z - pa[2]) / (pb[2] - pa[2])
+                segs = [(pa, m), (m, pb)]
+            for s0, s1 in segs:
+                yc = nose_ceil((s0[2] + s1[2]) / 2)
+                quad_or_tri([s0 + [0, RIM_LIFT, 0], s1 + [0, RIM_LIFT, 0], np.array([s1[0], yc, s1[2]]), np.array([s0[0], yc, s0[2]])], hint)
+            continue
+        quad_or_tri([pa + [0, RIM_LIFT, 0], pb + [0, RIM_LIFT, 0], np.array([pb[0], ceil[b], pb[2]]), np.array([pa[0], ceil[a], pa[2]])], hint)
     V = np.array(verts)
     print(f"[wells] {name}: {len(tris) // 3} tris, rim y {W[used][:, 1].min():.2f}..{W[used][:, 1].max():.2f}, "
-          f"ceiling y {min(ceil.values()):.2f}..{max(ceil.values()):.2f}, x {V[:, 0].min():.2f}..{V[:, 0].max():.2f}, z {V[:, 2].min():.2f}..{V[:, 2].max():.2f}")
+          f"ceiling y {(min(ceil.values()) if name != 'nose' else NOSE_REAR_CEIL):.2f}..{(max(ceil.values()) if name != 'nose' else NOSE_CEIL):.2f}, x {V[:, 0].min():.2f}..{V[:, 0].max():.2f}, z {V[:, 2].min():.2f}..{V[:, 2].max():.2f}")
     parts.append({"name": name, "vertices": np.round(V, 5).ravel().tolist(), "normals": np.round(np.array(norms), 5).ravel().tolist(),
                   "uvs": np.round(np.array(uvs), 5).ravel().tolist(), "triangles": tris})
 json.dump({"parts": parts}, open(os.path.join(SRC, "gear_wells.json"), "w"))
