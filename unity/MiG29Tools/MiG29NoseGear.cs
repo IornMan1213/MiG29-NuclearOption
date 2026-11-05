@@ -8,21 +8,27 @@ namespace MiG29Tools
     // MiG-29 nose gear and wheels in place of the KR-67's, the last of its parts still drawn (object count, 2026-10-30). Built on the
     // KR-67's own transforms, each mesh in its object's frame, so every physics transform (axle, bump stop, cast point, suspension,
     // fold) and the ride height stay exactly as they are; the wheels keep the KR-67's rolling radius (0.33 m nose, 0.43 m main).
-    //   wheel_F         twin wheels on one axle (the real 9.12 has two 570 x 140 mm wheels; the KR-67's pair is already 0.64 m wide)
-    //   gear_F_unsprung chrome piston, a short trailing fork to the axle (0.17 m behind the strut) and the MiG's mudguard behind the
-    //                   wheels, which keeps debris out of the intakes on rough fields, on side brackets with rolled edges; a brake line
-    //                   over the fork to the axle
-    //   gear_F_sprung   a slim oleo barrel up to the hinge, with its trunnion and the steering unit below it; a wiper seal, two bands,
-    //                   the charging valve, the uplock roller and two clamped hydraulic lines down its back
-    //   both            the torque links across the front of the piston, one arm on each part
-    //   wheel_L / R     a KT-150-style main wheel (840 x 290 mm, the KR-67's size already): tyre, rim and hub with lightening holes
+    //   wheel_F         twin wheels on one axle (the real 9.12 has two 570 x 140 mm wheels; the KR-67's pair is already 0.64 m wide),
+    //                   spread to clear the heavier piston
+    //   gear_F_unsprung chrome piston (0.11 m), a short trailing fork to the axle (0.17 m behind the strut), axle-end nuts and a brake
+    //                   line over the fork. No mudguard: the SMT in service photos runs without one.
+    //   gear_F_sprung   the oleo barrel (0.17 m) up to the hinge, with its trunnion and the steering unit below it; a wiper seal, two
+    //                   bands, the charging valve, the uplock roller and two clamped hydraulic lines down its back
+    //   both            heavy torque links across the front of the piston, one arm on each part (the plugin keeps them joined, also
+    //                   while the nose wheel steers)
+    //   wheel_L / R     a KT-150-style main wheel (840 x 290 mm, the KR-67's size already)
+    //   every wheel     a round-shouldered tyre with two tread grooves, a grey rim flange, and the green dished hub of Russian service
+    //                   wheels with radial ribs, a raised boss with its bolt ring and a chrome cap
     //   gearLight_F     a round lamp in its can on the strut (Lamp, from the builder's PlaceLandingLight)
-    // Texture: the main gear's atlas (tools/main_gear_gen.py zones: paint, chrome, dark rubber).
+    // Texture: the main gear's atlas (tools/main_gear_gen.py zones: paint, hub green, chrome, dark rubber).
     public static class MiG29NoseGear
     {
         const string ModDir = "Assets/Blueprinter/Mods/mig29";
         public const float LinkArm = 0.36f;   // each torque-link arm, hinge to apex pin: the oleo stands near full extension (0.62 m between the hinges in game), so the scissor keeps a bend (the plugin reads it from the meshes)
-        static readonly Vector2 Paint =new Vector2(0.02f, 0.48f), Chrome = new Vector2(0.52f, 0.73f), Dark = new Vector2(0.77f, 0.98f);
+        static readonly Vector2 Paint = new Vector2(0.02f, 0.48f), Green = new Vector2(0.492f, 0.496f), Chrome = new Vector2(0.52f, 0.73f), Dark = new Vector2(0.77f, 0.98f);
+        public const float ApexBoss = 0.034f;   // the boss round each arm's apex pin; the plugin takes it off the mesh length to find the pin
+        public const float BarrelRadius = 0.085f;   // the oleo barrel (the builder hangs the landing light on its front)
+        const float WheelSpread = 0.12f;   // each nose wheel's centre from the leg's axis (inner tyre walls 5 cm out, clear of the piston)
 
         class Builder
         {
@@ -120,29 +126,56 @@ namespace MiG29Tools
             }
         }
 
-        // a wheel on an axle along local x: tyre (rounded tread and shoulders), rim lips and a recessed hub with its boss
-        static void Wheel(Builder b, float cx, float rOut, float rIn, float width)
+        // a lathe from a (radius, distance along x) profile, one flat normal per segment. `side` -1 builds the profile as given
+        // (the -x face, listed from the centre out); +1 mirrors it onto the +x face.
+        static void Lathe(Builder b, Vector3 o, float side, (float r, float x)[] pts, Vector2 zone, int seg)
         {
-            float w = width / 2f, sh = Mathf.Min(0.045f, w * 0.4f);
-            var o = new Vector3(cx, 0f, 0f);
-            b.Revolve(o, Vector3.right, Vector3.up,
-                new[] { (rIn, -w), (rOut - sh, -w), (rOut, -w + sh), (rOut, w - sh), (rOut - sh, w), (rIn, w) },
-                new[] { (0f, -1f), (0.7f, -0.7f), (1f, 0f), (0.7f, 0.7f), (0f, 1f) }, Dark, 32);
-            float hw = w - 0.025f;   // hub faces sit a little inside the tyre walls
-            b.Revolve(o, Vector3.right, Vector3.up,
-                new[] { (rIn, -w), (rIn, -hw), (0.06f, -hw), (0.06f, -hw - 0.02f), (0f, -hw - 0.02f) },
-                new[] { (-1f, 0f), (0f, -1f), (1f, 0f), (0f, -1f) }, Paint, 24);
-            b.Revolve(o, Vector3.right, Vector3.up,
-                new[] { (rIn, w), (rIn, hw), (0.06f, hw), (0.06f, hw + 0.02f), (0f, hw + 0.02f) },
-                new[] { (-1f, 0f), (0f, 1f), (1f, 0f), (0f, 1f) }, Paint, 24);
-            // six lightening holes round each hub face (dark discs just proud of it; they turn with the wheel)
-            float rh = (0.06f + rIn) / 2f, hr = Mathf.Min((rIn - 0.06f) * 0.3f, 0.04f);
-            for (int k = 0; k < 6; k++)
+            (float r, float x)[] p = side < 0 ? pts : pts.Select(q => (r: q.r, x: -q.x)).Reverse().ToArray();
+            var nrm = new (float nr, float nx)[p.Length - 1];
+            for (int k = 0; k + 1 < p.Length; k++)
             {
-                float a = k * 60f * Mathf.Deg2Rad;
-                var off = new Vector3(0f, Mathf.Cos(a), Mathf.Sin(a)) * rh;
-                b.Disc(o + off + Vector3.right * (hw + 0.003f), Vector3.right, hr, Dark);
-                b.Disc(o + off - Vector3.right * (hw + 0.003f), -Vector3.right, hr, Dark);
+                float dr = p[k + 1].r - p[k].r, dx = p[k + 1].x - p[k].x, len = Mathf.Sqrt(dr * dr + dx * dx);
+                nrm[k] = (dx / len, -dr / len);
+            }
+            b.Revolve(o, Vector3.right, Vector3.up, p, nrm, zone, seg);
+        }
+
+        // a wheel on an axle along local x, after the MiG's KT-150 main and 9.12 nose wheels: a round-shouldered tyre with two tread
+        // grooves, a grey rim flange, and a green dished hub with radial ribs, a raised boss with its bolt ring and a chrome cap
+        static void Wheel(Builder b, float cx, float rOut, float rIn, float width, int ribs)
+        {
+            float w = width / 2f, rc = Mathf.Min(w * 0.6f, (rOut - rIn) * 0.5f), cr = rOut - rc, bead = w - 0.012f;
+            var o = new Vector3(cx, 0f, 0f);
+            var tyre = new List<(float r, float x)> { (rIn, -bead), (rIn + (cr - rIn) * 0.5f, -w) };
+            for (int k = 0; k <= 4; k++) { float a = k * 22.5f * Mathf.Deg2Rad; tyre.Add((cr + rc * Mathf.Sin(a), -(w - rc) - rc * Mathf.Cos(a))); }
+            float g = (w - rc) * 0.45f, gw = Mathf.Min(0.008f, g * 0.5f);
+            foreach (var gx in new[] { -g, g })
+                tyre.AddRange(new[] { (rOut, gx - gw), (rOut - 0.006f, gx - gw * 0.5f), (rOut - 0.006f, gx + gw * 0.5f), (rOut, gx + gw) });
+            for (int k = 4; k >= 0; k--) { float a = k * 22.5f * Mathf.Deg2Rad; tyre.Add((cr + rc * Mathf.Sin(a), (w - rc) + rc * Mathf.Cos(a))); }
+            tyre.AddRange(new[] { (rIn + (cr - rIn) * 0.5f, w), (rIn, bead) });
+            Lathe(b, o, -1f, tyre.ToArray(), Dark, 36);
+
+            float face = w - 0.03f, rBoss = rIn * 0.36f, rCap = rIn * 0.2f, boss = 0.022f;
+            foreach (float sd in new[] { -1f, 1f })
+            {
+                Lathe(b, o, sd, new[] { (0f, -face - boss - 0.012f), (rCap, -face - boss - 0.012f), (rCap, -face - boss) }, Chrome, 16);
+                Lathe(b, o, sd, new[] { (rCap, -face - boss), (rBoss, -face - boss), (rBoss + 0.006f, -face) }, Green, 24);
+                Lathe(b, o, sd, new[] { (rBoss + 0.006f, -face), (rIn * 0.9f, -face + 0.004f) }, Green, 28);   // the dish
+                Lathe(b, o, sd, new[] { (rIn * 0.9f, -face + 0.004f), (rIn * 0.97f, -bead - 0.004f), (rIn, -bead) }, Paint, 28);   // rim flange
+                for (int k = 0; k < ribs; k++)
+                {
+                    float a = (k + 0.5f) * 360f / ribs * Mathf.Deg2Rad;
+                    var dir = new Vector3(0f, Mathf.Cos(a), Mathf.Sin(a));
+                    var x = Vector3.right * sd * (face + 0.006f);
+                    b.Bar(o + x + dir * rBoss, o + x + dir * rIn * 0.88f, 0.012f, 0.016f, Green);
+                }
+                int bolts = ribs + 2;
+                for (int k = 0; k < bolts; k++)
+                {
+                    float a = k * 360f / bolts * Mathf.Deg2Rad;
+                    var at = o + new Vector3(0f, Mathf.Cos(a), Mathf.Sin(a)) * ((rCap + rBoss) * 0.5f);
+                    b.Cylinder(at + Vector3.right * sd * (face + boss - 0.002f), at + Vector3.right * sd * (face + boss + 0.008f), 0.007f, Chrome, 6);
+                }
             }
         }
 
@@ -177,13 +210,13 @@ namespace MiG29Tools
 
             // nose wheels: two 0.14 m wheels either side of the fork, and the axle through them
             var nw = new Builder();
-            Wheel(nw, -0.105f, rNose, rNose * 0.6f, 0.14f);
-            Wheel(nw, 0.105f, rNose, rNose * 0.6f, 0.14f);
-            nw.Cylinder(new Vector3(-0.2f, 0f, 0f), new Vector3(0.2f, 0f, 0f), 0.025f, Chrome);
+            Wheel(nw, -WheelSpread, rNose, rNose * 0.6f, 0.14f, 6);
+            Wheel(nw, WheelSpread, rNose, rNose * 0.6f, 0.14f, 6);
+            nw.Cylinder(new Vector3(-WheelSpread - 0.1f, 0f, 0f), new Vector3(WheelSpread + 0.1f, 0f, 0f), 0.028f, Chrome);
             Put(wheelF, nw.Mesh("MiG29_nose_wheels"));
 
             var s = new Builder();
-            // unsprung: piston up into the barrel, trailing fork to the axle, mudguard over the back of the wheels
+            // unsprung: piston up into the barrel, trailing fork to the axle
             if (unsprung != null && wheelF != null && sprung != null)
             {
                 var axle = unsprung.InverseTransformPoint(wheelF.position);
@@ -192,41 +225,35 @@ namespace MiG29Tools
                 // torque links: a scissor across the front of the piston, the lower arm hinged on the piston, the upper on the barrel.
                 // The oleo stands at a different extension in game than in the prefab, so each arm is its own object along its +z
                 // and the plugin's TorqueLinkDriver swings both every frame to meet at the apex pin.
-                u.Box(new Vector3(0f, 0.05f, 0.05f), new Vector3(0.035f, 0.025f, 0.02f), Paint);                    // lug on the piston
-                s.Box(new Vector3(0f, 0.02f, 0.08f), new Vector3(0.03f, 0.02f, 0.02f), Paint);                     // lug on the barrel
-                var la = new Builder();
-                la.Bar(Vector3.zero, new Vector3(0f, 0f, LinkArm), 0.05f, 0.03f, Paint);
-                la.Cylinder(new Vector3(-0.035f, 0f, LinkArm), new Vector3(0.035f, 0f, LinkArm), 0.016f, Chrome);  // apex pin
-                Link(unsprung, "MiG29_nose_link_lower", new Vector3(0f, 0.05f, 0.05f), la.Mesh("MiG29_nose_link_lower"));
-                var ua = new Builder();
-                ua.Bar(Vector3.zero, new Vector3(0f, 0f, LinkArm), 0.04f, 0.03f, Paint);
-                Link(sprung, "MiG29_nose_link_upper", new Vector3(0f, 0.02f, 0.08f), ua.Mesh("MiG29_nose_link_upper"));
-                Debug.Log($"[MiG29] nose leg: barrel bottom at piston y {barrelBottom:F2}, axle at {axle}, torque link arms {LinkArm} m");
-                u.Cylinder(Vector3.zero, new Vector3(0f, barrelBottom + 0.28f, 0f), 0.042f, Chrome);
-                u.Box(new Vector3(0f, axle.y * 0.5f, axle.z * 0.5f), new Vector3(0.032f, 0.045f, Mathf.Abs(axle.z) * 0.5f + 0.04f), Paint);
-                u.Cylinder(axle + new Vector3(-0.04f, 0f, 0f), axle + new Vector3(0.04f, 0f, 0f), 0.04f, Paint);
-                // mudguard: a thin shell round the axle from the top of the wheels to behind and below them
-                // (angles from straight up towards -z, the rear: Revolve sweeps up -> +z for positive angles)
-                u.Revolve(axle, Vector3.right, Vector3.up,
-                    new[] { (rNose + 0.045f, -0.23f), (rNose + 0.045f, 0.23f) }, new[] { (1f, 0f) }, Paint, 12, -125f, -10f);
-                u.Revolve(axle, Vector3.right, Vector3.up,
-                    new[] { (rNose + 0.038f, -0.23f), (rNose + 0.038f, 0.23f) }, new[] { (-1f, 0f) }, Paint, 12, -125f, -10f);
-                u.Box(axle + new Vector3(0f, rNose * 0.75f, -0.06f), new Vector3(0.028f, rNose * 0.3f, 0.025f), Paint);   // the guard's stay, between the wheels
-                // the guard's side brackets: a V of flat bars from each axle end out to its edges, and a rolled lip along both edges
-                Vector3 OnGuard(float x, float deg, float r) { float a = deg * Mathf.Deg2Rad; return axle + new Vector3(x, Mathf.Cos(a) * r, Mathf.Sin(a) * r); }
-                for (int sd = -1; sd <= 1; sd += 2)
+                // Each arm is a forked I-section: two cheeks round the pin at its hinge, a deep web, a boss at the apex. The upper arm
+                // carries its own hinge lug, so the lug turns with it when the steered lower part takes the scissor round.
+                u.Box(new Vector3(0f, 0.06f, 0.07f), new Vector3(0.022f, 0.035f, 0.03f), Paint);                    // lug on the piston
+                Mesh Arm(string name, float width, bool apexPin, bool ownLug)
                 {
-                    u.Cylinder(axle + new Vector3(sd * 0.2f, 0f, 0f), axle + new Vector3(sd * 0.225f, 0f, 0f), 0.032f, Paint);   // axle-end boss
-                    u.Bar(axle + new Vector3(sd * 0.215f, 0f, 0f), OnGuard(sd * 0.215f, -30f, rNose + 0.04f), 0.02f, 0.016f, Paint);
-                    u.Bar(axle + new Vector3(sd * 0.215f, 0f, 0f), OnGuard(sd * 0.215f, -95f, rNose + 0.04f), 0.02f, 0.016f, Paint);
-                    var lip = new Vector3[13];
-                    for (int k = 0; k <= 12; k++) lip[k] = OnGuard(sd * 0.23f, Mathf.Lerp(-125f, -10f, k / 12f), rNose + 0.0415f);
-                    u.Tube(Paint, 0.007f, lip);
+                    var a = new Builder();
+                    a.Bar(new Vector3(0f, 0f, 0.03f), new Vector3(0f, 0f, LinkArm - 0.03f), width, 0.05f, Paint);   // web
+                    for (int sd = -1; sd <= 1; sd += 2)
+                        a.Box(new Vector3(sd * (width / 2f - 0.006f), 0f, 0.012f), new Vector3(0.008f, 0.035f, 0.035f), Paint);   // hinge cheeks
+                    a.Cylinder(new Vector3(-width / 2f - 0.008f, 0f, 0f), new Vector3(width / 2f + 0.008f, 0f, 0f), 0.02f, Chrome);   // hinge pin
+                    a.Cylinder(new Vector3(-width * 0.4f, 0f, LinkArm), new Vector3(width * 0.4f, 0f, LinkArm), ApexBoss, Paint);   // apex boss
+                    if (apexPin) a.Cylinder(new Vector3(-width / 2f - 0.012f, 0f, LinkArm), new Vector3(width / 2f + 0.012f, 0f, LinkArm), 0.018f, Chrome);
+                    if (ownLug) a.Box(new Vector3(0f, 0f, -0.035f), new Vector3(width / 2f - 0.016f, 0.03f, 0.035f), Paint);   // lug back to the barrel
+                    return a.Mesh(name);
                 }
+                Link(unsprung, "MiG29_nose_link_lower", new Vector3(0f, 0.06f, 0.095f), Arm("MiG29_nose_link_lower", 0.085f, true, false));
+                Link(sprung, "MiG29_nose_link_upper", new Vector3(0f, 0.03f, 0.125f), Arm("MiG29_nose_link_upper", 0.06f, false, true));
+                JoinLinks(sprung.Find("MiG29_nose_link_upper"), unsprung.Find("MiG29_nose_link_lower"));
+                Debug.Log($"[MiG29] nose leg: barrel bottom at piston y {barrelBottom:F2}, axle at {axle}, torque link arms {LinkArm} m");
+                u.Cylinder(Vector3.zero, new Vector3(0f, barrelBottom + 0.28f, 0f), 0.055f, Chrome);
+                u.Cylinder(new Vector3(0f, -0.03f, 0f), new Vector3(0f, 0.09f, 0f), 0.066f, Paint);                   // piston foot
+                u.Box(new Vector3(0f, axle.y * 0.5f, axle.z * 0.5f), new Vector3(0.045f, 0.06f, Mathf.Abs(axle.z) * 0.5f + 0.05f), Paint);
+                u.Cylinder(axle + new Vector3(-0.05f, 0f, 0f), axle + new Vector3(0.05f, 0f, 0f), 0.05f, Paint);
+                for (int sd = -1; sd <= 1; sd += 2)   // axle nuts outside the wheels
+                    u.Cylinder(axle + new Vector3(sd * (WheelSpread + 0.075f), 0f, 0f), axle + new Vector3(sd * (WheelSpread + 0.1f), 0f, 0f), 0.034f, Paint, 6);
                 // brake line down the back of the fork to the axle, from a fitting on the piston foot
-                u.Box(new Vector3(0f, 0.06f, -0.05f), new Vector3(0.022f, 0.02f, 0.014f), Paint);
-                float forkTop = axle.y * 0.5f + 0.045f;
-                u.Tube(Dark, 0.009f, new Vector3(0f, 0.06f, -0.064f), new Vector3(0f, forkTop + 0.01f, axle.z * 0.55f), axle + new Vector3(0f, 0.05f, 0.02f));
+                u.Box(new Vector3(0f, 0.07f, -0.07f), new Vector3(0.022f, 0.02f, 0.014f), Paint);
+                float forkTop = axle.y * 0.5f + 0.06f;
+                u.Tube(Dark, 0.009f, new Vector3(0f, 0.07f, -0.084f), new Vector3(0f, forkTop + 0.01f, axle.z * 0.6f), axle + new Vector3(0f, 0.06f, 0.02f));
                 Put(unsprung, u.Mesh("MiG29_nose_unsprung"));
             }
 
@@ -235,32 +262,32 @@ namespace MiG29Tools
             {
                 var hinge = Find("gearHinge_F");
                 float top = hinge != null ? sprung.InverseTransformPoint(hinge.position).y : 1.3f;
-                s.Cylinder(new Vector3(0f, -0.02f, 0f), new Vector3(0f, top, 0f), 0.068f, Paint);
-                s.Cylinder(new Vector3(0f, -0.04f, 0f), new Vector3(0f, 0.05f, 0f), 0.078f, Paint);   // gland collar
-                s.Cylinder(new Vector3(-0.16f, top, 0f), new Vector3(0.16f, top, 0f), 0.045f, Paint);
+                s.Cylinder(new Vector3(0f, -0.02f, 0f), new Vector3(0f, top, 0f), BarrelRadius, Paint);
+                s.Cylinder(new Vector3(0f, -0.04f, 0f), new Vector3(0f, 0.06f, 0f), 0.097f, Paint);   // gland collar
+                s.Cylinder(new Vector3(-0.18f, top, 0f), new Vector3(0.18f, top, 0f), 0.055f, Paint);
                 // steering unit below the trunnion: a collar round the barrel and its two actuators either side, pointing aft
-                s.Cylinder(new Vector3(0f, top - 0.30f, 0f), new Vector3(0f, top - 0.18f, 0f), 0.092f, Paint);
+                s.Cylinder(new Vector3(0f, top - 0.30f, 0f), new Vector3(0f, top - 0.18f, 0f), 0.112f, Paint);
                 for (int sd = -1; sd <= 1; sd += 2)
                 {
-                    s.Cylinder(new Vector3(sd * 0.105f, top - 0.24f, 0.03f), new Vector3(sd * 0.105f, top - 0.24f, -0.17f), 0.024f, Paint);
-                    s.Cylinder(new Vector3(sd * 0.105f, top - 0.24f, -0.17f), new Vector3(sd * 0.105f, top - 0.24f, -0.25f), 0.012f, Chrome);
+                    s.Cylinder(new Vector3(sd * 0.13f, top - 0.24f, 0.03f), new Vector3(sd * 0.13f, top - 0.24f, -0.17f), 0.03f, Paint);
+                    s.Cylinder(new Vector3(sd * 0.13f, top - 0.24f, -0.17f), new Vector3(sd * 0.13f, top - 0.24f, -0.25f), 0.015f, Chrome);
                 }
                 // wiper seal under the gland, two bands round the barrel, the charging valve and the uplock roller under the hinge
-                s.Cylinder(new Vector3(0f, -0.055f, 0f), new Vector3(0f, -0.04f, 0f), 0.05f, Dark);
-                s.Cylinder(new Vector3(0f, 0.30f, 0f), new Vector3(0f, 0.33f, 0f), 0.074f, Paint);
-                s.Cylinder(new Vector3(0f, top - 0.45f, 0f), new Vector3(0f, top - 0.42f, 0f), 0.074f, Paint);
-                s.Cylinder(new Vector3(0.06f, top - 0.38f, 0f), new Vector3(0.1f, top - 0.38f, 0f), 0.013f, Chrome);
-                s.Cylinder(new Vector3(0.1f, top - 0.38f, 0f), new Vector3(0.112f, top - 0.38f, 0f), 0.018f, Paint);
-                s.Box(new Vector3(0f, top - 0.10f, -0.085f), new Vector3(0.02f, 0.025f, 0.03f), Paint);
-                s.Cylinder(new Vector3(-0.04f, top - 0.10f, -0.115f), new Vector3(0.04f, top - 0.10f, -0.115f), 0.022f, Chrome);
+                s.Cylinder(new Vector3(0f, -0.055f, 0f), new Vector3(0f, -0.04f, 0f), 0.062f, Dark);
+                s.Cylinder(new Vector3(0f, 0.30f, 0f), new Vector3(0f, 0.33f, 0f), 0.092f, Paint);
+                s.Cylinder(new Vector3(0f, top - 0.45f, 0f), new Vector3(0f, top - 0.42f, 0f), 0.092f, Paint);
+                s.Cylinder(new Vector3(0.08f, top - 0.38f, 0f), new Vector3(0.12f, top - 0.38f, 0f), 0.014f, Chrome);
+                s.Cylinder(new Vector3(0.12f, top - 0.38f, 0f), new Vector3(0.132f, top - 0.38f, 0f), 0.02f, Paint);
+                s.Box(new Vector3(0f, top - 0.10f, -0.10f), new Vector3(0.024f, 0.028f, 0.03f), Paint);
+                s.Cylinder(new Vector3(-0.045f, top - 0.10f, -0.13f), new Vector3(0.045f, top - 0.10f, -0.13f), 0.024f, Chrome);
                 // two hydraulic lines (steering and brakes) down the back of the barrel, clamped, ending in fittings on the gland
                 for (int sd = -1; sd <= 1; sd += 2)
                 {
-                    Vector3 H(float y) => new Vector3(sd * 0.057f, y, -0.057f);
+                    Vector3 H(float y) => new Vector3(sd * 0.068f, y, -0.068f);
                     s.Tube(Dark, 0.011f, H(top - 0.04f), H(top - 0.18f));
-                    s.Tube(Dark, 0.011f, H(top - 0.30f), H(0.07f));
+                    s.Tube(Dark, 0.011f, H(top - 0.30f), H(0.08f));
                     for (float y = 0.20f; y < top - 0.35f; y += 0.25f) s.Box(H(y), new Vector3(0.017f, 0.008f, 0.017f), Paint);
-                    s.Box(H(0.065f), new Vector3(0.018f, 0.016f, 0.018f), Chrome);
+                    s.Box(H(0.075f), new Vector3(0.018f, 0.016f, 0.018f), Chrome);
                 }
                 Debug.Log($"[MiG29] nose leg: hinge at sprung y {top:F2}, steering collar y {top - 0.30f:F2}..{top - 0.18f:F2}, lines, bands, valve and uplock roller");
                 Put(sprung, s.Mesh("MiG29_nose_sprung"));
@@ -270,7 +297,7 @@ namespace MiG29Tools
             var wheelL = Find("wheel_L");
             float cxMain = MeshCenterX(wheelL, -0.269f);
             var mw = new Builder();
-            Wheel(mw, cxMain, rMain, rMain * 0.62f, 0.29f);
+            Wheel(mw, cxMain, rMain, rMain * 0.62f, 0.29f, 8);
             var mainMesh = mw.Mesh("MiG29_main_wheel");
             Put(wheelL, mainMesh);
             Put(Find("wheel_R"), mainMesh);
@@ -306,6 +333,25 @@ namespace MiG29Tools
             go.AddComponent<MeshFilter>().sharedMesh = (Mesh)save(c.Mesh("MiG29_nose_lamp"), $"{ModDir}/meshes/MiG29_nose_lamp.asset");
             go.AddComponent<MeshRenderer>().sharedMaterials = new[] { gearMat };
             Debug.Log($"[MiG29] landing light: round lens r {rLens} m in a {depth} m can, bracket {back.magnitude:F2} m to the strut");
+        }
+
+        // Pose both torque-link arms to meet at the apex pin, in front of the leg, at the prefab's extension (the plugin's
+        // TorqueLinkDriver does the same each frame in game, where the oleo stands longer and the nose wheel steers)
+        static void JoinLinks(Transform upper, Transform lower)
+        {
+            if (upper == null || lower == null) return;
+            Vector3 pu = upper.position, pl = lower.position, axis = lower.parent.right;
+            float len = (pl - pu).magnitude, arm = LinkArm * upper.lossyScale.z;
+            if (len < 1e-4f || len >= 2f * arm) return;
+            var dir = (pl - pu) / len;
+            var ahead = Vector3.ProjectOnPlane(Vector3.ProjectOnPlane(lower.parent.forward, dir), axis).normalized;
+            var apex = pu + dir * (len / 2f) + ahead * Mathf.Sqrt(arm * arm - len * len / 4f);
+            foreach (var t in new[] { upper, lower })
+            {
+                var f = Vector3.ProjectOnPlane(apex - t.position, axis).normalized;
+                t.rotation = Quaternion.LookRotation(f, Vector3.Cross(f, axis));
+            }
+            Debug.Log($"[MiG29] torque links joined at the prefab's extension: hinges {len:F2} m apart, apex {(apex - pu).magnitude:F2} m from the upper hinge");
         }
 
         // the gear material once MiG29MainGear has made it (Build runs before the nose gear's stow search, which fits the real meshes)

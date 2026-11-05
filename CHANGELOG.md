@@ -1,11 +1,15 @@
 # Changelog
 
 ## 0.9.4 (unreleased)
-- **MiG-29 nose gear and wheels.** The last KR-67 parts you could see are gone: the nose leg is a slim oleo strut with a
-  trailing fork, torque links and a steering unit, the 9.12's twin nose wheels and its mudguard behind them, and a round
-  landing light in its housing on the front of the leg. Up close the leg shows its hydraulic and brake lines, clamped down the
-  back of the strut, a wiper seal, the charging valve and the uplock roller, and the mudguard sits on side brackets. The main wheels are new tyres and hubs with lightening holes, at the
-  same size. The ride height, suspension and retraction are unchanged.
+- **MiG-29 nose gear and wheels.** The last KR-67 parts you could see are gone: the nose leg is an oleo strut sized like
+  the real one, with a trailing fork, heavy torque links and a steering unit, the twin nose wheels, and a round landing light
+  in its housing on the front of the leg. The torque links stay joined as the strut moves and while the nose wheel steers. Up
+  close the leg shows its hydraulic and brake lines, clamped down the back of the strut, a wiper seal, the charging valve and
+  the uplock roller. Every wheel looks like the real ones: round-shouldered tyres with tread grooves and the green dished hubs
+  of Russian service wheels, with ribs, a bolt ring and a chrome cap. No mudguard on the nose wheels, as on the SMT in service.
+  The wheel sizes, ride height, suspension and retraction are unchanged.
+- **No structure under the pylons.** With an empty pylon hidden, a piece of the wing's inner structure showed below the skin
+  at the outer pylon station. Inner structure that ends up outside the skin is now left out everywhere.
 - Under the hood: the KR-67's leftover objects that did nothing (empty shells and unused pivots) are removed.
 - **The MiG-29's own radar, the N019.** It used the KR-67's radar unchanged; it now sees 45 km on the game's scale (the SMT's
   Zhuk-ME 70), scans +-50 degrees instead of +-30, loses low targets against the ground sooner and is easier to jam, as
