@@ -245,7 +245,7 @@ namespace MiG29Tools
         // metre), one vertex colour (the stock structure shader tints by it). World space in and out, like the bucket.
         public const float InnerMax = 0.10f;
         const float FlipMax = 0.25f, RimMax = 0.02f, ThinWall = 0.015f;
-        public static (List<Vector3> v, List<Vector3> n, List<Vector2> uv, List<Color32> c, List<int> t) Interior(Bucket b, float tilesPerMetre, Color32 tint, Func<Vector3, Vector3, float> depth, Func<Vector3, bool> keepOut = null)
+        public static (List<Vector3> v, List<Vector3> n, List<Vector2> uv, List<Color32> c, List<int> t) Interior(Bucket b, float tilesPerMetre, Color32 tint, Func<Vector3, Vector3, float> depth, Func<Vector3, bool> keepOut = null, Func<Vector3, bool> outside = null)
         {
             // one inset per position (the bucket splits vertices at UV seams; separate insets would crack the hull there)
             var key2 = new Dictionary<(int, int, int), int>(); var pid = new int[b.v.Count]; var nsum = new List<Vector3>(); var ppos = new List<Vector3>();
@@ -300,6 +300,9 @@ namespace MiG29Tools
                 if (open[p]) continue;
                 if (lim[p] < amt[p]) inner[p] = ppos[p] - inN[p] * lim[p];
                 if (keepOut != null && keepOut(inner[p])) open[p] = true;                                   // e.g. inside the cockpit
+                // Last check: an inset that ended up outside the skin is dropped with its triangles. Round the pylon slots on the
+                // outer wing the inset ran 12 cm out under the wing (user screenshot, 4 Nov): with the empty pylon hidden, it showed.
+                else if (outside != null && outside(inner[p])) open[p] = true;
             }
             var v = new List<Vector3>(); var n = new List<Vector3>(); var uv = new List<Vector2>(); var col = new List<Color32>(); var t = new List<int>();
             for (int i = 0; i < b.t.Count; i += 3)

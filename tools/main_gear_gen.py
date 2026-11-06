@@ -127,7 +127,7 @@ for p in parts:
     V = np.array(p["vertices"]).reshape(-1, 3)
     print(f"[gear] {p['name']}: {len(p['triangles']) // 3} tris, x {V[:, 0].min():.2f}..{V[:, 0].max():.2f}, y {V[:, 1].min():.2f}..{V[:, 1].max():.2f}, z {V[:, 2].min():.2f}..{V[:, 2].max():.2f}")
 
-# atlas: light grey gear paint | chrome | dark rubber
+# atlas: light grey gear paint | hub green | chrome | dark rubber
 N = 256
 img = Image.new("RGB", (N, N), (184, 188, 184))
 d = ImageDraw.Draw(img)
@@ -135,6 +135,8 @@ d.rectangle([int(CHROME[0] * N) - 3, 0, int(CHROME[1] * N) + 3, N], fill=(214, 2
 for i in range(int(CHROME[0] * N), int(CHROME[1] * N), 3):
     d.line([i, 0, i, N], fill=(196 + (i * 37) % 30, 200 + (i * 37) % 30, 206 + (i * 37) % 30))
 d.rectangle([int(DARK[0] * N) - 3, 0, N, N], fill=(38, 38, 36))
+# a narrow strip of the green wheel-hub paint in the gap between paint and chrome (MiG29NoseGear's Green zone, u 0.492..0.496)
+d.rectangle([124, 0, 128, N], fill=(78, 102, 66))
 rng = np.random.default_rng(7)
 a = np.asarray(img, float) + rng.normal(0, 3, (N, N, 1))
 Image.fromarray(np.clip(a, 0, 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(0.5)).save(os.path.join(SRC, "gear_atlas.png"))

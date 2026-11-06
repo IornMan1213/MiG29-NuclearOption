@@ -471,7 +471,7 @@ namespace MiG29Tools
             // for strut vertices at lamp height found none and left the lamp on the axis, inside the barrel)
             var up = sprung.up;
             var axisPt = sprung.position + up * ((y + ModelOffset.y - sprung.position.y) / up.y) - ModelOffset;
-            float front = axisPt.z + 0.068f * sprung.lossyScale.x;   // the barrel's radius (MiG29NoseGear)
+            float front = axisPt.z + MiG29NoseGear.BarrelRadius * sprung.lossyScale.x;
             var centre = lamp.TransformPoint(mf.sharedMesh.bounds.center);
             var target = new Vector3(axisPt.x, y, front + 0.025f) + ModelOffset;
             lamp.position += target - centre;
@@ -925,6 +925,13 @@ namespace MiG29Tools
             // screenshot, SMT 0.2.0); the game hides only the cockpit part's skin there. The cockpit tub closes that space anyway.
             bool InCockpit(Vector3 p) { var q = p - ModelOffset; return Mathf.Abs(q.x) < 0.46f && q.y > 0.30f && q.y < 1.45f && q.z > 5.62f && q.z < 7.95f; }
             float Depth(Vector3 p, Vector3 dir) => Physics.Raycast(p + dir * 0.003f, dir, out var hit, 3f, 1 << 31, QueryTriggerInteraction.Ignore) ? hit.distance + 0.003f : -1f;   // -1: no far side
+            // outside the airframe: skin just above the point and nothing below it, or the reverse
+            bool Outside(Vector3 p)
+            {
+                bool Ray(Vector3 dir, float max) => Physics.Raycast(p, dir, out _, max, 1 << 31, QueryTriggerInteraction.Ignore);   // the hit-info form, as Depth (back faces)
+                return Ray(Vector3.up, 0.3f) && !Ray(Vector3.down, 5f) || Ray(Vector3.down, 0.3f) && !Ray(Vector3.up, 5f);
+            }
+            int outsideDropped = 0;
 
             foreach (var kv in buckets)
             {
@@ -942,12 +949,14 @@ namespace MiG29Tools
                 // the inside behind the skin (stock structure; honeycomb in the radome, at the stock tints and texel densities); not
                 // a damage renderer: the damage shader would punch the airframe's burn mask through it too
                 bool radome = part.name == "nose";
-                var (iv, inr, iuv, icol, it) = MiG29Cut.Interior(b, radome ? 0.61f : 0.46f, radome ? new Color32(0x81, 0x56, 0x43, 255) : new Color32(0x57, 0x57, 0x57, 255), Depth, InCockpit);
+                var (iv, inr, iuv, icol, it) = MiG29Cut.Interior(b, radome ? 0.61f : 0.46f, radome ? new Color32(0x81, 0x56, 0x43, 255) : new Color32(0x57, 0x57, 0x57, 255), Depth, InCockpit,
+                    p => { bool o = Outside(p); if (o) outsideDropped++; return o; });
                 MiG29Cut.Dump("inner_" + part.name, iv, it);
                 AddMeshObject("MiG29_inner_" + part.name, tr, PartMesh("MiG29_inner_" + part.name, tr, iv, inr, iuv, icol, it), radome ? honeyMat : structMat);
                 innerTris += it.Count / 3;
                 Debug.Log($"[MiG29] part {part.name}: {b.t.Count / 3} tris");
             }
+            Debug.Log($"[MiG29] inner hull: {outsideDropped} inset points outside the skin dropped");
             Physics.queriesHitBackfaces = backfaces; UnityEngine.Object.DestroyImmediate(rayGo);
             Debug.Log($"[MiG29] interior: {innerTris} triangles (inner hull, radome honeycomb, engines)");
 

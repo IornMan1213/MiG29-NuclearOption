@@ -286,6 +286,15 @@ namespace MiG29Tools
             Shot("front", c + Vector3.forward * 30 + Vector3.down * 2, c, Vector3.up);
             Shot("quarter", c + new Vector3(-22, 9, 24), c, Vector3.up, ortho: false);
             Shot("nosegear", new Vector3(-5, -1.6f, 6), new Vector3(0, -1.3f, 1.8f), Vector3.up, ortho: false);
+            if (!gearUp)
+            {
+                // close-ups of the nose leg, front-left and rear-left (the prefab's oleo extension; the torque links meet only in game)
+                Shot("nose_front", new Vector3(-1.7f, -1.4f, 3.6f), new Vector3(0, -1.45f, 2.2f), Vector3.up, ortho: false);
+                Shot("nose_rear", new Vector3(-1.0f, -2.1f, 0.8f), new Vector3(0, -1.35f, 2.1f), Vector3.up, ortho: false);
+                // up into the nose well from behind and from straight below (its back wall and the opening's rear edge)
+                Shot("nose_well", new Vector3(0f, -2.4f, 0.2f), new Vector3(0f, -0.7f, 2.4f), Vector3.up, ortho: false);
+                Shot("nose_well_up", new Vector3(0.05f, -3.2f, 1.6f), new Vector3(0f, -0.5f, 1.65f), Vector3.forward, ortho: false);
+            }
             if (armed)
             {
                 Shot("wing_front", new Vector3(-3.2f, -0.9f, 6f), new Vector3(-3.2f, -0.9f, -2f), Vector3.up, ortho: true, size: 1.4f);
