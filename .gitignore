@@ -16,6 +16,7 @@
 !/assets/
 !/.github/
 !/nomnom/
+!/liveries/
 !/cockpit/
 __pycache__/
 *.pyc
