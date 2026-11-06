@@ -39,11 +39,18 @@ See [mod/README.md](mod/README.md) for the full feature list and known limitatio
 
 ![The four liveries](docs/img/liveries.jpg)
 
+## Make your own livery
+
+Paint a livery with Shockfront's official livery kit and share it on the Steam Workshop like one for a stock jet:
+[liveries/README.md](liveries/README.md) has the steps, the MiG builder for the kit and the texture templates (one set for the
+MiG-29 Fulcrum and the MiG-29SMT).
+
 ## Repository layout
 | Path | What it is |
 |---|---|
 | `unity/MiG29Tools/` | Unity editor scripts that build the mod inside the [Blueprinter Editor](https://github.com/nikkorap) project: they clone the KR-67 Ifrit, swap in the MiG model, split it into the game's damage parts, and set up the flight model, weapons, canopy, gear doors, displays, liveries and loading screens |
 | `unity/MiG29Instruments/` | The BepInEx plugin that drives the cockpit instruments from the live aircraft (`dotnet build`, against the installed game; `MiG29Tools/MiG29InstrumentMath.cs` is shared with the editor preview) |
+| `liveries/` | Making liveries with Shockfront's official kit: the guide, the MiG builder for the kit (`MiG29LiveryBuilder.cs`) and the texture templates (`tools/livery_template.py`) |
 | `tools/` | The headless build (`build_mig29.ps1`), the offline flight-model simulator (`fm_sim.py` + `fm_config.json`), the procedural missile, launcher and drop-tank generator (`missile_gen.py`), and the cockpit texture generator (`cockpit_atlas.py`: gauge faces, switch panels, caution lights) |
 | `blender/` | The model export (`export_mig29.py`), the procedural cockpit (`cockpit_build.py`, fitted to the airframe), the loading-screen and showcase renders, and the measurement scripts used while fitting parts |
 | `assets/loading/` | Loading screens (model renders over game terrain) |

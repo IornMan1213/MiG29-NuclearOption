@@ -1,0 +1,10 @@
+# MiG-29: the skin and the canopy glass
+newmtl skin
+Kd 1 1 1
+Ks 0.1 0.1 0.1
+map_Kd MiG-29_basecolor.png
+
+newmtl glass
+Kd 0.35 0.55 0.6
+d 0.35
+Tr 0.65
