@@ -1,6 +1,9 @@
 # Changelog
 
 ## 0.9.4 (unreleased)
+- **A mission comes with the MiG-29: Operation Fulcrum (SEAD)**, by **@calensk.11**. Take off, destroy Boscali's four radar
+  stations, deal with the fighters they send after you, then land and taxi back to the hangars. It is in the game's
+  Missions tab while the mod is installed (`mod/missions`).
 - **Liveries with the official kit.** Players can now paint MiG liveries with Shockfront's own livery kit and upload them to
   the Steam Workshop from the game, like liveries for the stock jets: `liveries/` has the guide, a MiG builder for the kit and
   the texture templates. The plugin gives the jet the Workshop tag the game's upload asks for (it refused the MiG before).

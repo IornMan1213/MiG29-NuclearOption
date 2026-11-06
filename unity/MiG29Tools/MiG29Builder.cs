@@ -187,6 +187,7 @@ namespace MiG29Tools
             PrefabUtility.UnloadPrefabContents(prefabRoot);
 
             BuildHangarOp();
+            BuildMissionOp();
             MiG29Polish.BuildLoadingScreens(); MiG29Polish.BuildHints(); MiG29Polish.BuildAryxWeapons(ModDir, new[] { (JsonKey, false) });
             ModInfo(DisplayName, Version);
             AssetDatabase.SaveAssets();
@@ -1181,6 +1182,33 @@ namespace MiG29Tools
                 new Blueprinter.OpAddAircraftToHangars.HangarTarget { hangarUnitJsonKey = "FleetCarrier1", hangarNames = new List<string> { "hangar_R1", "hangar_R2", "hangar_R3" } },
             };
             EditorUtility.SetDirty(op);
+        }
+
+        // The missions that ship with the mod (<repo>/mod/missions, copied to <source>/missions by build_mig29.ps1): each a TextAsset
+        // in the mod, listed in the game's Missions tab by Blueprinter's OpAddMissions. "Operation Fulcrum (SEAD)" is by @calensk.11.
+        static void BuildMissionOp()
+        {
+            var dir = ModDir + "/missions";
+            var srcDir = Path.Combine(SourceDir, "missions");
+            var files = Directory.Exists(srcDir) ? Directory.GetFiles(srcDir, "*.json").OrderBy(f => f).ToArray() : new string[0];
+            AssetDatabase.DeleteAsset(dir);
+            if (files.Length == 0) return;
+            AssetDatabase.CreateFolder(ModDir, "missions");
+            var missions = new List<TextAsset>();
+            foreach (var f in files)
+            {
+                var dst = $"{dir}/{Path.GetFileName(f)}";
+                File.Copy(f, dst, true);
+                AssetDatabase.ImportAsset(dst, ImportAssetOptions.ForceUpdate);
+                var asset = AssetDatabase.LoadAssetAtPath<TextAsset>(dst);
+                if (asset == null) throw new Exception("[MiG29] mission did not import: " + dst);
+                missions.Add(asset);
+            }
+            var op = ScriptableObject.CreateInstance<Blueprinter.Editor.Ops.OpAddMissions>();
+            op.Missions = missions.ToArray();
+            op.MissionGroups = new[] { Blueprinter.Editor.Ops.MissionGroup.Missions };
+            AssetDatabase.CreateAsset(op, dir + "/OpAddMissions.asset");
+            Debug.Log($"[MiG29] {missions.Count} mission(s): {string.Join(", ", missions.Select(m => m.name))}");
         }
 
         static void ModInfo(string displayName, string version) => Blueprinter.ModInfo.Save(ModName, displayName, version);

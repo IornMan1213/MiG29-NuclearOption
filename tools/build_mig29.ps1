@@ -29,6 +29,10 @@ Copy-Item (Join-Path (Split-Path $PSScriptRoot) "unity/MiG29Tools/*.cs") $dst -F
 
 # 0b. Generated sources: missile/launcher models, the flight-model export and the livery textures.
 $src = "$Project/MiG29Source"
+# missions that ship with the mod (mod/missions): the builder adds them with Blueprinter's OpAddMissions
+Remove-Item "$src/missions" -Recurse -Force -ErrorAction SilentlyContinue
+$missions = Join-Path (Split-Path $PSScriptRoot) "mod/missions"
+if (Test-Path "$missions/*.json") { New-Item -ItemType Directory -Force "$src/missions" | Out-Null; Copy-Item "$missions/*.json" "$src/missions" -Force }
 # cockpit editor elements (decals, custom screens): <repo>/cockpit/build, written by the Cockpit Editor
 Remove-Item "$src/custom" -Recurse -Force -ErrorAction SilentlyContinue
 $customBuild = Join-Path (Split-Path $PSScriptRoot) "cockpit/build"

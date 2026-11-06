@@ -39,6 +39,12 @@ See [mod/README.md](mod/README.md) for the full feature list and known limitatio
 
 ![The four liveries](docs/img/liveries.jpg)
 
+## Mission: Operation Fulcrum (SEAD)
+
+The mod brings a mission made by **@calensk.11** on Discord: a SEAD strike in the MiG-29 against Boscali's radar stations,
+with fighters sent after you on the way. It is in the game's **Missions** tab while the mod is installed. Thank you for the
+mission! (`mod/missions` in this repository.)
+
 ## Make your own livery
 
 Paint a livery with Shockfront's official livery kit and share it on the Steam Workshop like one for a stock jet:
