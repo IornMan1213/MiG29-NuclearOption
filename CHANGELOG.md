@@ -1,6 +1,9 @@
 # Changelog
 
 ## 0.9.4 (unreleased)
+- **Liveries with the official kit.** Players can now paint MiG liveries with Shockfront's own livery kit and upload them to
+  the Steam Workshop from the game, like liveries for the stock jets: `liveries/` has the guide, a MiG builder for the kit and
+  the texture templates. The plugin gives the jet the Workshop tag the game's upload asks for (it refused the MiG before).
 - **MiG-29 nose gear and wheels.** The last KR-67 parts you could see are gone: the nose leg is an oleo strut sized like
   the real one, with a trailing fork, heavy torque links and a steering unit, the twin nose wheels, and a round landing light
   in its housing on the front of the leg. The torque links stay joined as the strut moves and while the nose wheel steers. Up

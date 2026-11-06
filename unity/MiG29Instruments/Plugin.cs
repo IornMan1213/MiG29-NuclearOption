@@ -52,6 +52,7 @@ namespace MiG29Instruments
             TryPatch(harmony, typeof(ChaffProgrammePatch), "chaff programmes");   // chaff that behaves like chaff (Chaff.cs)
             TryPatch(harmony, typeof(ChaffSarhPatch), "chaff against semi-active seekers"); TryPatch(harmony, typeof(ChaffArhPatch), "chaff against active seekers");
             TryPatch(harmony, typeof(ChaffDatalinkPatch), "chaff against datalinks"); TryPatch(harmony, typeof(ChaffTerminalPatch), "chaff seduction");
+            TryPatch(harmony, typeof(LiveryWorkshopTag), "livery uploads");   // the MiG's Workshop tag, for liveries made with Shockfront's kit (Liveries.cs)
             TryPatch(harmony, typeof(CmPodSpawn), "countermeasure pods"); TryPatch(harmony, typeof(CmPodAttach), "countermeasure pod points");   // the wingtip countermeasure pods: all their dispensers attached, their ejection points given the wing's part (Stores.cs)
             PanelLighting = Config.Bind("Cockpit", "Night panel lighting", 1f,
                 new BepInEx.Configuration.ConfigDescription("Brightness of the cockpit flood lights at night (0 = off)", new BepInEx.Configuration.AcceptableValueRange<float>(0f, 4f)));
