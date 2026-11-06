@@ -19,9 +19,12 @@ Anyone who subscribes to your livery needs the MiG mod installed to see it, like
 
 1. **Add the MiG builder to the kit.** Copy `MiG29LiveryBuilder.cs` from this folder into the kit's `Assets/Scripts/Editor`
    folder. The same file covers both jets.
-2. **Paint the texture.** Start from `templates/` (one set for both jets, they share the texture):
+2. **Paint the texture.** Start from `templates/` (one texture for both jets):
    `MiG-29_basecolor.png` is the stock grey with its panel lines, stencils and insignia, to paint over;
    `MiG-29_uv_layout.png` is the outline of every exterior panel, to keep as a guide layer on top and hide before you export.
+   To paint on the jet itself (Blender, Substance Painter, ArmorPaint, 3DCoat...), open `MiG-29.obj`: it loads the texture by
+   itself, has the game's UVs and is not mirrored, so lettering that reads right there reads right in game. Keep its UVs (no
+   auto-unwrap) and export the base colour as a PNG.
    The right-hand part of the texture is the cockpit and the inside of the jet: leave it as it is. Only the base colour goes
    into the game. Keep the texture 2048 x 2048.
 3. **Open the kit in Unity Hub** and put your texture anywhere under `Assets` (for example `Assets/Texture`). Leave its import
@@ -32,8 +35,9 @@ Anyone who subscribes to your livery needs the MiG mod installed to see it, like
    ticked.
 6. **Build.** Press Build. The livery goes to `%USERPROFILE%\AppData\LocalLow\Shockfront\NuclearOption\Skins\<Bundle Name>`.
 7. **Check it in game.** Start the game, pick the MiG and choose your livery in the livery list.
-8. **Upload.** Main Menu > Workshop > Upload > Aircraft Livery, pick your bundle, add a description and a thumbnail. The game
-   tags the item "Aircraft Livery" and with the jet's name, so players find it under that tag.
+8. **Upload.** Main Menu > Workshop > Upload, Item Type "Aircraft Livery", Next, pick your Bundle Name, Next. Add a description
+   and a preview image (1 MB at most), tick **Mod Required** (players need the MiG mod to see it) and Public, then Create New.
+   The game tags the item with the jet's name ("MiG-29 Fulcrum" or "MiG-29SMT"), so players find it under that tag.
 
 ## If something goes wrong
 
@@ -44,5 +48,8 @@ Anyone who subscribes to your livery needs the MiG mod installed to see it, like
   aircraft: rebuild it with the MiG-29 builder.
 - **Unity cannot find `ModBuilder` or `LiveryData`:** `MiG29LiveryBuilder.cs` has to sit inside the kit project, beside the kit's
   own `LiveryBuilder.cs`.
+
+The model and texture in `templates/` are a modified version of "MiG-29 - Fighter Jet - Free" by bohmerang, licensed
+CC BY-NC-SA 4.0 ([LICENSE-MODEL.md](../LICENSE-MODEL.md)): keep the credit if you share them, non-commercial only.
 
 The mod's own liveries are made another way (`blender/livery_edit.py` and the `tools/livery_*.py` scripts): both routes stay.
