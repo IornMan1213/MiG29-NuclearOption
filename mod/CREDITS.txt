@@ -14,6 +14,9 @@ Requires BepInEx 5 and Blueprinter 2.1.1 or newer.
 Cockpit, instrument faces, missiles and launchers
   Modelled and drawn from scratch for this mod.
 
+Mission "Operation Fulcrum (SEAD)"
+  Made by @calensk.11 on Discord. It is in the game's Missions tab while the mod is installed. Thank you for the mission!
+
 Preview picture (DOORMAN, README)
   The MiG-29 taking off at dusk, photographed in game by @calensk.11 on Discord. Thank you for the wonderful shot!
 
