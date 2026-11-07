@@ -22,9 +22,14 @@ Anyone who subscribes to your livery needs the MiG mod installed to see it, like
 2. **Paint the texture.** Start from `templates/` (one texture for both jets):
    `MiG-29_basecolor.png` is the stock grey with its panel lines, stencils and insignia, to paint over;
    `MiG-29_uv_layout.png` is the outline of every exterior panel, to keep as a guide layer on top and hide before you export.
-   To paint on the jet itself (Blender, Substance Painter, ArmorPaint, 3DCoat...), open `MiG-29.obj`: it loads the texture by
-   itself, has the game's UVs and is not mirrored, so lettering that reads right there reads right in game. Keep its UVs (no
-   auto-unwrap) and export the base colour as a PNG.
+   To paint on the jet itself, use `model/` (the whole jet as the game builds it: gear, cockpit, canopy, nozzles):
+   - **Blender:** open `model/MiG-29_livery_paint.blend`, click "MiG-29 airframe (paint me)" and go to the Texture Paint tab. The
+     brush paints the livery texture ("MiG-29_basecolor (your livery)"); the gear, cockpit and the rest are reference only and
+     cannot be selected. Turn Mirror X off in the brush options, then save the texture with Image > Save As (PNG).
+   - **Substance Painter, ArmorPaint, 3DCoat...:** import `model/MiG-29.fbx` (textures embedded) and paint the `MiG29_skin`
+     material only; the other materials are not part of a livery.
+   - `templates/` also has the outside of the jet alone as an OBJ, for any other tool.
+   Keep the UVs (no auto-unwrap): lettering that reads right on the model reads right in game.
    The right-hand part of the texture is the cockpit and the inside of the jet: leave it as it is. Only the base colour goes
    into the game. Keep the texture 2048 x 2048.
 3. **Open the kit in Unity Hub** and put your texture anywhere under `Assets` (for example `Assets/Texture`). Leave its import

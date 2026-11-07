@@ -34,3 +34,4 @@ blender/livery/
 
 # the dash sandbox's working copy (blender/dash_sandbox.py)
 blender/dash/
+!liveries/model/*.blend
