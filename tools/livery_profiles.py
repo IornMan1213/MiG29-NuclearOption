@@ -191,7 +191,7 @@ def german():
     col = np.where(yel[:, None], YEL, np.where(blk[:, None], BLK, RED))
     col[FIN] = BLK
     col[RADOME] = GRY
-    marks = [Marking(4.05, -0.02, 1.25, 0.28, text("29+20", C(205, 208, 212)), SIDE),
+    marks = [*number("29+20", C(205, 208, 212), None),
              Marking(*FIN_MARK, 0.75, 0.75, star(YEL, points=4, inner=0.28), FIN),
              Marking(*FIN_FLAG, 0.36, 0.22, flag(*DE), FIN)]
     return col, marks
@@ -206,7 +206,7 @@ def digital():
     red = nr + 0.05 * np.clip(Z - 1, -3, 5) - 0.12 * np.clip(Y, 0, 2.5) > 0.80
     col = np.where(blue[:, None], BLU, np.where(red[:, None], RED, WHT))
     col[RADOME] = WHT
-    marks = [Marking(4.6, 0.62, 0.62, 0.24, text("741", RED, outline=WHT), SIDE & (Y > 0.3))]
+    marks = [*number("741", RED, WHT)]
     return col, marks
 
 
@@ -226,7 +226,7 @@ def ovt():
     w = Y + 0.8 * Z + 0.10 * np.abs(((Z * 2.2) % 2) - 1)
     for lo, hi, c in ((-1.27, -1.15, RU[0]), (-1.15, -1.03, RU[1]), (-1.03, -0.87, RU[2])):
         col[FIN & (w > lo) & (w < hi)] = c
-    marks = [Marking(3.95, -0.02, 0.95, 0.36, text("917", L3, outline=L1), SIDE),
+    marks = [*number("917", L3, L1),
              Marking(*FIN_FLAG, 0.36, 0.22, flag(*RU), FIN)]
     return col, marks
 
@@ -301,7 +301,7 @@ def splinter(seed, tones, n=150, scale=(0.8, 1.6, 0.7)):
     return np.stack(tones)[pick]
 
 
-# Where the team schemes carry their number (--numbers, default intake). Each spot is a flat panel, so the digits are not bent
+# Where the schemes carry their side number (--numbers, default intake). Each spot is a flat panel, so the digits are not bent
 # over a body line: intake  the outer side of the intake duct, behind the lip (Soviet, Russian, Ukrainian, Polish practice)
 #                  nose    the forward fuselage below the windscreen          fin  the outer face of both fins, under the badge
 #                  tail    the engine nacelle side under the fins, a small serial
@@ -309,14 +309,15 @@ NUMBERS = sys.argv[sys.argv.index("--numbers") + 1] if "--numbers" in sys.argv e
 
 
 def number(t, fill, outline):
-    w = 0.30 * len(t)
+    h = 0.52 if len(t) <= 3 else 0.40                   # longer codes ("29+20") a size smaller, to stay on the intake panel
+    w = 0.30 * len(t) * h / 0.52
     if NUMBERS == "nose":
         return [Marking(8.45, 0.12, w * 0.75, 0.30, text(t, fill, outline), SIDE & (AX < 0.5) & (Z > 7.7) & (Z < 9.3))]
     if NUMBERS == "fin":
         return [Marking(-2.85, 1.3, w * 0.9, 0.4, text(t, fill, outline), FIN)]
     if NUMBERS == "tail":
         return [Marking(-2.6, 0.42, w * 0.75, 0.30, text(t, fill, outline), SIDE & (AX > 1.5) & (Y < 0.7))]
-    return [Marking(3.25, -0.40, w * 1.3, 0.52, text(t, fill, outline), SIDE & (AX > 0.9) & (AX < 1.3) & (Y > -0.72) & (Y < -0.08))]
+    return [Marking(3.25, -0.40, w * 1.3, h, text(t, fill, outline), SIDE & (AX > 0.9) & (AX < 1.3) & (Y > -0.72) & (Y < -0.08))]
 
 
 UNDER = lambda: (NY < -0.35) | ((Y < -0.25) & ~TOP)    # belly and lower sides, for a light underside

@@ -439,13 +439,12 @@ namespace MiG29Tools
             return AssetDatabase.AssetPathToGUID(path);
         }
 
-        // Nine schemes for both factions (Boscali defaults to grey, PALA to desert), and two more for each team only.
+        // Two schemes for each team only. The nine the mod used to carry for both sides (grey, desert, digital, display and the five
+        // profile schemes, tools/livery_*.py) are Steam Workshop liveries now, made with Shockfront's livery kit (liveries/README.md).
         public static void SetLiveries(SerializedObject pso)
         {
+            // only for a faction with no team schemes of its own (none in the stock game)
             var grey = Livery("MiG29_livery", AssetDatabase.LoadAssetAtPath<Texture2D>(ModDir + "/textures/mig29_basecolor.png"), new Color32(170, 178, 178, 255));
-            var desert = Livery("MiG29_livery_desert", ImportColor("mig29_basecolor_desert.png"), new Color32(196, 172, 128, 255));
-            var digital = Livery("MiG29_livery_digital", ImportColor("mig29_basecolor_digital.png"), new Color32(150, 160, 170, 255));
-            var display = Livery("MiG29_livery_display", ImportColor("mig29_basecolor_display.png"), new Color32(40, 70, 140, 255));
             // hand-painted in Blender (blender/livery_edit.py), copied into MiG29Source by build_mig29.ps1 when it exists
             string custom = File.Exists(Path.Combine("MiG29Source", "mig29_basecolor_custom.png"))
                 ? Livery("MiG29_livery_custom", ImportColor("mig29_basecolor_custom.png"), new Color32(170, 178, 178, 255)) : null;
@@ -459,15 +458,6 @@ namespace MiG29Tools
                 if (factions.Any(x => x.faction == f)) continue;
                 factions.Add((f, e.FindPropertyRelative("name").stringValue.ToUpperInvariant().Contains("PALA")));
             }
-            // schemes after profile drawings (tools/livery_profiles.py)
-            var profiles = new List<(string, string)>
-            {
-                ("Fulcrum 29+20 Special", Livery("MiG29_livery_german", ImportColor("mig29_basecolor_german.png"), new Color32(30, 30, 32, 255))),
-                ("Fulcrum Tricolour Digital 741", Livery("MiG29_livery_tricolour", ImportColor("mig29_basecolor_digital741.png"), new Color32(235, 236, 238, 255))),
-                ("Fulcrum OVT Splinter 917", Livery("MiG29_livery_ovt", ImportColor("mig29_basecolor_ovt.png"), new Color32(150, 178, 214, 255))),
-                ("Fulcrum White 44", Livery("MiG29_livery_white44", ImportColor("mig29_basecolor_white44.png"), new Color32(235, 236, 238, 255))),
-                ("Fulcrum LII Gromov 84", Livery("MiG29_livery_lii", ImportColor("mig29_basecolor_lii.png"), new Color32(190, 194, 198, 255))),
-            };
             // team schemes (tools/livery_profiles.py): listed only under their own faction's entries, and the game offers a livery with
             // a faction only at that faction's airbases (LoadoutSelector.GetLiveryOptions), so BDF never sees PALA's and the reverse
             var bdfOnly = new List<(string, string)>
@@ -483,17 +473,19 @@ namespace MiG29Tools
             string FactionName(UnityEngine.Object f) => f == null ? "" : new SerializedObject(f).FindProperty("factionName")?.stringValue ?? "";
             List<(string, string)> TeamSchemes(UnityEngine.Object f) =>
                 FactionName(f) == "Boscali" ? bdfOnly : FactionName(f) == "Primeva" ? palaOnly : new List<(string, string)>();
-            int shared = 4 + profiles.Count + (custom != null ? 1 : 0);
-            liveries.arraySize = factions.Sum(f => shared + TeamSchemes(f.faction).Count);
-            int k = 0;
-            foreach (var (faction, pala) in factions)
+            List<(string, string)> Order(UnityEngine.Object f)
             {
-                var order = (pala ? new[] { ("Fulcrum Desert Tan", desert), ("Fulcrum Grey", grey), ("Fulcrum Digital Grey", digital), ("Fulcrum Display Blue", display) }
-                                  : new[] { ("Fulcrum Grey", grey), ("Fulcrum Desert Tan", desert), ("Fulcrum Digital Grey", digital), ("Fulcrum Display Blue", display) }).ToList();
-                order.AddRange(profiles);
+                var order = TeamSchemes(f).ToList();
+                if (order.Count == 0) order.Add(("Fulcrum Grey", grey));
                 if (custom != null) order.Add(("Fulcrum Custom", custom));
-                order.AddRange(TeamSchemes(faction));
-                Debug.Log($"[MiG29] liveries for '{FactionName(faction)}': {order.Count} ({TeamSchemes(faction).Count} for this team only)");
+                return order;
+            }
+            liveries.arraySize = factions.Sum(f => Order(f.faction).Count);
+            int k = 0;
+            foreach (var (faction, _) in factions)
+            {
+                var order = Order(faction);
+                Debug.Log($"[MiG29] liveries for '{FactionName(faction)}': {string.Join(", ", order.Select(o => o.Item1))}");
                 foreach (var (name, guid) in order)
                 {
                     var e = liveries.GetArrayElementAtIndex(k++);

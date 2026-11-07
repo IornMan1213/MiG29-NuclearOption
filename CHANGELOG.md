@@ -1,6 +1,10 @@
 # Changelog
 
 ## 0.9.4 (unreleased)
+- **The nine shared liveries moved to the Steam Workshop** (links in the README): Fulcrum Grey, Desert Tan, Digital Grey,
+  Display Blue, 29+20 Special, Tricolour Digital 741, OVT Splinter 917, White 44 and LII Gromov 84. Subscribe to the ones you
+  want. The mod itself now carries only the two team liveries for each side, which also makes it smaller. On 29+20, 741 and 917
+  the numbers moved to the intake sides, off the body line under the cockpit.
 - **Team liveries.** Two for each side, offered only at that side's airbases, so BDF pilots never get PALA's and the reverse:
   **BDF Coastal 07** (two blue-greys, BDF blue/white/green fin sweep and shield) and **BDF Woodland 22** (green and earth
   camouflage), both with the BDF shield on the fins; **PALA Desert 315** (sand, ochre and rust splinter, red fin tips) and

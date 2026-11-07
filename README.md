@@ -3,7 +3,7 @@
 A flyable MiG-29 (9.12) mod for [Nuclear Option](https://store.steampowered.com/app/2168680/Nuclear_Option/). It has its own flight model
 tuned to real-world data, a cockpit modelled from scratch where every instrument works, R-27R, R-27T, R-73 and R-60M missiles built from scratch, a GSh-30-1
 cannon, droppable PTB-1500 / PTB-1150 fuel tanks, flares and radar chaff from its own tail-boom dispensers, a working canopy and gear
-doors, a custom cockpit damage display, and thirteen liveries (nine for either side, two only BDF pilots get and two only PALA pilots get). Its three rear-view mirrors reflect with the
+doors, a custom cockpit damage display, two liveries for each side (BDF pilots never get PALA's, nor the reverse), and nine more on the Steam Workshop. Its three rear-view mirrors reflect with the
 [NO Mirrors](https://github.com/IornMan1213/NuclearOption-Mirrors) plugin.
 
 [![Latest release](https://img.shields.io/github/v/release/IornMan1213/MiG29-NuclearOption?include_prereleases&label=release)](https://github.com/IornMan1213/MiG29-NuclearOption/releases)
@@ -38,6 +38,23 @@ See [mod/README.md](mod/README.md) for the full feature list and known limitatio
 ![In flight: the from-scratch cockpit with working instruments](docs/img/cockpit_flight.jpg)
 
 ![The four liveries](docs/img/liveries.jpg)
+
+## Liveries on the Steam Workshop
+
+Nine liveries for either side are on the Steam Workshop, made with Shockfront's official livery kit. Subscribe to the ones you
+want, and they appear in the MiG-29's livery list next to the mod's own team liveries:
+
+- [Fulcrum Grey](https://steamcommunity.com/sharedfiles/filedetails/?id=3835186135)
+- [Fulcrum Desert Tan](https://steamcommunity.com/sharedfiles/filedetails/?id=3835186967)
+- [Fulcrum Digital Grey](https://steamcommunity.com/sharedfiles/filedetails/?id=3835187545)
+- [Fulcrum Display Blue](https://steamcommunity.com/sharedfiles/filedetails/?id=3835188075)
+- [Fulcrum 29+20 Special](https://steamcommunity.com/sharedfiles/filedetails/?id=3835188704)
+- [Fulcrum Tricolour Digital 741](https://steamcommunity.com/sharedfiles/filedetails/?id=3835189313)
+- [Fulcrum OVT Splinter 917](https://steamcommunity.com/sharedfiles/filedetails/?id=3835189838)
+- [Fulcrum White 44](https://steamcommunity.com/sharedfiles/filedetails/?id=3835190309)
+- [Fulcrum LII Gromov 84](https://steamcommunity.com/sharedfiles/filedetails/?id=3835190841)
+
+They are also listed under the **MiG-29 Fulcrum** tag in the game's Workshop. Each needs this mod installed.
 
 ## Mission: Operation Fulcrum (SEAD)
 
