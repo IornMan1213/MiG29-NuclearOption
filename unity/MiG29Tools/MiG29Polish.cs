@@ -448,6 +448,12 @@ namespace MiG29Tools
             // hand-painted in Blender (blender/livery_edit.py), copied into MiG29Source by build_mig29.ps1 when it exists
             string custom = File.Exists(Path.Combine("MiG29Source", "mig29_basecolor_custom.png"))
                 ? Livery("MiG29_livery_custom", ImportColor("mig29_basecolor_custom.png"), new Color32(170, 178, 178, 255)) : null;
+            // what older builds left in the mod folder for the liveries that moved to the Workshop: everything there ships in the .nobp
+            var gone = new List<string> { "desert", "digital", "display", "german", "digital741", "ovt", "white44", "lii" };
+            var goneAssets = new List<string> { "desert", "digital", "display", "german", "tricolour", "ovt", "white44", "lii" };
+            if (custom == null) { gone.Add("custom"); goneAssets.Add("custom"); }
+            foreach (var g in gone) AssetDatabase.DeleteAsset($"{ModDir}/textures/mig29_basecolor_{g}.png");
+            foreach (var g in goneAssets) AssetDatabase.DeleteAsset($"{ModDir}/MiG29_livery_{g}.asset");
 
             var liveries = pso.FindProperty("liveries");
             var factions = new List<(UnityEngine.Object faction, bool pala)>();
