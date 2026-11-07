@@ -1,6 +1,11 @@
 # Changelog
 
 ## 0.9.4 (unreleased)
+- **Team liveries.** Two for each side, offered only at that side's airbases, so BDF pilots never get PALA's and the reverse:
+  **BDF Coastal 07** (two blue-greys, BDF blue/white/green fin sweep and shield) and **BDF Woodland 22** (green and earth
+  camouflage), both with the BDF shield on the fins; **PALA Desert 315** (sand, ochre and rust splinter, red fin tips) and
+  **PALA Night 513** (charcoal with a red spine and fin sweep), both with the PALA roundel on the fins. The numbers are on the intake sides, where MiG-29s carry them.
+  The nine other liveries stay open to both sides.
 - **A mission comes with the MiG-29: Operation Fulcrum (SEAD)**, by **@calensk.11**. Take off, destroy Boscali's four radar
   stations, deal with the fighters they send after you, then land and taxi back to the hangars. It is in the game's
   Missions tab while the mod is installed (`mod/missions`).

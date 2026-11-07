@@ -439,7 +439,7 @@ namespace MiG29Tools
             return AssetDatabase.AssetPathToGUID(path);
         }
 
-        // Four schemes, all selectable by either faction; Boscali defaults to grey, PALA to desert.
+        // Nine schemes for both factions (Boscali defaults to grey, PALA to desert), and two more for each team only.
         public static void SetLiveries(SerializedObject pso)
         {
             var grey = Livery("MiG29_livery", AssetDatabase.LoadAssetAtPath<Texture2D>(ModDir + "/textures/mig29_basecolor.png"), new Color32(170, 178, 178, 255));
@@ -468,8 +468,23 @@ namespace MiG29Tools
                 ("Fulcrum White 44", Livery("MiG29_livery_white44", ImportColor("mig29_basecolor_white44.png"), new Color32(235, 236, 238, 255))),
                 ("Fulcrum LII Gromov 84", Livery("MiG29_livery_lii", ImportColor("mig29_basecolor_lii.png"), new Color32(190, 194, 198, 255))),
             };
-            int perFaction = 4 + profiles.Count + (custom != null ? 1 : 0);
-            liveries.arraySize = factions.Count * perFaction;
+            // team schemes (tools/livery_profiles.py): listed only under their own faction's entries, and the game offers a livery with
+            // a faction only at that faction's airbases (LoadoutSelector.GetLiveryOptions), so BDF never sees PALA's and the reverse
+            var bdfOnly = new List<(string, string)>
+            {
+                ("BDF Coastal 07", Livery("MiG29_livery_bdf_coastal", ImportColor("mig29_basecolor_bdf_coastal.png"), new Color32(150, 166, 182, 255))),
+                ("BDF Woodland 22", Livery("MiG29_livery_bdf_woodland", ImportColor("mig29_basecolor_bdf_woodland.png"), new Color32(92, 108, 66, 255))),
+            };
+            var palaOnly = new List<(string, string)>
+            {
+                ("PALA Desert 315", Livery("MiG29_livery_pala_desert", ImportColor("mig29_basecolor_pala_desert.png"), new Color32(204, 180, 136, 255))),
+                ("PALA Night 513", Livery("MiG29_livery_pala_night", ImportColor("mig29_basecolor_pala_night.png"), new Color32(58, 58, 62, 255))),
+            };
+            string FactionName(UnityEngine.Object f) => f == null ? "" : new SerializedObject(f).FindProperty("factionName")?.stringValue ?? "";
+            List<(string, string)> TeamSchemes(UnityEngine.Object f) =>
+                FactionName(f) == "Boscali" ? bdfOnly : FactionName(f) == "Primeva" ? palaOnly : new List<(string, string)>();
+            int shared = 4 + profiles.Count + (custom != null ? 1 : 0);
+            liveries.arraySize = factions.Sum(f => shared + TeamSchemes(f.faction).Count);
             int k = 0;
             foreach (var (faction, pala) in factions)
             {
@@ -477,6 +492,8 @@ namespace MiG29Tools
                                   : new[] { ("Fulcrum Grey", grey), ("Fulcrum Desert Tan", desert), ("Fulcrum Digital Grey", digital), ("Fulcrum Display Blue", display) }).ToList();
                 order.AddRange(profiles);
                 if (custom != null) order.Add(("Fulcrum Custom", custom));
+                order.AddRange(TeamSchemes(faction));
+                Debug.Log($"[MiG29] liveries for '{FactionName(faction)}': {order.Count} ({TeamSchemes(faction).Count} for this team only)");
                 foreach (var (name, guid) in order)
                 {
                     var e = liveries.GetArrayElementAtIndex(k++);
