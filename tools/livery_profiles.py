@@ -1,6 +1,6 @@
-"""Five liveries after MiG-29 profile drawings, designed on the airframe like livery_display.py.
+"""Five liveries after MiG-29 profile drawings, and four team liveries, designed on the airframe like livery_display.py.
 
-python tools/livery_profiles.py <mig29_basecolor.png> <mig29_mesh.json> <out dir> [--preview <dir>]
+python tools/livery_profiles.py <mig29_basecolor.png> <mig29_mesh.json> <out dir> [--preview <dir>] [--only key,key]
 
 Writes mig29_basecolor_<key>.png for
   german   "29+20": yellow nose, red sweep, black rear and fins, yellow four-point star and flag on the fins
@@ -8,6 +8,11 @@ Writes mig29_basecolor_<key>.png for
   ovt      "917": three-tone light blue splinter, dark radome, white/blue/red lightning flash on the fins
   white44  "44": white, blue fins and spine, black anti-glare panel, blue cheat line, red star on the fins
   lii      "84": light grey over dark blue, blue fins with a white sweep, flag on the fins
+and four team schemes, offered only to their own faction (MiG29Polish.SetLiveries):
+  bdf_coastal  "07": two blue-greys, pale belly, blue/white/green fin sweep, BDF shield
+  bdf_woodland "22": green, dark green and earth blotches, grey-blue belly, green fin tips, BDF shield
+  pala_desert  "315": sand, ochre and rust splinter, red fin tips, PALA roundel
+  pala_night   "513": charcoal, red spine and cheat line, black fins with a red sweep, PALA roundel
 
 Every exterior texel is rasterised once with its MiG-frame position and normal (control surfaces put back at their hinges); the
 colour rules work on those. Only paint texels change (low saturation, or the base texture's red stars and numbers), with panel
@@ -256,7 +261,131 @@ def lii():
     return col, marks
 
 
-SCHEMES = {"german": german, "digital741": digital, "ovt": ovt, "white44": white44, "lii": lii}
+# ---------------- team schemes: shown only to their own faction (MiG29Polish.SetLiveries) ----------------
+
+def bdf_shield(dr, W, H):
+    """The Boscali Defence Force's colours on a shield: blue over green, a white chevron, white rim."""
+    rim = max(3, W // 14)
+    sh = [(0.06 * W, 0.04 * H), (0.94 * W, 0.04 * H), (0.94 * W, 0.52 * H), (0.5 * W, 0.97 * H), (0.06 * W, 0.52 * H)]
+    dr.polygon(sh, fill=(246, 247, 249, 255))
+    inset = [(x + (rim if x < W / 2 else -rim if x > W / 2 else 0), y + (rim if y < H / 2 else -rim * 1.4)) for x, y in sh]
+    dr.polygon(inset, fill=(28, 92, 178, 255))
+    dr.polygon([(inset[4][0], 0.56 * H), (inset[3][0], inset[3][1]), (inset[2][0], 0.56 * H), (inset[2][0], 0.40 * H),
+                (0.5 * W, 0.80 * H), (inset[4][0], 0.40 * H)], fill=(38, 140, 72, 255))
+    dr.line([(inset[4][0], 0.40 * H), (0.5 * W, 0.70 * H), (inset[2][0], 0.40 * H)], fill=(246, 247, 249, 255), width=rim)
+
+
+def pala_roundel(dr, W, H):
+    """PALA's colours: a red disc in a black ring with six white triangles stacked point-down."""
+    r = min(W, H) / 2 * 0.96; cx, cy = W / 2, H / 2
+    dr.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(20, 20, 22, 255))
+    r2 = r * 0.84
+    dr.ellipse([cx - r2, cy - r2, cx + r2, cy + r2], fill=(200, 28, 30, 255))
+    s = r2 * 0.36; h = s * 0.87
+    for row, n in enumerate((3, 2, 1)):
+        y0 = cy - 1.25 * h + row * h
+        for i in range(n):
+            x0 = cx - (n - 1) * s / 2 + i * s
+            dr.polygon([(x0 - s / 2 * 0.9, y0), (x0 + s / 2 * 0.9, y0), (x0, y0 + h * 0.9)], fill=(246, 246, 246, 255))
+
+
+def splinter(seed, tones, n=150, scale=(0.8, 1.6, 0.7)):
+    """Mirror-symmetric angular camouflage: each texel takes the tone of its nearest random seed point."""
+    rng = np.random.default_rng(seed)
+    seeds = np.stack([rng.uniform(0, 5.6, n), rng.uniform(-1.0, 2.8, n), rng.uniform(-5.4, 12, n)], 1)
+    tone = rng.integers(0, len(tones), n)
+    best = np.full(len(P), np.inf); pick = np.zeros(len(P), int)
+    for k, s in enumerate(seeds):
+        dd = (((SYM - s) * np.array(scale)) ** 2).sum(1)
+        m = dd < best; best[m] = dd[m]; pick[m] = tone[k]
+    return np.stack(tones)[pick]
+
+
+# Where the team schemes carry their number (--numbers, default intake). Each spot is a flat panel, so the digits are not bent
+# over a body line: intake  the outer side of the intake duct, behind the lip (Soviet, Russian, Ukrainian, Polish practice)
+#                  nose    the forward fuselage below the windscreen          fin  the outer face of both fins, under the badge
+#                  tail    the engine nacelle side under the fins, a small serial
+NUMBERS = sys.argv[sys.argv.index("--numbers") + 1] if "--numbers" in sys.argv else "intake"
+
+
+def number(t, fill, outline):
+    w = 0.30 * len(t)
+    if NUMBERS == "nose":
+        return [Marking(8.45, 0.12, w * 0.75, 0.30, text(t, fill, outline), SIDE & (AX < 0.5) & (Z > 7.7) & (Z < 9.3))]
+    if NUMBERS == "fin":
+        return [Marking(-2.85, 1.3, w * 0.9, 0.4, text(t, fill, outline), FIN)]
+    if NUMBERS == "tail":
+        return [Marking(-2.6, 0.42, w * 0.75, 0.30, text(t, fill, outline), SIDE & (AX > 1.5) & (Y < 0.7))]
+    return [Marking(3.25, -0.40, w * 1.3, 0.52, text(t, fill, outline), SIDE & (AX > 0.9) & (AX < 1.3) & (Y > -0.72) & (Y < -0.08))]
+
+
+UNDER = lambda: (NY < -0.35) | ((Y < -0.25) & ~TOP)    # belly and lower sides, for a light underside
+
+
+def bdf_coastal():
+    """BDF Coastal: two blue-greys over a pale underside, a blue and green sweep up the fins, the shield above it."""
+    L, D, U, BLU, GRN, WHT = C(150, 166, 182), C(98, 118, 142), C(206, 212, 218), C(28, 92, 178), C(38, 140, 72), C(246, 247, 249)
+    col = splinter(1107, [L, D])
+    col[UNDER()] = U
+    sweep = FIN_LE(Y) - 0.55 + 0.45 * (Y - 1.0)          # bands parallel to the leading edge, rising aft
+    col[FIN & (Z < sweep) & (Z > sweep - 0.22)] = BLU
+    col[FIN & (Z <= sweep - 0.22) & (Z > sweep - 0.34)] = WHT
+    col[FIN & (Z <= sweep - 0.34) & (Z > sweep - 0.56)] = GRN
+    col[RADOME] = C(70, 78, 86)
+    marks = [*number("07", BLU, WHT),
+             Marking(-3.05, 2.2, 0.5, 0.56, bdf_shield, FIN)]
+    return col, marks
+
+
+def bdf_woodland():
+    """BDF Woodland: green, dark green and earth blotches for the Boscali hills, a light grey-blue belly, green fin tips."""
+    G1, G2, BRN, U, GRN, WHT = C(92, 108, 66), C(52, 68, 46), C(112, 92, 62), C(176, 190, 200), C(38, 140, 72), C(246, 247, 249)
+    n1 = 0.7 * value_noise(SYM, 1.3, 11) + 0.3 * value_noise(SYM, 0.5, 12)
+    n2 = 0.7 * value_noise(SYM, 1.1, 13) + 0.3 * value_noise(SYM, 0.45, 14)
+    col = np.where((n1 > 0.56)[:, None], G2, np.where((n2 > 0.60)[:, None], BRN, G1))
+    col[UNDER()] = U
+    col[FIN & (Y > 2.6)] = GRN
+    col[FIN & (Y > 2.52) & (Y <= 2.6)] = WHT
+    col[RADOME] = C(60, 66, 58)
+    marks = [*number("22", WHT, C(30, 36, 28)),
+             Marking(-3.05, 1.85, 0.5, 0.56, bdf_shield, FIN)]
+    return col, marks
+
+
+def pala_desert():
+    """PALA Desert: sand, ochre and rust splinter, a sand belly, red fin tips and the red roundel on the fins."""
+    S, O, R, U, RED, BLK = C(204, 180, 136), C(170, 126, 80), C(124, 66, 48), C(222, 208, 180), C(200, 28, 30), C(20, 20, 22)
+    col = splinter(315, [S, O, R], n=130, scale=(0.7, 1.4, 0.6))
+    col[UNDER()] = U
+    col[FIN & (Y > 2.55)] = RED
+    col[FIN & (Y > 2.49) & (Y <= 2.55)] = BLK
+    col[RADOME] = C(96, 84, 70)
+    marks = [*number("315", RED, BLK),
+             Marking(-3.0, 1.85, 0.56, 0.56, pala_roundel, FIN)]
+    return col, marks
+
+
+def pala_night():
+    """PALA Night: charcoal with a darker disruptive pattern, a red spine and cheat line, black fins with a red sweep."""
+    CH, DK, RED, BLK, GRY = C(58, 58, 62), C(36, 36, 40), C(190, 26, 28), C(20, 20, 22), C(120, 120, 124)
+    n = 0.7 * value_noise(SYM, 1.2, 21) + 0.3 * value_noise(SYM, 0.5, 22)
+    col = np.where((n > 0.58)[:, None], DK, CH)
+    col[TOP & (Z < 5.6) & (Z > -4.0) & (AX < 0.16)] = RED          # thin red spine behind the canopy
+    yc = 0.02 + 0.045 * (10.0 - Z)                                 # cheat line rising from the nose to the fin root
+    col[SIDE & (Z < 10.0) & (Z > -1.0) & (np.abs(Y - yc) < 0.03)] = RED
+    col[FIN] = BLK
+    curve = FIN_LE(Y) - 0.9 + 0.35 * (Y - 1.0)
+    col[FIN & (Z >= curve) & (Z < curve + 0.16)] = RED
+    col[RADOME] = GRY
+    marks = [*number("513", RED, BLK),
+             Marking(-3.05, 1.6, 0.56, 0.56, pala_roundel, FIN)]
+    return col, marks
+
+
+SCHEMES = {"german": german, "digital741": digital, "ovt": ovt, "white44": white44, "lii": lii,
+           "bdf_coastal": bdf_coastal, "bdf_woodland": bdf_woodland, "pala_desert": pala_desert, "pala_night": pala_night}
+if "--only" in sys.argv:
+    SCHEMES = {k: SCHEMES[k] for k in sys.argv[sys.argv.index("--only") + 1].split(",")}
 
 
 # ---------------- compose onto the base texture ----------------
