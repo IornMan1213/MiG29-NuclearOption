@@ -1,6 +1,9 @@
 # Changelog
 
 ## 0.9.4 (unreleased)
+- **The jet as a 3D model for livery painters** (`liveries/model`): `MiG-29.fbx`, the whole jet as the game builds it with its
+  textures, and `MiG-29_livery_paint.blend`, a Blender file ready to paint in (the airframe as one object, the livery texture set
+  as the brush's target). `tools/model_export` rebuilds both from a build.
 - **The nine shared liveries moved to the Steam Workshop** (links in the README): Fulcrum Grey, Desert Tan, Digital Grey,
   Display Blue, 29+20 Special, Tricolour Digital 741, OVT Splinter 917, White 44 and LII Gromov 84. Subscribe to the ones you
   want. The mod itself now carries only the two team liveries for each side, which also makes it smaller. On 29+20, 741 and 917
