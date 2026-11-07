@@ -56,6 +56,8 @@ want, and they appear in the MiG-29's livery list next to the mod's own team liv
 
 They are also listed under the **MiG-29 Fulcrum** tag in the game's Workshop. Each needs this mod installed.
 
+If you make a livery for the Mig-29 DM me @iornman1213 on Discord and I'll gladly add your livery to the list. 
+
 ## Mission: Operation Fulcrum (SEAD)
 
 The mod brings a mission made by **@calensk.11** on Discord: a SEAD strike in the MiG-29 against Boscali's radar stations,
