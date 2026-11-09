@@ -1,7 +1,7 @@
 {
   "id": "MiG29Fulcrum",
   "displayName": "MiG-29 Fulcrum",
-  "description": "A flyable MiG-29 (9.12) with its own flight model tuned to real-world data, a cockpit modelled from scratch where every instrument works (20 needles, a rolling attitude ball, HSI, 24-light caution panel, SPO-15 radar warning receiver, gear lights), R-27R / R-27T / R-73 / R-60M missiles, the GSh-30-1 cannon, droppable PTB-1500 / PTB-1150 fuel tanks, flares and radar chaff from its own tail-boom dispensers, a working canopy and gear doors, its own damage display, nine liveries, and rear-view mirrors that really reflect with the NO Mirrors plugin.",
+  "description": "A flyable MiG-29 (9.12) with its own flight model tuned to real-world data, a cockpit modelled from scratch where every instrument works (20 needles, a rolling attitude ball, HSI, 24-light caution panel, SPO-15 radar warning receiver, gear lights), R-27R / R-27T / R-73 / R-60M missiles, the GSh-30-1 cannon, droppable PTB-1500 / PTB-1150 fuel tanks, flares and radar chaff from its own tail-boom dispensers, a working canopy and gear doors, its own damage display, two team liveries for each side (nine more on the Steam Workshop), the Operation Fulcrum (SEAD) mission, and rear-view mirrors that really reflect with the NO Mirrors plugin.",
   "tags": [
     "mod",
     "aircraft",
@@ -25,6 +25,19 @@
   "githubRepoName": "MiG29-NuclearOption",
   "autoUpdateArtifacts": "True",
   "artifacts": [
+    {
+      "fileName": "MiG-29-Fulcrum_0.9.4.zip",
+      "version": "0.9.4",
+      "category": "release",
+      "type": "addon",
+      "gameVersion": "0.34.6",
+      "downloadUrl": "https://github.com/IornMan1213/MiG29-NuclearOption/releases/download/v0.9.4/MiG-29-Fulcrum_0.9.4.zip",
+      "hash": "sha256:af82db06a0e18b63b396a5e2bf701daa6bd483abba4a9c6412c7423b69f58de9",
+      "extends": {
+        "id": "com.nikkorap.blueprinter",
+        "version": "2.1.1"
+      }
+    },
     {
       "fileName": "MiG-29-Fulcrum_0.9.3.2.zip",
       "version": "0.9.3.2",
