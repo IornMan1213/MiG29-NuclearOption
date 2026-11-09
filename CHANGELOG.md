@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.9.4 (unreleased)
+## 0.9.4
 - **The jet as a 3D model for livery painters** (`liveries/model`): `MiG-29.fbx`, the whole jet as the game builds it with its
   textures, and `MiG-29_livery_paint.blend`, a Blender file ready to paint in (the airframe as one object, the livery texture set
   as the brush's target). `tools/model_export` rebuilds both from a build.
