@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+- **The intakes run all the way to the engines.** Looking into an intake you now see down the duct to the RD-33's fan face, as
+  on the stock jets whose ducts reach their engines, instead of a black panel half a metre inside the lip. The duct darkens toward
+  the back and takes no livery paint.
+
 ## 0.9.4
 - **The jet as a 3D model for livery painters** (`liveries/model`): `MiG-29.fbx`, the whole jet as the game builds it with its
   textures, and `MiG-29_livery_paint.blend`, a Blender file ready to paint in (the airframe as one object, the livery texture set
