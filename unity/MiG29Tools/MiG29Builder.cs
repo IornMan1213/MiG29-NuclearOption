@@ -914,7 +914,8 @@ namespace MiG29Tools
                 // the stretch aft of the model's old duct end runs on into the engine and belongs to it, as the stock jets' last
                 // stretch of duct does: on the hull it fell to the centre fuselage, and stayed hanging there as a ring once the
                 // engine broke off (break-every-part pictures, 2026-11-09)
-                int engine = parts.FindIndex(p => p.name == (ductSide++ == 0 ? "engine_L" : "engine_R"));
+                var engineName = ductSide++ == 0 ? "engine_L" : "engine_R";
+                int engine = parts.FindIndex(p => p.name == engineName);
                 var map = new Dictionary<(int part, int vert), int>();
                 for (int i = 0; i < dt.Length; i += 3)
                 {
