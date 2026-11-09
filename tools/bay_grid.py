@@ -8,13 +8,22 @@ import json, os
 import numpy as np
 
 
-def skin_triangles(src, parts=("body", "gear_doors_closed")):
+def skin_triangles(src, parts=("body", "gear_doors_closed"), ducts=False):
+    """The skin as triangles (n x 3 x 3). ducts: the intake ducts as built (tools/intake_duct.py): the model's duct end cap gone and
+    the liner running on to the engine fronts, so the open ducts are outside air, as an eye looking down the intake sees them."""
     d = json.load(open(os.path.join(src, "mig29_mesh.json")))
     out = []
     for name in parts:
         p = next(p for p in d["parts"] if p["name"] == name)
         V = np.array(p["vertices"], float).reshape(-1, 3); T = np.array(p["triangles"]).reshape(-1, 3)
-        out.append(V[T])
+        tris = V[T]
+        if ducts and name == "body":
+            du = json.load(open(os.path.join(src, "intake_duct.json")))
+            tris = tris[~np.all(np.abs(tris[:, :, 2] - du["cap_z"]) < 0.005, axis=1)]
+            for duct in (du["L"], du["R"], du["L"]["seal"], du["R"]["seal"]):   # the seal closes the liner's front edge to the wall
+                DV = np.array(duct["vertices"], float).reshape(-1, 3); DT = np.array(duct["triangles"]).reshape(-1, 3)
+                tris = np.concatenate([tris, DV[DT]])
+        out.append(tris)
     return np.concatenate(out)
 
 
@@ -75,10 +84,10 @@ def signed_margin(vox, h, steps=10):
 
 
 class Hidden:
-    """Voxels no outside eye can reach: skin triangles (plus extra wall boxes such as the intake blockers) are rasterised into wall
+    """Voxels no outside eye can reach: skin triangles (plus any extra wall boxes) are rasterised into wall
     voxels, sealed by one voxel of dilation, and air is flood-filled from everything outside the skin envelope (below the lowest or
     above the highest skin crossing of each column). What the flood never reaches is hidden: inside the skin, the closed bays, and
-    the intake ducts behind the blockers."""
+    not the intake ducts (skin_triangles(ducts=True))."""
 
     def __init__(self, tris, lo, hi, h, boxes=()):
         self.lo = np.asarray(lo, float); self.h = h

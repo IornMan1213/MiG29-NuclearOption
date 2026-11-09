@@ -51,6 +51,8 @@ namespace MiG29Tools
                 MiG29MainGear.CutBodySkin(ref p.vertices, ref p.normals, ref p.uvs, ref p.triangles);
                 p.triangles = MiG29Nozzles.StripModelNozzles(p.vertices, p.triangles, out int stripped);
                 Debug.Log($"[MiG29] nozzles: {stripped} model nozzle triangles stripped");
+                p.triangles = MiG29Duct.StripCaps(p.vertices, p.triangles, out int caps);   // the ducts run on to the engines (MiG29Duct)
+                Debug.Log($"[MiG29] intakes: {caps} duct end-cap triangles stripped");
             }
             MoveStabWicks(data);
             AssetDatabase.DeleteAsset(ModDir + "/meshes"); // no stale meshes in the bundle
@@ -113,7 +115,7 @@ namespace MiG29Tools
             MiG29Nozzles.Build(root, ModelOffset, materials.skin, (o, path) => CreateOrReplace(o, path));
             MoveCockpit(root);
             MiG29Polish.SetupCanopy(go, ModelOffset, migCanopy, (m, path) => CreateOrReplace(m, path), exterior);
-            AddIntakeBlockers(root);
+            AddFodDoors(root);
             MiG29Cockpit.Build(go, cockpitPart, ModelOffset, materials.skin, materials.glass, exterior, (o, path) => CreateOrReplace(o, path), (t, r) => AddDamageRenderer(t, r));
             AppendExteriorRenderers(go, exterior);
             TuneToMiG(root);
@@ -659,21 +661,15 @@ namespace MiG29Tools
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        // The KR-67 main wheels (0.85 m) only fit inside the MiG intake ducts, where they show from dead ahead. A black panel 0.5 m
-        // behind each intake lip reads as the dark duct. Intake mouth (MiG frame, blender ray scan): x 0.45..0.95, y -0.85..-0.32,
-        // lip z ~4.1; the stowed wheels sit at z 2.45..3.4. Not a damage renderer: liveries retexture those (atlas UVs would pick up camo).
-        static void AddIntakeBlockers(Transform root)
+        // The intake FOD doors. (Until the ducts ran on to the engines (MiG29Duct) a black panel 0.5 m behind each lip stood in for the
+        // dark duct and hid the KR-67 main wheels, which stowed in the ducts then; they stow in the wing-root gloves since 0.8.5.)
+        // Not damage renderers: liveries retexture those (atlas UVs would pick up camo).
+        static void AddFodDoors(Transform root)
         {
             var mat = AssetDatabase.LoadAssetAtPath<Material>(ModDir + "/weapons/MiG29_missiles.mat");
-            var mesh = CreateOrReplace(AtlasBox("MiG29_intake_blocker", new Vector3(0.56f, 0.58f, 0.02f), 0.625f, 0.375f), ModDir + "/meshes/MiG29_intake_blocker.asset"); // atlas black
             foreach (var side in new[] { -1f, 1f })
             {
                 var part = Find(root, side < 0 ? "intake_L" : "intake_R");
-                var t = new GameObject(side < 0 ? "MiG29_intake_blocker_L" : "MiG29_intake_blocker_R").transform;
-                t.SetParent(part, false);
-                t.SetPositionAndRotation(new Vector3(side * 0.70f, -0.59f, 3.6f) + ModelOffset, Quaternion.identity);
-                t.gameObject.AddComponent<MeshFilter>().sharedMesh = mesh;
-                t.gameObject.AddComponent<MeshRenderer>().sharedMaterial = mat;
 
                 // FOD door: on the real jet a hinged panel in the roof of each duct swings down on the ground and seals the intake
                 // (the engines then breathe through the louvres on top of the wing roots). Its outline is the duct's own cross-section
@@ -751,28 +747,6 @@ namespace MiG29Tools
             Quad(Local(fl.xl, fl.y, fl.z), Local(fl.xr, fl.y, fl.z), Local(fl.xr, fl.y, fl.z) + thick, Local(fl.xl, fl.y, fl.z) + thick, open * Vector3.down, back);
             var m = new Mesh { name = "MiG29_fod_door" };
             m.SetVertices(verts); m.SetNormals(norms); m.SetUVs(0, uvs); m.SetTriangles(tris, 0);
-            m.RecalculateBounds(); m.RecalculateTangents();
-            return m;
-        }
-
-        // Box mesh centred on the origin, every vertex mapped to one flat-colour cell of the missile atlas (0.625, 0.875 = dgrey).
-        static Mesh AtlasBox(string name, Vector3 size, float u, float v)
-        {
-            var e = size / 2;
-            var faces = new[] { (Vector3.forward, Vector3.up), (Vector3.back, Vector3.up), (Vector3.left, Vector3.up), (Vector3.right, Vector3.up), (Vector3.up, Vector3.forward), (Vector3.down, Vector3.forward) };
-            var verts = new List<Vector3>(); var norms = new List<Vector3>(); var tris = new List<int>();
-            foreach (var (n, up) in faces)
-            {
-                var side = Vector3.Cross(up, n);
-                int b0 = verts.Count;
-                foreach (var (a, c) in new[] { (-1, -1), (1, -1), (1, 1), (-1, 1) })
-                {
-                    verts.Add(Vector3.Scale(n + side * a + up * c, e)); norms.Add(n);
-                }
-                tris.AddRange(new[] { b0, b0 + 1, b0 + 2, b0, b0 + 2, b0 + 3 }); // cross(b-a, c-a) along n: Unity front face (see missile_gen.py)
-            }
-            var m = new Mesh { name = name };
-            m.SetVertices(verts); m.SetNormals(norms); m.SetUVs(0, Enumerable.Repeat(new Vector2(u, v), verts.Count).ToList()); m.SetTriangles(tris, 0);
             m.RecalculateBounds(); m.RecalculateTangents();
             return m;
         }
@@ -910,6 +884,31 @@ namespace MiG29Tools
                 AddMeshObject("MiG29_mech_" + part.name, part.transform, PartMesh("MiG29_mech_" + part.name, part.transform, ev, en, euv, null, et), mechMat);
                 innerTris += et.Count / 3;
             }
+            // the intake ducts' liners, from the lips to those engine fronts, each piece on the part it lies in (MiG29Duct)
+            var ductMat = MiG29Duct.Material(mat, (o, path) => CreateOrReplace(o, path));
+            var ducts = new Dictionary<int, (List<Vector3> v, List<Vector3> n, List<Vector2> uv, List<int> t)>();
+            foreach (var (dv, dn, duv, dt) in MiG29Duct.Liners())
+            {
+                var map = new Dictionary<(int part, int vert), int>();
+                for (int i = 0; i < dt.Length; i += 3)
+                {
+                    int k = hulls.Label((dv[dt[i]] + dv[dt[i + 1]] + dv[dt[i + 2]]) / 3f + ModelOffset);
+                    if (!ducts.TryGetValue(k, out var m)) ducts[k] = m = (new List<Vector3>(), new List<Vector3>(), new List<Vector2>(), new List<int>());
+                    for (int c = 0; c < 3; c++)
+                    {
+                        int j = dt[i + c];
+                        if (!map.TryGetValue((k, j), out int at)) { map[(k, j)] = at = m.v.Count; m.v.Add(dv[j] + ModelOffset); m.n.Add(dn[j]); m.uv.Add(duv[j]); }
+                        m.t.Add(at);
+                    }
+                }
+            }
+            foreach (var kv in ducts)
+            {
+                var part = parts[kv.Key]; var (dv, dn, duv, dt) = kv.Value;
+                AddMeshObject("MiG29_duct_" + part.name, part.transform, PartMesh("MiG29_duct_" + part.name, part.transform, dv, dn, duv, null, dt), ductMat);
+                innerTris += dt.Count / 3;
+            }
+            Debug.Log($"[MiG29] intakes: duct liners on {ducts.Count} parts ({string.Join(", ", ducts.Keys.Select(k => parts[k].name))})");
 
             // airframe thickness, for the inner hull's inset: a ray inward from the skin to its far side (the whole skin as one
             // temporary collider on its own layer, back faces included)
@@ -933,6 +932,16 @@ namespace MiG29Tools
                 return Ray(Vector3.up, 0.3f) && !Ray(Vector3.down, 5f) || Ray(Vector3.down, 0.3f) && !Ray(Vector3.up, 5f);
             }
             int outsideDropped = 0;
+            // inside an intake duct (both liners as one temporary collider on a layer of their own): near the engine fronts the ducts run
+            // within 5-10 cm of the top skin, closer than the inner hull's inset, which would show as structure in the duct there
+            var ductGo = new GameObject("MiG29_tmp_ducts") { layer = 30 };
+            var ductV = new List<Vector3>(); var ductT = new List<int>();
+            foreach (var d in ducts.Values) { int o = ductV.Count; ductV.AddRange(d.v); ductT.AddRange(d.t.Select(x => x + o)); }
+            var ductMesh = new Mesh { indexFormat = UnityEngine.Rendering.IndexFormat.UInt32 }; ductMesh.SetVertices(ductV); ductMesh.SetTriangles(ductT, 0);
+            ductGo.AddComponent<MeshCollider>().sharedMesh = ductMesh;
+            Physics.SyncTransforms();
+            bool InDuct(Vector3 p) => new[] { Vector3.up, Vector3.down, Vector3.left, Vector3.right }.All(dir => Physics.Raycast(p, dir, out _, 1.2f, 1 << 30, QueryTriggerInteraction.Ignore));
+            int ductDropped = 0;
 
             foreach (var kv in buckets)
             {
@@ -951,14 +960,14 @@ namespace MiG29Tools
                 // a damage renderer: the damage shader would punch the airframe's burn mask through it too
                 bool radome = part.name == "nose";
                 var (iv, inr, iuv, icol, it) = MiG29Cut.Interior(b, radome ? 0.61f : 0.46f, radome ? new Color32(0x81, 0x56, 0x43, 255) : new Color32(0x57, 0x57, 0x57, 255), Depth, InCockpit,
-                    p => { bool o = Outside(p); if (o) outsideDropped++; return o; });
+                    p => { bool o = Outside(p); if (o) outsideDropped++; else if (InDuct(p)) { ductDropped++; o = true; } return o; });
                 MiG29Cut.Dump("inner_" + part.name, iv, it);
                 AddMeshObject("MiG29_inner_" + part.name, tr, PartMesh("MiG29_inner_" + part.name, tr, iv, inr, iuv, icol, it), radome ? honeyMat : structMat);
                 innerTris += it.Count / 3;
                 Debug.Log($"[MiG29] part {part.name}: {b.t.Count / 3} tris");
             }
-            Debug.Log($"[MiG29] inner hull: {outsideDropped} inset points outside the skin dropped");
-            Physics.queriesHitBackfaces = backfaces; UnityEngine.Object.DestroyImmediate(rayGo);
+            Debug.Log($"[MiG29] inner hull: {outsideDropped} inset points outside the skin dropped, {ductDropped} inside the intake ducts");
+            Physics.queriesHitBackfaces = backfaces; UnityEngine.Object.DestroyImmediate(rayGo); UnityEngine.Object.DestroyImmediate(ductGo);
             Debug.Log($"[MiG29] interior: {innerTris} triangles (inner hull, radome honeycomb, engines)");
 
             // Hitboxes: the KR-67's own part colliders (designed not to overlap each other, which matters because in complex

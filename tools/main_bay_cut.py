@@ -54,8 +54,7 @@ def swept_leg(R, step_t=1 / 60):
 
 if __name__ == "__main__":
     G = 0.025; GLO, GHI = (-2.35, -1.15, -1.3), (-0.35, 0.85, 5.0)
-    hid = bay_grid.Hidden(bay_grid.skin_triangles(SRC, ("body", "gear_doors_closed", "canopy")), GLO, GHI, G,
-                          boxes=[((-0.98, -0.88, 3.59), (-0.42, -0.30, 3.61))])
+    hid = bay_grid.Hidden(bay_grid.skin_triangles(SRC, ("body", "gear_doors_closed", "canopy"), ducts=True), GLO, GHI, G)
     poses = swept_leg(R)
     mesh = json.load(open(os.path.join(SRC, "mig29_mesh.json")))
     body = next(p for p in mesh["parts"] if p["name"] == "body")

@@ -120,7 +120,7 @@ namespace MiG29Instruments
 
         static Material ChuteMaterial(Aircraft ac)
         {
-            foreach (var t in MiGParts.Named(ac, "MiG29_intake_blocker"))   // the flat-colour missile atlas
+            foreach (var t in MiGParts.Named(ac, "MiG29_fod_door"))   // the flat-colour missile atlas
                 if (t.TryGetComponent<Renderer>(out var r) && r.sharedMaterial != null) return r.sharedMaterial;
             return null;
         }
