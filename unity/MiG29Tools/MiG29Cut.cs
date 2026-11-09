@@ -53,6 +53,12 @@ namespace MiG29Tools
             public int Label(Vector3 p)
             {
                 if (fixedPart != null) { int o = fixedPart(p); if (o >= 0) return o; }
+                return Nearest(p);
+            }
+
+            // the hull the point is deepest inside (or least outside), ignoring fixedPart
+            public int Nearest(Vector3 p)
+            {
                 int best = -1; float bd = float.MaxValue;
                 for (int k = 0; k < faces.Length; k++)
                 {
@@ -374,6 +380,18 @@ namespace MiG29Tools
                     f.v.Add(front + rad * radius); f.n.Add(fwd); f.uv.Add(new Vector2(0.80f + 0.085f * Mathf.Cos(ang), 0.52f + 0.085f * Mathf.Sin(ang)));
                 }
                 for (int i = 0; i < Sides; i++) f.t.AddRange(new[] { c0, c0 + 2 + i, c0 + 1 + i });
+                // and the turbine face at the back, seen once the nozzle has broken off (an empty black can before; stock jets show
+                // their engines' faces there)
+                var r = Get(label(rear + fwd * 0.2f));
+                int r0 = r.v.Count;
+                r.v.Add(rear); r.n.Add(-fwd); r.uv.Add(new Vector2(0.80f, 0.52f));
+                for (int i = 0; i <= Sides; i++)
+                {
+                    float ang = i * Mathf.PI * 2 / Sides;
+                    var rad = side * Mathf.Cos(ang) + up * Mathf.Sin(ang);
+                    r.v.Add(rear + rad * radius); r.n.Add(-fwd); r.uv.Add(new Vector2(0.80f + 0.085f * Mathf.Cos(ang), 0.52f + 0.085f * Mathf.Sin(ang)));
+                }
+                for (int i = 0; i < Sides; i++) r.t.AddRange(new[] { r0, r0 + 1 + i, r0 + 2 + i });   // the front disc's winding, turned to face aft
             }
             return outp;
         }

@@ -7,6 +7,10 @@
 - **New intake doors.** Each door is now a panel of the duct roof, as on the real jet: it follows the duct's shape and lean, closes
   wall to wall on the ground with the engines running, and lies flush with the duct roof in flight instead of vanishing. The
   stowed main wheels no longer show inside the ducts.
+- **Breaking apart looks more like the stock jets.** Losing the nose now drops the whole radome, leaving a bulkhead and radar dish
+  behind it, instead of only the pitot. The leading-edge strips of each wing break off visibly instead of vanishing. An exposed
+  intake duct reads as a metal trunk instead of a black hole. The engines leave with their own stretch of duct, and a broken-off
+  nozzle no longer leaves an empty can.
 
 ## 0.9.4
 - **The jet as a 3D model for livery painters** (`liveries/model`): `MiG-29.fbx`, the whole jet as the game builds it with its
