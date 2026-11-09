@@ -161,13 +161,11 @@ grunge = np.clip(grunge, 0.12, 1.0)
 # stock map is ~0.59). Through a hole you see structure, not the length of the jet: MiG29Cut puts an inside shell and a bulkhead at
 # every seam (a hollow skin showed the nose gear from behind the cockpit, user v0.9.2).
 # The holes themselves are painted where each round lands (MiG29Instruments Holes.cs, a per-aircraft copy of this map: it scales the
-# alpha down to ~0.22 in the core, ~0.53 in a charred ring). So nothing here goes below the highest cut-off (~0.55): no hole opens
-# on its own. Clean skin sits at ~0.62, about the stock jets' 0.59, so a part chars all over once it is badly hurt (~70 hit points)
-# as theirs do; at 0.74 it never charred and a MiG at 60 hit points looked untouched next to a stock jet (break-every-part
-# pictures, 2026-11-09). The burn patches sit just under it (0.56-0.58) and char first; Holes.cs's brushes start from 0.62.
+# alpha down to ~0.22 in the core, ~0.53 in a charred ring). So nothing here goes below the highest cut-off (0.61+): the burn
+# patches only char black as the part is destroyed, clean skin at 0.74 never does, and the brushes start from 0.74.
 scorch = smooth(0.0, 0.7, blur(burn.astype(np.float32), 7))
-alpha = 0.62 + 0.02 * (fbm(P * 3.0 + 4.0, 3) - 0.5) - 0.03 * scorch
-alpha = np.where(burn, 0.575 - 0.015 * depth, alpha)
+alpha = 0.74 + 0.03 * (fbm(P * 3.0 + 4.0, 3) - 0.5) - 0.06 * scorch
+alpha = np.where(burn, 0.66 - 0.05 * depth, alpha)
 
 rgb = np.repeat(grunge[..., None], 3, 2)
 rgba = np.concatenate([rgb, alpha[..., None]], 2)

@@ -229,10 +229,10 @@ namespace MiG29Instruments
             GL.PushMatrix(); GL.LoadOrtho();
             Holes.BrushMaterial.SetPass(0);
             GL.Begin(GL.TRIANGLES);
-            // charred ring (scales the map's clean ~0.62 to ~0.53: chars soon, opens once the part is badly hurt), then the
-            // burnt-through core (to ~0.22: opens after the first few hits). Jagged outlines, a little rotated each time.
-            Poly(c, r * Holes.Rand(2.0f, 2.8f), 0.86f, 13);
-            Poly(c, r * Holes.Rand(0.9f, 1.2f), 0.36f, 11);
+            // charred ring (scales the mask to ~0.7: chars soon, opens once the part is badly hurt), then the burnt-through core
+            // (~0.3: opens after the first few hits). Jagged outlines, a little rotated each time.
+            Poly(c, r * Holes.Rand(2.0f, 2.8f), 0.72f, 13);
+            Poly(c, r * Holes.Rand(0.9f, 1.2f), 0.30f, 11);
             GL.End();
             GL.PopMatrix();
             RenderTexture.active = prev;
