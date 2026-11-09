@@ -839,8 +839,33 @@ namespace MiG29Tools
             // whole radome and show the bay behind it (the bulkhead and radar dish below)
             int nosePart = parts.FindIndex(p => p.name == "nose");
             float radomeZ = RadomeSeamZ + ModelOffset.z;
+            // ...and the wings' leading-edge flap band (LeFlapChord behind the straight swept leading edge) to the KR-67's leading-edge
+            // parts (wing1_F*, wing2_F*): their hulls hold no MiG skin, so they took hits and broke off unseen (same pictures). The band
+            // goes to the leading-edge part of whichever wing panel it lies on.
+            var leOf = new Dictionary<int, int>();
+            for (int i = 0; i < parts.Count; i++)
+            {
+                var n = parts[i].name;
+                if ((n.StartsWith("wing1_") || n.StartsWith("wing2_")) && n.Length == 7) { int f = parts.FindIndex(p => p.name == n.Substring(0, 6) + "F" + n.Substring(6)); if (f >= 0) leOf[i] = f; }
+            }
+            bool InLeBand(Vector3 c)
+            {
+                var q = c - ModelOffset; float ax = Mathf.Abs(q.x);
+                if (ax < LeRootX || ax > LeTipX || q.y < -0.25f || q.y > 0.30f) return false;
+                float le = LeZ(ax);
+                return q.z > le - LeFlapChord && q.z < le + 0.05f;
+            }
             hulls.fixedPart = c => Mathf.Abs(c.x) > 1.2f && Mathf.Abs(c.x) < 2.4f && c.y > 0.45f && c.z < -2.5f ? (c.x < 0 ? tailL : tailR)
-                : nosePart >= 0 && c.z > radomeZ && Mathf.Abs(c.x) < 0.75f ? nosePart : -1;
+                : nosePart >= 0 && c.z > radomeZ && Mathf.Abs(c.x) < 0.75f ? nosePart
+                : InLeBand(c) && leOf.TryGetValue(hulls.Nearest(c), out int le) ? le : -1;
+            foreach (var sx in new[] { -1f, 1f })
+            {
+                // the band's aft edge, parallel to the leading edge: z = LeZ(|x|) - LeFlapChord, as a plane in the prefab frame
+                var nrm = new Vector3(sx * LeSweep, 0f, 1f);
+                var pt = new Vector3(sx * LeRootX, 0f, LeZ(LeRootX) - LeFlapChord) + ModelOffset;
+                hulls.fixedFaces.Add(new MiG29Cut.Plane(nrm, Vector3.Dot(nrm, pt)));
+                hulls.fixedFaces.Add(new MiG29Cut.Plane(0, sx * LeRootX));
+            }
             foreach (var x in new[] { -2.4f, -1.2f, 1.2f, 2.4f }) hulls.fixedFaces.Add(new MiG29Cut.Plane(0, x));
             hulls.fixedFaces.Add(new MiG29Cut.Plane(1, 0.45f)); hulls.fixedFaces.Add(new MiG29Cut.Plane(2, -2.5f));
             hulls.fixedFaces.Add(new MiG29Cut.Plane(2, radomeZ));
@@ -1019,7 +1044,10 @@ namespace MiG29Tools
         }
 
         const float HitboxWidthScale = 0.8f;
-        const float RadomeSeamZ = 8.22f;   // MiG frame: the ring where the radome meets the forward fuselage (dense vertex ring at z 8.21)
+        const float RadomeSeamZ = 8.22f;
+        // MiG frame: the wing's straight leading edge, z at |x| (sliced from the model: 2.845 at 2.1, 0.018 at 5.1), and the flap band
+        const float LeRootX = 2.1f, LeTipX = 5.6f, LeSweep = 0.9433f, LeFlapChord = 0.35f;
+        static float LeZ(float ax) => 2.845f - LeSweep * (ax - LeRootX);   // MiG frame: the ring where the radome meets the forward fuselage (dense vertex ring at z 8.21)
         const float EngineLength = 2.6f, EngineRadius = 0.42f;   // RD-33 body forward of the nozzle root, inside the nacelle
 
         static void SetHitbox(Component part, Mesh mesh)

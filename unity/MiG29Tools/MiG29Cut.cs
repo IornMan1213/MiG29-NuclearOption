@@ -53,6 +53,12 @@ namespace MiG29Tools
             public int Label(Vector3 p)
             {
                 if (fixedPart != null) { int o = fixedPart(p); if (o >= 0) return o; }
+                return Nearest(p);
+            }
+
+            // the hull the point is deepest inside (or least outside), ignoring fixedPart
+            public int Nearest(Vector3 p)
+            {
                 int best = -1; float bd = float.MaxValue;
                 for (int k = 0; k < faces.Length; k++)
                 {
