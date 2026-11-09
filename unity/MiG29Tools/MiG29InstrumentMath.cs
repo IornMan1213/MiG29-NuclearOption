@@ -24,7 +24,7 @@ namespace MiG29Tools
 
     public static class MiG29InstrumentMath
     {
-        // Intake FOD doors (MiG29Builder.AddIntakeBlockers builds them open): closed = the hinge turned this far about its x axis, from
+        // Intake FOD doors (MiG29Builder.AddFodDoors builds them open): closed = the hinge turned this far about its x axis, from
         // lying along the duct roof to sealing the duct down to its floor. Closed on the ground below 200 km/h with an engine running,
         // like the cockpit's ПЗУ light.
         public const float FodClosedDeg = -56.4f;

@@ -72,7 +72,8 @@ for r in range(1, len(dist) - 1):
     dist[r][spike] = mid[spike]
 rings = [cc + DIRS * (d - INSET)[:, None] for cc, d in zip(centres, dist)]
 # the front edge: each line along the wall carried forward until it runs out of duct or reaches the raked mouth (the roof goes on
-# forward as the wing-root underside, outside the intake), stopping 3 cm short of the lip
+# forward as the wing-root underside, outside the intake; below the lip's height the floor ends where the rays run out), stopping
+# 3 cm short of the lip
 c0 = centres[0]; front = []
 for k in range(M):
     z, last = Z_FRONT, rings[0][k]
@@ -80,7 +81,7 @@ for k in range(M):
         z += 0.02; t = ray(np.array([c0[0], c0[1], z]), DIRS[k])
         if not (np.isfinite(t) and t < 0.6): break
         p = np.array([c0[0], c0[1], z]) + DIRS[k] * (t - INSET)
-        if p[2] > MOUTH[1] + (p[1] - MOUTH[0]) * MOUTH[2]: break
+        if p[1] >= MOUTH[0] and p[2] > MOUTH[1] + (p[1] - MOUTH[0]) * MOUTH[2]: break
         last = p
     front.append(last - np.array([0, 0, 0.03]) if last[2] - 0.03 > Z_FRONT + 0.02 else rings[0][k] + np.array([0, 0, 0.02]))
 rings.insert(0, np.array(front)); centres.insert(0, c0)
@@ -145,15 +146,20 @@ else:
     raise SystemExit(f"intake_duct: liner still crosses the model walls at {int(bad.sum())} points")
 print(f"intake_duct: {int((moved > 0).sum())} liner points moved in (up to {moved.max() * 100:.0f} cm) to clear the model walls")
 
-# --- mesh: rings joined round and along; normals inward; v by depth along each wall line ---
+# --- mesh: rings joined round and along; normals from the neighbouring points (the sections are rounded rectangles: radial normals
+# shaded the flat walls as curved), turned inward; v by depth along each wall line ---
+along = pts[np.minimum(np.arange(R) + 1, R - 1)] - pts[np.maximum(np.arange(R) - 1, 0)]
+round_ = np.roll(pts, -1, axis=1) - np.roll(pts, 1, axis=1)
+nrm = np.cross(round_, along); nrm /= np.linalg.norm(nrm, axis=2)[:, :, None]
+inward = np.array([[c[0], c[1], 0.0] for c in centres])[:, None, :] - pts * np.array([1.0, 1.0, 0.0])
+if np.einsum("rkj,rkj->", nrm, inward) < 0: nrm = -nrm
 depth = np.zeros((R, M))
 for r in range(1, R): depth[r] = depth[r - 1] + np.linalg.norm(pts[r] - pts[r - 1], axis=1)
 verts, norms, uvs, tris = [], [], [], []
 for r in range(R):
     for k in range(M + 1):                                                            # seam column repeated for the UVs
         kk = k % M; p = pts[r, kk]
-        n = centres[r] - p; n /= np.linalg.norm(n)
-        verts.append(p); norms.append(n); uvs.append((k / M, depth[r, kk] / DEPTH_UV))
+        verts.append(p); norms.append(nrm[r, kk]); uvs.append((k / M, depth[r, kk] / DEPTH_UV))
 for r in range(R - 1):
     for k in range(M):
         a, b, c, d = r * (M + 1) + k, r * (M + 1) + k + 1, (r + 1) * (M + 1) + k, (r + 1) * (M + 1) + k + 1
@@ -172,8 +178,11 @@ def flange(width):
     return np.concatenate([pts[0], pts[0] + out * width[:, None]])
 
 
-# the front edge closed against the model wall (the liner sits 1.5 cm or more inside it): a slit there would show the livery
-fl = flange(INSET + moved[0] - 0.003); i0 = len(verts)
+# the front edge closed against the model wall (the liner sits 1.5 cm or more inside it): a slit there would show the livery. The
+# wall is measured again at each front point's own height (it flares toward the lip)
+gap = np.array([ray(np.array([c0[0], c0[1], pts[0, k, 2]]), DIRS[k]) - np.linalg.norm(pts[0, k, :2] - c0[:2]) for k in range(M)])
+gap = np.where(np.isfinite(gap) & (gap > 0) & (gap < 0.2), gap, INSET + moved[0])
+fl = flange(gap - 0.003); i0 = len(verts)
 for k in range(2 * M): verts.append(fl[k]); norms.append(np.array([0.0, 0.0, 1.0])); uvs.append(((k % M) / M, 0.0))
 for k in range(M):
     a, b, c, d = i0 + k, i0 + (k + 1) % M, i0 + M + k, i0 + M + (k + 1) % M
