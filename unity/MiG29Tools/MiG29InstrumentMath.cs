@@ -27,7 +27,7 @@ namespace MiG29Tools
         // Intake FOD doors (MiG29Builder.AddFodDoors builds them open): closed = the hinge turned this far about its x axis, from
         // lying along the duct roof to sealing the duct down to its floor. Closed on the ground below 200 km/h with an engine running,
         // like the cockpit's ПЗУ light.
-        public const float FodClosedDeg = -56.4f;
+        public const float FodClosedDeg = -56f;   // keep in step with tools/fod_door.py DOOR_DEG
         public static bool FodClosed(bool onGround, float iasKmh, float rpmL, float rpmR) => onGround && iasKmh < 200f && (rpmL > 40f || rpmR > 40f);
 
         static float Lin(float v, float lo, float hi, float a0, float a1) => a0 + Mathf.Clamp01((v - lo) / (hi - lo)) * (a1 - a0);
