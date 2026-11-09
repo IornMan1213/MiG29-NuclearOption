@@ -834,9 +834,16 @@ namespace MiG29Tools
             Debug.Log($"[MiG29] hulls: {parts.Count} parts, {hulls.faces.Sum(x => x.Count)} faces, {dropped} degenerate; points per hull {string.Join(",", parts.Select(p => p.GetComponent<MeshCollider>()?.sharedMesh?.vertexCount ?? 0))}");
             // MiG vertical fins sit where the KR-67 has nothing: they go to the tail parts
             int tailL = parts.FindIndex(p => p.name == "tail_L"), tailR = parts.FindIndex(p => p.name == "tail_R");
-            hulls.fixedPart = c => Mathf.Abs(c.x) > 1.2f && Mathf.Abs(c.x) < 2.4f && c.y > 0.45f && c.z < -2.5f ? (c.x < 0 ? tailL : tailR) : -1;
+            // ...and the radome, ahead of its seam ring, to the nose part: the KR-67's nose hull holds only the MiG's pitot boom, so
+            // losing the nose dropped a needle and left the radome on (break-every-part pictures, 2026-11-09); the stock jets drop the
+            // whole radome and show the bay behind it (the bulkhead and radar dish below)
+            int nosePart = parts.FindIndex(p => p.name == "nose");
+            float radomeZ = RadomeSeamZ + ModelOffset.z;
+            hulls.fixedPart = c => Mathf.Abs(c.x) > 1.2f && Mathf.Abs(c.x) < 2.4f && c.y > 0.45f && c.z < -2.5f ? (c.x < 0 ? tailL : tailR)
+                : nosePart >= 0 && c.z > radomeZ && Mathf.Abs(c.x) < 0.75f ? nosePart : -1;
             foreach (var x in new[] { -2.4f, -1.2f, 1.2f, 2.4f }) hulls.fixedFaces.Add(new MiG29Cut.Plane(0, x));
             hulls.fixedFaces.Add(new MiG29Cut.Plane(1, 0.45f)); hulls.fixedFaces.Add(new MiG29Cut.Plane(2, -2.5f));
+            hulls.fixedFaces.Add(new MiG29Cut.Plane(2, radomeZ));
             var world = pieces.Select(piece =>
             {
                 int n = piece.vertices.Length / 3;
@@ -876,12 +883,18 @@ namespace MiG29Tools
             // the intake ducts' liners, from the lips to those engine fronts, each piece on the part it lies in (MiG29Duct)
             var ductMat = MiG29Duct.Material(mat, (o, path) => CreateOrReplace(o, path));
             var ducts = new Dictionary<int, (List<Vector3> v, List<Vector3> n, List<Vector2> uv, List<int> t)>();
+            int ductSide = 0;
             foreach (var (dv, dn, duv, dt) in MiG29Duct.Liners())
             {
+                // the stretch aft of the model's old duct end runs on into the engine and belongs to it, as the stock jets' last
+                // stretch of duct does: on the hull it fell to the centre fuselage, and stayed hanging there as a ring once the
+                // engine broke off (break-every-part pictures, 2026-11-09)
+                int engine = parts.FindIndex(p => p.name == (ductSide++ == 0 ? "engine_L" : "engine_R"));
                 var map = new Dictionary<(int part, int vert), int>();
                 for (int i = 0; i < dt.Length; i += 3)
                 {
-                    int k = hulls.Label((dv[dt[i]] + dv[dt[i + 1]] + dv[dt[i + 2]]) / 3f + ModelOffset);
+                    var ctr = (dv[dt[i]] + dv[dt[i + 1]] + dv[dt[i + 2]]) / 3f;
+                    int k = engine >= 0 && ctr.z < MiG29Duct.CapZ ? engine : hulls.Label(ctr + ModelOffset);
                     if (!ducts.TryGetValue(k, out var m)) ducts[k] = m = (new List<Vector3>(), new List<Vector3>(), new List<Vector2>(), new List<int>());
                     for (int c = 0; c < 3; c++)
                     {
@@ -895,7 +908,36 @@ namespace MiG29Tools
             {
                 var part = parts[kv.Key]; var (dv, dn, duv, dt) = kv.Value;
                 AddMeshObject("MiG29_duct_" + part.name, part.transform, PartMesh("MiG29_duct_" + part.name, part.transform, dv, dn, duv, null, dt), ductMat);
-                innerTris += dt.Count / 3;
+                // its outside, in the airframe's structure: once the skin over it is gone the duct reads as a metal trunk, not as the
+                // dark inside of its far wall seen through the near one (a black hole in the side, same pictures)
+                var ot = new List<int>(); for (int i = 0; i < dt.Count; i += 3) { ot.Add(dt[i]); ot.Add(dt[i + 2]); ot.Add(dt[i + 1]); }
+                var ouv = duv.Select(u => new Vector2(u.x * 2.2f * 0.46f, u.y * 6f * 0.46f)).ToList();   // ~2.2 m round, 6 m per v; structure tiles
+                AddMeshObject("MiG29_inner_duct_" + part.name, part.transform, PartMesh("MiG29_inner_duct_" + part.name, part.transform, dv, dn.Select(x => -x).ToList(), ouv,
+                    Enumerable.Repeat(new Color32(0x57, 0x57, 0x57, 255), dv.Count).ToList(), ot), structMat);
+                innerTris += dt.Count / 3 * 2;
+            }
+            // behind the radome, on the part that stays when it goes: a bulkhead across the seam and a radar dish ahead of it, as the
+            // stock jets show a bay where their radome was. Inside the radome otherwise, out of sight.
+            {
+                var seam = new Vector3(0f, 0.18f, RadomeSeamZ - 0.01f) + ModelOffset;
+                var holder = parts[hulls.Label(seam - Vector3.forward * 0.15f)];
+                var bv = new List<Vector3>(); var bn = new List<Vector3>(); var buv = new List<Vector2>(); var bc = new List<Color32>(); var bt = new List<int>();
+                void Disc(Vector3 c, float rx, float ry, float bulge, Color32 tint)
+                {
+                    const int Sides = 32; int c0 = bv.Count;
+                    bv.Add(c + Vector3.forward * bulge); bn.Add(Vector3.forward); buv.Add(new Vector2(0.5f, 0.5f)); bc.Add(tint);
+                    for (int i = 0; i < Sides; i++)
+                    {
+                        float a = i * Mathf.PI * 2f / Sides;
+                        bv.Add(c + new Vector3(Mathf.Cos(a) * rx, Mathf.Sin(a) * ry, 0f)); bn.Add(Vector3.forward);
+                        buv.Add(new Vector2(0.5f + Mathf.Cos(a) * rx * 0.46f, 0.5f + Mathf.Sin(a) * ry * 0.46f)); bc.Add(tint);
+                    }
+                    for (int i = 0; i < Sides; i++) bt.AddRange(new[] { c0, c0 + 1 + i, c0 + 1 + (i + 1) % Sides });   // facing forward: cross(b - a, c - a) along +z
+                }
+                Disc(seam, 0.47f, 0.62f, 0f, new Color32(0x57, 0x57, 0x57, 255));                                  // bulkhead: the seam ring
+                Disc(seam + new Vector3(0f, -0.03f, 0.2f), 0.36f, 0.36f, -0.06f, new Color32(0x8a, 0x8a, 0x8a, 255));   // radar dish, dished
+                AddMeshObject("MiG29_inner_bulkhead", holder.transform, PartMesh("MiG29_inner_bulkhead", holder.transform, bv, bn, buv, bc, bt), structMat);
+                Debug.Log($"[MiG29] radome: bulkhead and radar dish on {holder.name}");
             }
             Debug.Log($"[MiG29] intakes: duct liners on {ducts.Count} parts ({string.Join(", ", ducts.Keys.Select(k => parts[k].name))})");
 
@@ -977,6 +1019,7 @@ namespace MiG29Tools
         }
 
         const float HitboxWidthScale = 0.8f;
+        const float RadomeSeamZ = 8.22f;   // MiG frame: the ring where the radome meets the forward fuselage (dense vertex ring at z 8.21)
         const float EngineLength = 2.6f, EngineRadius = 0.42f;   // RD-33 body forward of the nozzle root, inside the nacelle
 
         static void SetHitbox(Component part, Mesh mesh)

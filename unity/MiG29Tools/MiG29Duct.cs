@@ -22,6 +22,7 @@ namespace MiG29Tools
         [Serializable] class Dump { public float cap_z; public Side L, R; }
 
         static Dump dump;
+        public static float CapZ => D.cap_z;   // the model's old duct end (MiG frame z)
         static Dump D => dump ?? (dump = JsonUtility.FromJson<Dump>(File.ReadAllText(Path.Combine(SourceDir, "intake_duct.json"))));
 
         // The model's duct end caps (MiG frame): the 20 triangles lying in the cap plane.
