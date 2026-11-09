@@ -14,6 +14,8 @@ python intake_duct.py <MiG29Source>  ->  MiG29Source/intake_duct.json (both duct
 duct_ao.png, duct_metallic.png"""
 import json, os, sys
 import numpy as np
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import gear_stow
 
 SRC = sys.argv[1]
 CAP_Z = 0.746                                  # the model's duct end cap (all 20 triangles lie in this plane)
@@ -22,6 +24,7 @@ END_RADIUS = 0.415                             # inside the engine casing, under
 INSET = 0.015
 M = 64                                         # points round the duct
 Z_FRONT, Z_LAST, DZ = 4.05, 0.80, 0.10         # measured stations (left duct, MiG frame)
+GEAR_CLEAR = 0.025                             # duct roof under the stowed main wheel
 TRANSITION = 14                                # rings from the last station to the engine front
 MOUTH = (-0.832, 4.164, 1.668)                 # the raked mouth: z = z0 + (y - y0) * slope (both side-wall leading edges, lower lip to roof)
 DEPTH_UV = 6.0
@@ -105,6 +108,42 @@ for i in range(1, TRANSITION + 1):
     ey = np.array([0.0, 1.0, 0.0]) - tan * tan[1]; ey /= np.linalg.norm(ey); ex = np.cross(tan, ey)
     r = (1 - e) * dL + e * END_RADIUS
     rings.append(p + (np.cos(ANG)[:, None] * ex + np.sin(ANG)[:, None] * ey) * r[:, None]); centres.append(p)
+
+# --- the stowed main wheel (tools/gear_stow.py) sits ~0.2 m down into the model duct 2.2-3.4 m behind the nose (the black panel hid
+# it): the roof comes down over it in a smooth hump, GEAR_CLEAR under its lowest point in every 2 cm column, widened by 6 cm ---
+gear = gear_stow.stowed_points(SRC)
+gear = gear[(gear[:, 0] > -1.3) & (gear[:, 0] < -0.2) & (gear[:, 2] > 1.5) & (gear[:, 2] < 4.2)]
+CELL = 0.02; gx0, gz0 = -1.3, 1.5
+nx_, nz_ = int(1.1 / CELL) + 1, int(2.7 / CELL) + 1
+low = np.full((nx_, nz_), np.inf)
+ix = ((gear[:, 0] - gx0) / CELL).astype(int); iz = ((gear[:, 2] - gz0) / CELL).astype(int)
+np.minimum.at(low, (ix, iz), gear[:, 1])
+for _ in range(3):                                                                    # 3 cells: ~6 cm round the wheel
+    g = low.copy()
+    for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+        g = np.minimum(g, np.roll(np.roll(low, dx, 0), dz, 1))
+    low = g
+# the most each liner point may rise (above the duct: no limit), then smoothed into an even bulge: a min filter wider than the blur
+# that follows, so the blur never brings the roof closer to the wheel than the limit
+lim = np.ones((len(rings), M))
+for r, (cc, ring) in enumerate(zip(centres, rings)):
+    for k in range(M):
+        p = ring[k]
+        i, j = int((p[0] - gx0) / CELL), int((p[2] - gz0) / CELL)
+        if p[1] > cc[1] and 0 <= i < nx_ and 0 <= j < nz_ and np.isfinite(low[i, j]): lim[r, k] = low[i, j] - GEAR_CLEAR
+def spread(f, op, n):
+    for _ in range(n):
+        nb = [f, np.roll(f, 1, 1), np.roll(f, -1, 1), np.vstack([f[:1], f[:-1]]), np.vstack([f[1:], f[-1:]])]
+        f = op(nb)
+    return f
+lim = spread(lim, lambda nb: np.minimum.reduce(nb), 3)
+lim = spread(lim, lambda nb: sum(nb) / 5, 2)
+humped = 0
+for r, ring in enumerate(rings):
+    for k in range(M):
+        if ring[k][1] > lim[r, k]: ring[k] = np.array([ring[k][0], lim[r, k], ring[k][2]]); humped += 1
+print(f"intake_duct: roof brought down over the stowed main wheel at {humped} liner points "
+      f"(lowest {min(r[:, 1].max() for r, c in zip(rings, centres) if 2.2 < c[2] < 3.4):.3f} at the roof's top)")
 
 # --- keep the liner inside the model walls: their facets kink inward between the measured points, where a liner edge would pass
 # behind the wall and the livery show through. Any liner edge (round, along, or the quads' diagonal) that crosses a model triangle
