@@ -61,8 +61,7 @@ body = next(p for p in mesh["parts"] if p["name"] == "body")
 BV = np.array(body["vertices"]).reshape(-1, 3); BN = np.array(body["normals"]).reshape(-1, 3); BU = np.array(body["uvs"]).reshape(-1, 2)
 BT = np.array(body["triangles"]).reshape(-1, 3)
 G = 0.025
-hid = bay_grid.Hidden(bay_grid.skin_triangles(SRC, ("body", "gear_doors_closed", "canopy")), (-2.0, -1.0, 2.0), (-0.6, 0.6, 4.3), G,
-                      boxes=[((-0.98, -0.88, 3.59), (-0.42, -0.30, 3.61))])
+hid = bay_grid.Hidden(bay_grid.skin_triangles(SRC, ("body", "gear_doors_closed", "canopy"), ducts=True), (-2.0, -1.0, 2.0), (-0.6, 0.6, 4.3), G)
 remove, skinV, skinN, skinU, skinT = [], [], [], [], []
 doors = {}
 for side, sx in (("L", 1.0), ("R", -1.0)):

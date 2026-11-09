@@ -34,9 +34,8 @@ def surface_samples(V, T, step):
     return np.concatenate(out)
 
 
-# --- the hidden space (closed doors, intake blockers sealing the ducts) ---
-hid = bay_grid.Hidden(bay_grid.skin_triangles(SRC, ("body", "gear_doors_closed", "canopy")), LO, HI, H,
-                      boxes=[((-0.98, -0.88, 3.59), (-0.42, -0.30, 3.61))])
+# --- the hidden space (closed doors; the intake ducts open to the engines are outside air) ---
+hid = bay_grid.Hidden(bay_grid.skin_triangles(SRC, ("body", "gear_doors_closed", "canopy"), ducts=True), LO, HI, H)
 shape = np.array(hid.shape)
 
 # --- the swept leg: plugin path and the game's straight arc (MiG29Instruments/GearPath.cs, MiG29Tools.MiG29MainGear) ---

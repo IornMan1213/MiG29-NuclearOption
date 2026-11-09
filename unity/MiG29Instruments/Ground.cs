@@ -5,7 +5,7 @@ using UnityEngine;
 namespace MiG29Instruments
 {
     // Things the real MiG-29 does on the ground. Both run for every MiG (player or AI), from the aircraft's own state.
-    //  - IntakeDriver: the intake FOD doors (MiG29_fod_<L|R>, built open by MiG29Builder.AddIntakeBlockers) close on the ground
+    //  - IntakeDriver: the intake FOD doors (MiG29_fod_<L|R>, built open by MiG29Builder.AddFodDoors) close on the ground
     //    below 200 km/h with an engine running, when the cockpit's ПЗУ light is on, and open again on the take-off roll. Visual only.
     //  - ChuteDriver: the brake chute streams from its housing at the tip of the tail after touchdown and is dropped when the jet has
     //    slowed to a walk (or the pilot goes around). Its drag is applied where the aircraft is simulated (the owner).
@@ -120,7 +120,7 @@ namespace MiG29Instruments
 
         static Material ChuteMaterial(Aircraft ac)
         {
-            foreach (var t in MiGParts.Named(ac, "MiG29_intake_blocker"))   // the flat-colour missile atlas
+            foreach (var t in MiGParts.Named(ac, "MiG29_fod_door"))   // the flat-colour missile atlas
                 if (t.TryGetComponent<Renderer>(out var r) && r.sharedMaterial != null) return r.sharedMaterial;
             return null;
         }

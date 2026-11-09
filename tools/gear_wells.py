@@ -77,7 +77,7 @@ for name, (rule, depth) in BAYS.items():
         nrm = np.cross(p[1] - p[0], p[2] - p[0])
         if np.linalg.norm(nrm) < 1e-9: return
         nrm /= np.linalg.norm(nrm)
-        # Unity front faces (clockwise seen from the viewer) have cross(b - a, c - a) pointing at the viewer (see MiG29Builder.AtlasBox)
+        # Unity front faces (clockwise seen from the viewer) have cross(b - a, c - a) pointing at the viewer (see tools/missile_gen.py)
         if nrm @ inward_hint < 0: p = p[::-1]; nrm = -nrm
         b = len(verts)
         for q in p:

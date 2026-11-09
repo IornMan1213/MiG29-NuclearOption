@@ -18,7 +18,7 @@ namespace MiG29Tools
     static class MiG29Lod
     {
         static readonly string[] Always = { "MiG29_skin_", "MiG29_aileron_", "MiG29_flap_", "MiG29_rudder_", "MiG29_stab_", "MiG29_canopy", "MiG29_abflame_", "MiG29_nozstatic_" };
-        static readonly string[] Internal = { "MiG29_well_", "MiG29_airbrake_well", "MiG29_fod_", "MiG29_intake_blocker", "MiG29_noz_L_inner", "MiG29_noz_R_inner", "MiG29_noz_L_seal", "MiG29_noz_R_seal", "MiG29_inner_", "MiG29_mech_" };
+        static readonly string[] Internal = { "MiG29_well_", "MiG29_airbrake_well", "MiG29_fod_", "MiG29_duct_", "MiG29_noz_L_inner", "MiG29_noz_R_inner", "MiG29_noz_L_seal", "MiG29_noz_R_seal", "MiG29_inner_", "MiG29_mech_" };
 
         static bool Middle(string n) =>
             (n.StartsWith("MiG29_noz_") && n.Contains("_flap_")) ||
@@ -26,7 +26,8 @@ namespace MiG29Tools
             (n.StartsWith("MiG29_airbrake_") && n.EndsWith("_panel")) ||
             n == "MiG29_ck_frames_ext" ||
             n.StartsWith("MiG29_gear_") ||              // the MiG main gear legs (MiG29MainGear)
-            n.StartsWith("MiG29_pylon_");               // the wing pylon fairings (MiG29Weapons.SetupPylonFairings)
+            n.StartsWith("MiG29_pylon_") ||             // the wing pylon fairings (MiG29Weapons.SetupPylonFairings)
+            n.StartsWith("MiG29_duct_");                // the intake ducts: past ~470 m the model's own duct walls would show the livery
 
         public static void Apply(GameObject go)
         {

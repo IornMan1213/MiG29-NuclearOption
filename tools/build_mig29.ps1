@@ -56,6 +56,7 @@ Push-Location (Split-Path $tools)
 & $py "$tools/damage_textures.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "damage_textures failed" }   # after fix_winding (mesh) and normal_map_y
 & $py "$tools/missile_gen.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "missile_gen failed" }
 & $py "$tools/nozzle_gen.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "nozzle_gen failed" }
+& $py "$tools/intake_duct.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "intake_duct failed" }   # after nozzle_gen (engine axes); before the well and bay tools
 & $py "$tools/nose_bay.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "nose_bay failed" }
 & $py "$tools/gear_wells.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "gear_wells failed" }
 & $py "$tools/main_gear_gen.py" "$src"; if ($LASTEXITCODE -ne 0) { throw "main_gear_gen failed" }
