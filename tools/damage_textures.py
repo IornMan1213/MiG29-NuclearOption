@@ -140,7 +140,7 @@ spk = fbm(P * 34.0 + 4.4, 3)
 spread = 0.75 + 0.25 * fbm(P * 1.3 + 3.1, 3)
 score = spread * (0.50 * smooth(0.70, 0.92, rip) + 0.35 * smooth(0.60, 0.78, spk) + 0.30 * lines * smooth(0.55, 0.85, rip))
 score += 0.5 * smooth(0.80, 0.86, fbm(P * 45.0 + 1.7, 2))
-thr = np.quantile(score[cov], 0.93)                          # holes on ~7% of the skin (the stock jets' are small)
+thr = np.quantile(score[cov], 0.90)                          # holes on ~10% of the skin (the stock jets' ~15%, in clusters)
 burn = score > thr
 depth = np.clip((score - thr) / (np.quantile(score[cov], 0.985) - thr), 0, 1)   # 0 at a hole's edge, 1 deep inside
 
@@ -154,18 +154,16 @@ grunge -= 0.30 * smooth(0.50, 0.85, fbm(streak + 5.0, 4))
 grunge -= 0.10 * (fbm(P * 30.0 + 2.0, 2) - 0.5) + 0.12 * lines * region
 grunge = np.clip(grunge, 0.12, 1.0)
 
-# burn mask, read by the stock skin shader (measured with an alpha ramp): a pixel opens into a hole once its alpha falls below a
-# cut-off that rises with damage (0 at ~97 hit points, ~0.35 at 85, ~0.5 at 70, ~0.55 at most) and chars black within ~0.12
-# above it. So, like the stock map: holes 0.16 (open first) .. 0.45 at their edges, a scorch halo round each (0.45 .. 0.6) that
-# chars outward (never opens: it stays above the cut-off) as the part takes more damage, and clean skin at ~0.62, which only chars when the part is nearly destroyed (the
-# stock map is ~0.59). Through a hole you see structure, not the length of the jet: MiG29Cut puts an inside shell and a bulkhead at
-# every seam (a hollow skin showed the nose gear from behind the cockpit, user v0.9.2).
-# The holes themselves are painted where each round lands (MiG29Instruments Holes.cs, a per-aircraft copy of this map: it scales the
-# alpha down to ~0.22 in the core, ~0.53 in a charred ring). So nothing here goes below the highest cut-off (0.61+): the burn
-# patches only char black as the part is destroyed, clean skin at 0.74 never does, and the brushes start from 0.74.
+# burn mask, read by the stock skin shader (calibrated in game with an alpha ramp, 2026-11-09): a texel opens into the shader's own
+# structure pattern once its alpha is under a cut-off that rises with damage (the lowest from ~85 hit points, up to ~0.5 by ~55);
+# above ~0.5 a texel never changes, at any damage. So, like the stock map: holes from 0.16 in their cores (open first) to 0.45 at
+# their edges, which open as the part takes more damage, wherever it was hit: the damage the shader can show without a round's
+# hole (a blast, fire, a part worn down by many hits). Clean skin and the scorch round each hole stay above 0.5 and never open.
+# The rounds' own holes are painted where each lands (MiG29Instruments Holes.cs, a per-aircraft copy of this map: it scales the
+# alpha down to ~0.22 in the core, ~0.53 in a charred ring, from clean skin at 0.74): sharper up close, and placed by the hit.
 scorch = smooth(0.0, 0.7, blur(burn.astype(np.float32), 7))
 alpha = 0.74 + 0.03 * (fbm(P * 3.0 + 4.0, 3) - 0.5) - 0.06 * scorch
-alpha = np.where(burn, 0.66 - 0.05 * depth, alpha)
+alpha = np.where(burn, 0.45 - 0.29 * depth, alpha)
 
 rgb = np.repeat(grunge[..., None], 3, 2)
 rgba = np.concatenate([rgb, alpha[..., None]], 2)
