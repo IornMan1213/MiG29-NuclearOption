@@ -940,6 +940,18 @@ namespace MiG29Tools
             bool InDuct(Vector3 p) => new[] { Vector3.up, Vector3.down, Vector3.left, Vector3.right }.All(dir => Physics.Raycast(p, dir, out _, 1.2f, 1 << 30, QueryTriggerInteraction.Ignore));
             int ductDropped = 0;
 
+            // ribs, spars and frames inside the airframe (MiG29Structure), on the part each piece lies in
+            {
+                var structure = MiG29Structure.Build(31, p => InCockpit(p) || InDuct(p) || Outside(p), ax => LeZ(ax) + ModelOffset.z, MiG29Parts.Te,
+                    axes, 0.46f, new Color32(0x57, 0x57, 0x57, 255), out var structReport);
+                foreach (var kv in structure)
+                {
+                    var tr = parts[partIndex[kv.Key]].transform; var pc = kv.Value;
+                    AddMeshObject("MiG29_inner_struct_" + kv.Key, tr, PartMesh("MiG29_inner_struct_" + kv.Key, tr, pc.v, pc.n, pc.uv, pc.c, pc.t), structMat);
+                    innerTris += pc.t.Count / 3;
+                }
+                Debug.Log("[MiG29] structure: " + structReport);
+            }
             foreach (var kv in buckets)
             {
                 var part = parts[kv.Key]; var b = kv.Value; var tr = part.transform;

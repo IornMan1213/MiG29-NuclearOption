@@ -13,13 +13,21 @@
   nozzle no longer leaves an empty can.
 - **Damage shows before the holes from hits.** As a part takes damage from blasts, fire or many hits, small torn patches open
   evenly over it onto the structure underneath, as on the stock jets. Bullet holes still appear exactly where each round lands.
-- **Hits land on the MiG's own shape.** The wings, flaps, ailerons, elevators, fins and wingtips now take hits where the MiG's
-  skin is, instead of on the stock jet's outline underneath it. The centre of gravity and the handling are unchanged.
+- **The MiG breaks up like a MiG.** Its damage parts are its own now, instead of the stock KR-67's: 32 parts split on the
+  MiG-29's own joints (the radome seam, the frame behind the canopy, the wing frame, the nacelle frame, the wing root rib, the
+  rib between flap and aileron, the tip rib, the fin roots). A broken cockpit section takes the canopy and nose gear, the
+  leading-edge extensions and intakes break off whole, the fins can be shot off on their own, and pylons leave with their wing
+  panel. Masses, joint strengths and fuel tanks follow the real jet; the flight model is unchanged.
+- **Hits land on the MiG's own shape.** Every part's hitbox is fitted to its own skin, and rounds no longer pass between parts
+  along the seams.
+- **Ribs, spars and frames inside.** Broken wings show their ribs and spars, with a rib on each side of every joint, and the
+  fuselage, engine bays and leading-edge extensions show their frames, through holes and at breaks.
 - **Fire, smoke and fuel leaks come from the jet.** A burning tank, a leak, a failed engine's smoke and the debris of a part
   breaking off now start on that part's skin, instead of up to 2 m away (an outer wing tank used to burn in the air ahead of the
   wing). Needs the plugin.
-- **Broken edges have frames.** Where a part breaks away, its edge shows a few centimetres of structure, like the frame or rib
-  at a real joint, instead of a paper-thin skin.
+- **Broken edges have frames.** Where a part breaks away, its edge shows a few centimetres of structure instead of a
+  paper-thin skin.
+- **Multiplayer:** the damage parts changed, so players on this version and on 0.9.4 cannot fly together.
 
 ## 0.9.4
 - **The jet as a 3D model for livery painters** (`liveries/model`): `MiG-29.fbx`, the whole jet as the game builds it with its

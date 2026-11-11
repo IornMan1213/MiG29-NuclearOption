@@ -56,7 +56,7 @@ namespace MiG29Tools
             return true;
         }
 
-        static float Te(float ax) => TeRoot + TeSlope * (ax - TeX0);
+        internal static float Te(float ax) => TeRoot + TeSlope * (ax - TeX0);
 
         /// <summary>The part a point of the skin belongs to.</summary>
         public static string Label(Vector3 p)
