@@ -397,7 +397,7 @@ namespace MiG29Tools
             foreach (var side in new[] { "L", "R" })
             {
                 var lamp = disp.transform.Find("ENGINE FIRE " + side) as RectTransform;
-                var eng = Find(go.transform, "engine_" + side);
+                var eng = Find(go.transform, "nacelle_" + side);
                 if (lamp == null) continue;
                 var p = new Vector2(eng.position.x - center.x, eng.position.z - center.y) / half * 0.5f;
                 lamp.anchoredPosition = new Vector2(p.x * rootRect.sizeDelta.x, p.y * rootRect.sizeDelta.y);

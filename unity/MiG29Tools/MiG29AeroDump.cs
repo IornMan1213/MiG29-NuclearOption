@@ -27,7 +27,6 @@ namespace MiG29Tools
             var go = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath));
             go.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
             var sb = new StringBuilder("{\"parts\":[\n");
-            var moved = MiG29Hitbox.ReadMoved();
             bool first = true;
             foreach (var part in go.GetComponentsInChildren(T("AeroPart"), true))
             {
@@ -53,7 +52,7 @@ namespace MiG29Tools
                 sb.Append($"{{\"name\":\"{part.name}\",\"path\":\"{AnimationUtility.CalculateTransformPath(t, go.transform)}\",\"mass\":{so.FindProperty("mass").floatValue},");
                 sb.Append($"\"com\":{V(com)},\"pos\":{V(t.position)},\"wingArea\":{so.FindProperty("wingArea").floatValue},\"dragArea\":{so.FindProperty("dragArea").floatValue},");
                 sb.Append($"\"airfoil\":{so.FindProperty("airfoil").intValue},\"wingEffectiveness\":{(so.FindProperty("wingEffectiveness")?.floatValue ?? 1f)},\"centerOfLift\":{V(so.FindProperty("centerOfLift").vector3Value)},");
-                sb.Append($"\"lnPos\":{V(ln.position)},\"lnRight\":{V(ln.right)},\"lnUp\":{V(ln.up)},\"lnFwd\":{V(ln.forward)},\"topArea\":{(top / 2f).ToString("F3")},\"sideArea\":{(side / 2f).ToString("F3")}" + (moved.TryGetValue(part.name, out var mv) ? $",\"comMoved\":{V(mv)}" : "") + "}");
+                sb.Append($"\"lnPos\":{V(ln.position)},\"lnRight\":{V(ln.right)},\"lnUp\":{V(ln.up)},\"lnFwd\":{V(ln.forward)},\"topArea\":{(top / 2f).ToString("F3")},\"sideArea\":{(side / 2f).ToString("F3")}" + "}");
             }
             sb.Append("\n],\"thrust\":[");
             first = true;

@@ -335,7 +335,7 @@ namespace MiG29Tools
                 bool left = oldT != null && oldT.position.x < 0;
                 // on the wing tip's own damage part (it breaks off with the tip), else the outer wing's
                 var wing = root.GetComponentsInChildren<Transform>(true).FirstOrDefault(x => x.name == (left ? "wingtip_L" : "wingtip_R") && x.GetComponent(upType) != null)
-                           ?? Child(root, left ? "wing2_L" : "wing2_R");
+                           ?? Child(root, left ? "wing_outer_L" : "wing_outer_R");
                 var t = new GameObject(left ? "hardpoint_wingtip_L" : "hardpoint_wingtip_R").transform;
                 t.SetParent(wing, false);
                 t.SetPositionAndRotation(new Vector3((left ? -1 : 1) * WingtipStation.x, WingtipStation.y, WingtipStation.z) + modelOffset, Quaternion.identity);
@@ -882,7 +882,7 @@ namespace MiG29Tools
                 var hp = hps.GetArrayElementAtIndex(i);
                 var oldT = hp.FindPropertyRelative("transform").objectReferenceValue as Transform;
                 bool left = oldT != null && oldT.position.x < 0;
-                var wing = Child(root, left ? "wing2_L" : "wing2_R");
+                var wing = Child(root, left ? "wing_outer_L" : "wing_outer_R");
                 var t = new GameObject(left ? "hardpoint_pylon_L3" : "hardpoint_pylon_R3").transform;
                 t.SetParent(wing, false);
                 t.SetPositionAndRotation(P(OuterPylon, left ? -1 : 1), Quaternion.Euler(OuterPylonPitch, 0f, 0f) * (oldT != null ? oldT.rotation : Quaternion.identity));

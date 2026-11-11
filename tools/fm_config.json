@@ -1,5 +1,5 @@
 {
- "_note": "MiG-29 (9.12) flight model for Nuclear Option. Areas/drag are game-model values tuned in tools/fm_sim.py against published MiG-29 figures.",
+ "_note": "MiG-29 (9.12) flight model for Nuclear Option. Areas/drag are game-model values tuned in tools/fm_sim.py against published MiG-29 figures. Parts are the MiG's own (MiG29Parts.cs); liftPoint is each surface's lift point in the aircraft (prefab) frame.",
  "fuelKg": 3690,
  "alphaLimitDeg": 28,
  "engine": {
@@ -223,330 +223,302 @@
   "MiG29": {
    "wingArea": 2.0,
    "dragArea": 0.1,
-   "centerOfLift": [
+   "liftPoint": [
     0.0,
-    -0.397,
-    0.294
+    -0.4123,
+    0.2717
    ]
   },
-  "fuselage_F": {
+  "forward_fuselage": {
    "wingArea": 1.5,
    "dragArea": 0.15,
-   "centerOfLift": [
+   "liftPoint": [
     -0.005,
-    -0.376,
-    1.044
+    -0.2697,
+    4.0465
    ]
   },
-  "cockpit": {
+  "cockpit_section": {
    "wingArea": 0.0,
    "dragArea": 0.18,
-   "centerOfLift": [
-    -0.564,
-    0.007,
-    1.041
+   "liftPoint": [
+    -0.007,
+    -0.2971,
+    7.3497
    ]
   },
-  "nose": {
+  "radome": {
    "wingArea": 0.0,
    "dragArea": 0.1,
-   "centerOfLift": [
+   "liftPoint": [
     0.0,
-    -0.409,
-    -0.272
+    -0.5663,
+    8.5855
    ]
   },
-  "wingRoot_L": {
-   "wingArea": 2.0,
-   "dragArea": 0.005,
-   "centerOfLift": [
-    -0.303,
-    -0.463,
-    1.756
-   ]
-  },
-  "wingRoot_R": {
-   "wingArea": 2.0,
-   "dragArea": 0.005,
-   "centerOfLift": [
-    0.303,
-    -0.463,
-    1.755
-   ]
-  },
-  "fuselage_R": {
+  "aft_spine": {
    "wingArea": 1.0,
    "dragArea": 0.08,
-   "centerOfLift": [
+   "liftPoint": [
     0.0,
-    -0.489,
-    0.246
+    -0.4781,
+    -2.615
    ]
   },
-  "engine_L": {
-   "wingArea": 0.6,
-   "dragArea": 0.06,
-   "centerOfLift": [
-    -0.141,
-    -0.5,
-    0.391
-   ]
-  },
-  "engine_R": {
-   "wingArea": 0.6,
-   "dragArea": 0.06,
-   "centerOfLift": [
-    0.14,
-    -0.5,
-    0.391
-   ]
-  },
-  "tail_L": {
-   "wingArea": 5.0,
-   "dragArea": 0.02,
-   "centerOfLift": [
-    0.095,
-    0.685,
-    0.473
-   ]
-  },
-  "tail_R": {
-   "wingArea": 5.0,
-   "dragArea": 0.02,
-   "centerOfLift": [
-    -0.095,
-    0.685,
-    0.473
-   ]
-  },
-  "elevator_L": {
-   "wingArea": 3.5,
-   "dragArea": 0.01,
-   "ctrl": "pitch",
-   "lnRight": [
-    1,
-    0,
-    0
-   ],
-   "lnFwd": [
-    0,
-    0,
-    1
-   ],
-   "centerOfLift": [
-    0.125,
-    -1.533,
-    0.734
-   ]
-  },
-  "elevator_R": {
-   "wingArea": 3.5,
-   "dragArea": 0.01,
-   "ctrl": "pitch",
-   "lnRight": [
-    1,
-    0,
-    0
-   ],
-   "lnFwd": [
-    0,
-    0,
-    1
-   ],
-   "centerOfLift": [
-    -0.124,
-    -1.534,
-    0.736
-   ]
-  },
-  "nozzle_L": {
-   "wingArea": 0.0,
-   "dragArea": 0.08,
-   "centerOfLift": [
-    -0.217,
-    0.048,
-    1.142
-   ]
-  },
-  "nozzle_R": {
-   "wingArea": 0.0,
-   "dragArea": 0.08,
-   "centerOfLift": [
-    0.217,
-    0.048,
-    1.142
-   ]
-  },
-  "tail": {
+  "tail_cone": {
    "wingArea": 0.3,
    "dragArea": 0.08,
-   "centerOfLift": [
+   "liftPoint": [
     0.0,
-    -0.586,
-    1.167
+    -0.4636,
+    -4.5695
    ]
   },
-  "gearbay_L": {
-   "wingArea": 1.2,
-   "dragArea": 0.06,
-   "centerOfLift": [
-    -0.029,
-    -0.576,
-    0.203
-   ]
-  },
-  "gearbay_R": {
-   "wingArea": 1.2,
-   "dragArea": 0.06,
-   "centerOfLift": [
-    0.03,
-    -0.577,
-    0.204
+  "lerx_L": {
+   "wingArea": 2.0,
+   "dragArea": 0.005,
+   "liftPoint": [
+    -1.5996,
+    -0.2496,
+    4.0104
    ]
   },
   "intake_L": {
    "wingArea": 0.6,
    "dragArea": 0.16,
-   "centerOfLift": [
-    0.322,
-    -0.143,
-    0.067
+   "liftPoint": [
+    -0.8759,
+    -0.6049,
+    2.3298
    ]
   },
-  "intake_R": {
-   "wingArea": 0.6,
-   "dragArea": 0.16,
-   "centerOfLift": [
-    -0.322,
-    -0.143,
-    0.067
+  "centre_wing_L": {
+   "wingArea": 1.2,
+   "dragArea": 0.06,
+   "liftPoint": [
+    -1.2881,
+    -0.6807,
+    -0.5555
    ]
   },
-  "wing1_L": {
-   "wingArea": 5.0,
-   "dragArea": 0.005,
-   "centerOfLift": [
-    -0.321,
-    -0.416,
-    0.446
+  "wing_inner_L": {
+   "wingArea": 5.8,
+   "dragArea": 0.008,
+   "liftPoint": [
+    -2.9333,
+    -0.4635,
+    -0.4904
    ]
   },
-  "wing1_R": {
-   "wingArea": 5.0,
-   "dragArea": 0.005,
-   "centerOfLift": [
-    0.321,
-    -0.416,
-    0.446
-   ]
-  },
-  "wing2_L": {
-   "wingArea": 3.6,
-   "dragArea": 0.005,
-   "centerOfLift": [
-    -0.167,
-    -0.509,
-    -0.212
-   ]
-  },
-  "wing2_R": {
-   "wingArea": 3.6,
-   "dragArea": 0.005,
-   "centerOfLift": [
-    0.167,
-    -0.509,
-    -0.212
+  "wing_outer_L": {
+   "wingArea": 4.2,
+   "dragArea": 0.008,
+   "liftPoint": [
+    -4.1848,
+    -0.5265,
+    -1.5307
    ]
   },
   "wingtip_L": {
    "wingArea": 0.6,
    "dragArea": 0.003,
-   "centerOfLift": [
-    -0.144,
-    -0.494,
-    -1.703
-   ]
-  },
-  "wingtip_R": {
-   "wingArea": 0.6,
-   "dragArea": 0.003,
-   "centerOfLift": [
-    0.144,
-    -0.494,
-    -1.703
-   ]
-  },
-  "aileron_L": {
-   "wingArea": 1.0,
-   "dragArea": 0.0,
-   "centerOfLift": [
-    -1.477,
-    -0.358,
-    -0.287
-   ]
-  },
-  "aileron_R": {
-   "wingArea": 1.0,
-   "dragArea": 0.0,
-   "centerOfLift": [
-    1.478,
-    -0.358,
-    -0.286
+   "liftPoint": [
+    -5.2382,
+    -0.4786,
+    -3.0878
    ]
   },
   "flap_L": {
    "wingArea": 1.6,
    "dragArea": 0.0,
-   "centerOfLift": [
-    0.137,
-    -0.223,
-    0.365
+   "liftPoint": [
+    -2.5341,
+    -0.3635,
+    -2.4552
+   ]
+  },
+  "aileron_L": {
+   "wingArea": 1.0,
+   "dragArea": 0.0,
+   "liftPoint": [
+    -5.592,
+    -0.4246,
+    -2.8483
+   ]
+  },
+  "nacelle_L": {
+   "wingArea": 0.6,
+   "dragArea": 0.06,
+   "liftPoint": [
+    -1.1078,
+    -0.4419,
+    -3.3638
+   ]
+  },
+  "nozzle_L": {
+   "wingArea": 0.0,
+   "dragArea": 0.08,
+   "liftPoint": [
+    -0.9009,
+    -0.6858,
+    -5.1422
+   ]
+  },
+  "fin_L": {
+   "wingArea": 5.0,
+   "dragArea": 0.02,
+   "liftPoint": [
+    -2.2738,
+    0.2446,
+    -4.0541
+   ]
+  },
+  "stabilator_L": {
+   "ctrl": "pitch",
+   "lnRight": [
+    1,
+    0,
+    0
+   ],
+   "lnFwd": [
+    0,
+    0,
+    1
+   ],
+   "wingArea": 3.5,
+   "dragArea": 0.01,
+   "liftPoint": [
+    -2.454,
+    -0.497,
+    -5.8057
+   ]
+  },
+  "boom_L": {
+   "wingArea": 0,
+   "dragArea": 0
+  },
+  "lerx_R": {
+   "wingArea": 2.0,
+   "dragArea": 0.005,
+   "liftPoint": [
+    1.5996,
+    -0.2496,
+    4.0104
+   ]
+  },
+  "intake_R": {
+   "wingArea": 0.6,
+   "dragArea": 0.16,
+   "liftPoint": [
+    0.8759,
+    -0.6049,
+    2.3298
+   ]
+  },
+  "centre_wing_R": {
+   "wingArea": 1.2,
+   "dragArea": 0.06,
+   "liftPoint": [
+    1.2881,
+    -0.6807,
+    -0.5555
+   ]
+  },
+  "wing_inner_R": {
+   "wingArea": 5.8,
+   "dragArea": 0.008,
+   "liftPoint": [
+    2.9333,
+    -0.4635,
+    -0.4904
+   ]
+  },
+  "wing_outer_R": {
+   "wingArea": 4.2,
+   "dragArea": 0.008,
+   "liftPoint": [
+    4.1848,
+    -0.5265,
+    -1.5307
+   ]
+  },
+  "wingtip_R": {
+   "wingArea": 0.6,
+   "dragArea": 0.003,
+   "liftPoint": [
+    5.2382,
+    -0.4786,
+    -3.0878
    ]
   },
   "flap_R": {
    "wingArea": 1.6,
    "dragArea": 0.0,
-   "centerOfLift": [
-    -0.137,
-    -0.223,
-    0.365
+   "liftPoint": [
+    2.5341,
+    -0.3635,
+    -2.4552
    ]
   },
-  "wing1_FL": {
-   "wingArea": 0.8,
-   "dragArea": 0.003,
-   "centerOfLift": [
-    -0.206,
-    -0.47,
-    -1.182
+  "aileron_R": {
+   "wingArea": 1.0,
+   "dragArea": 0.0,
+   "liftPoint": [
+    5.592,
+    -0.4246,
+    -2.8483
    ]
   },
-  "wing1_FR": {
-   "wingArea": 0.8,
-   "dragArea": 0.003,
-   "centerOfLift": [
-    0.206,
-    -0.47,
-    -1.182
-   ]
-  },
-  "wing2_FL": {
+  "nacelle_R": {
    "wingArea": 0.6,
-   "dragArea": 0.003,
-   "centerOfLift": [
-    -0.265,
-    -0.528,
-    -1.232
+   "dragArea": 0.06,
+   "liftPoint": [
+    1.1078,
+    -0.4419,
+    -3.3638
    ]
   },
-  "wing2_FR": {
-   "wingArea": 0.6,
-   "dragArea": 0.003,
-   "centerOfLift": [
-    0.265,
-    -0.528,
-    -1.242
+  "nozzle_R": {
+   "wingArea": 0.0,
+   "dragArea": 0.08,
+   "liftPoint": [
+    0.9009,
+    -0.6858,
+    -5.1422
    ]
+  },
+  "fin_R": {
+   "wingArea": 5.0,
+   "dragArea": 0.02,
+   "liftPoint": [
+    2.2738,
+    0.2446,
+    -4.0541
+   ]
+  },
+  "stabilator_R": {
+   "ctrl": "pitch",
+   "lnRight": [
+    1,
+    0,
+    0
+   ],
+   "lnFwd": [
+    0,
+    0,
+    1
+   ],
+   "wingArea": 3.5,
+   "dragArea": 0.01,
+   "liftPoint": [
+    2.454,
+    -0.497,
+    -5.8057
+   ]
+  },
+  "boom_R": {
+   "wingArea": 0,
+   "dragArea": 0
   }
  }
 }

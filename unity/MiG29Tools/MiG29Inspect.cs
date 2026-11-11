@@ -270,5 +270,47 @@ namespace MiG29Tools
             }
             catch (Exception e) { Debug.LogException(e); EditorApplication.Exit(1); }
         }
+
+        // Every damage part of the built MiG: its fields, the components on it and under it (down to the next part), and every
+        // serialized reference in the prefab that points at a part (MiG29Out/inspect_parts.txt)
+        public static void RunParts()
+        {
+            try
+            {
+                var g = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Blueprinter/Mods/mig29/MiG29.prefab");
+                var up = T("UnitPart");
+                var parts = g.GetComponentsInChildren(up, true);
+                var partGo = parts.ToDictionary(p => p.gameObject, p => p.name);
+                var sb = new StringBuilder();
+                foreach (var p in parts)
+                {
+                    sb.AppendLine($"#### {p.name} ({p.GetType().Name}) {Path(p.transform, g.transform)} pos={p.transform.position:F3} rot={p.transform.eulerAngles:F1}");
+                    DumpObject(sb, p, "    ");
+                    void Walk(Transform t, string ind)
+                    {
+                        foreach (var c in t.GetComponents<Component>())
+                            if (c != null && c != p && !(c is Transform)) sb.AppendLine($"{ind}{t.name}: {c.GetType().Name}");
+                        foreach (Transform ch in t) if (ch.GetComponent(up) == null) Walk(ch, ind + "  ");
+                    }
+                    Walk(p.transform, "  > ");
+                }
+                sb.AppendLine("#### references to parts");
+                foreach (var c in g.GetComponentsInChildren<Component>(true))
+                {
+                    if (c == null || c is Transform) continue;
+                    var it = new SerializedObject(c).GetIterator();
+                    while (it.Next(true))
+                    {
+                        if (it.propertyType != SerializedPropertyType.ObjectReference || it.objectReferenceValue == null) continue;
+                        var r = it.objectReferenceValue; GameObject rg = r as GameObject ?? (r as Component)?.gameObject;
+                        if (rg == null || !partGo.ContainsKey(rg) || rg == c.gameObject) continue;
+                        sb.AppendLine($"  {Path(c.transform, g.transform)} [{c.GetType().Name}].{it.propertyPath} -> {rg.name} ({r.GetType().Name})");
+                    }
+                }
+                File.WriteAllText("MiG29Out/inspect_parts.txt", sb.ToString());
+                EditorApplication.Exit(0);
+            }
+            catch (Exception e) { Debug.LogException(e); EditorApplication.Exit(1); }
+        }
     }
 }
