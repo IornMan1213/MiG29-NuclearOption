@@ -251,20 +251,20 @@ namespace MiG29Tools
         // metre), one vertex colour (the stock structure shader tints by it). World space in and out, like the bucket.
         public const float InnerMax = 0.10f;
         const float FlipMax = 0.25f, RimMax = 0.02f, ThinWall = 0.015f;
-        public static (List<Vector3> v, List<Vector3> n, List<Vector2> uv, List<Color32> c, List<int> t) Interior(Bucket b, float tilesPerMetre, Color32 tint, Func<Vector3, Vector3, float> depth, Func<Vector3, bool> keepOut = null, Func<Vector3, bool> outside = null)
+        public static (List<Vector3> v, List<Vector3> n, List<Vector2> uv, List<Color32> c, List<int> t) Interior(Bucket b, float tilesPerMetre, Color32 tint, Func<Vector3, Vector3, float> depth, Func<Vector3, bool> keepOut = null, Func<Vector3, bool> outside = null, HashSet<((int, int, int), (int, int, int))> cut = null)
         {
             // one inset per position (the bucket splits vertices at UV seams; separate insets would crack the hull there)
             var key2 = new Dictionary<(int, int, int), int>(); var pid = new int[b.v.Count]; var nsum = new List<Vector3>(); var ppos = new List<Vector3>();
             for (int i = 0; i < b.v.Count; i++)
             {
-                var k = (Mathf.RoundToInt(b.v[i].x * 1e4f), Mathf.RoundToInt(b.v[i].y * 1e4f), Mathf.RoundToInt(b.v[i].z * 1e4f));
+                var k = PosKey(b.v[i]);
                 if (!key2.TryGetValue(k, out int p)) { p = ppos.Count; key2[k] = p; ppos.Add(b.v[i]); nsum.Add(Vector3.zero); }
                 pid[i] = p; nsum[p] += b.n[i];
             }
             // which way is in: the model's normals point inward in places (and the inset then went 10 cm OUT of the skin: structure
             // standing off the nacelles and the nozzle covers, user screenshots); so a ray each way, and the side that finds the far
             // skin is the inside. Thin open sheets (no far skin either way: flaps, the covers over the nozzles) get no inner hull.
-            var inner = new Vector3[ppos.Count]; var inN = new Vector3[ppos.Count]; var open = new bool[ppos.Count];
+            var inner = new Vector3[ppos.Count]; var inN = new Vector3[ppos.Count]; var open = new bool[ppos.Count]; var deep = new float[ppos.Count];
             // the skin's open edges (the nozzle openings, intake lips, cut-outs, panel edges): their rays skim past the edge into the
             // next panel, and the hull flared out round the nozzles (user screenshot): never flipped there, and inset 2 cm at most
             var edgeUse = new Dictionary<(int, int), int>();
@@ -284,7 +284,7 @@ namespace MiG29Tools
                 float d = depth(ppos[p], -nn);                                   // distance to the airframe's far side, inward
                 if (d < 0f) { float d2 = depth(ppos[p], nn); if (!rim[p] && d2 > 0f && d2 < FlipMax) { nn = -nn; d = d2; } }   // a far hit is another panel, not this one's inside
                 if (d < 0f) { open[p] = true; inner[p] = ppos[p]; inN[p] = nn; continue; }
-                inN[p] = nn;
+                inN[p] = nn; deep[p] = Mathf.Clamp(d * 0.33f, InnerInset, FrameMax);
                 inner[p] = ppos[p] - nn * Mathf.Clamp(d * 0.33f, InnerInset, rim[p] ? RimMax : InnerMax);   // at an edge the ray may have skimmed into another panel
             }
             // A triangle touching a thin wall goes no deeper than its shallowest corner. The intake ducts' side walls are a few long
@@ -331,7 +331,108 @@ namespace MiG29Tools
                     t.Add(b0); t.Add(b0 + 1); t.Add(b0 + 2);
                 }
             }
+            // Frames along the cuts. Where a part breaks away, the skin's cut edge stood 2 cm proud of the inner hull with nothing
+            // between them: a paper-thin skin round the hole. Each cut edge gets a strip from the skin inward along the same rays as
+            // the hull (so it passes through the hull's own edge and closes that gap) and on to FrameMax, like the frame or rib a
+            // real airframe has at a production joint. One-sided, facing the part that is gone: while both parts are there the
+            // two strips lie back to back inside the airframe and neither is seen.
+            if (cut != null)
+            {
+                Vector3 Tip(int p)
+                {
+                    float have = (ppos[p] - inner[p]).magnitude;
+                    var q = ppos[p] - inN[p] * (lim[p] < amt[p] ? have : Mathf.Max(have, deep[p]));   // a thin wall: no further than the hull
+                    return (keepOut != null && keepOut(q)) || (outside != null && outside(q)) ? inner[p] : q;
+                }
+                for (int i = 0; i < b.t.Count; i += 3)
+                    for (int k = 0; k < 3; k++)
+                    {
+                        int p0 = pid[b.t[i + k]], p1 = pid[b.t[i + (k + 1) % 3]], p2 = pid[b.t[i + (k + 2) % 3]];
+                        if (p0 == p1 || open[p0] || open[p1] || edgeUse[p0 < p1 ? (p0, p1) : (p1, p0)] != 1) continue;
+                        if (!cut.Contains(EdgeKey(PosKey(ppos[p0]), PosKey(ppos[p1])))) continue;
+                        var e = ppos[p1] - ppos[p0];
+                        var o = (ppos[p0] + ppos[p1]) / 2f - ppos[p2]; o -= e * Vector3.Dot(o, e) / e.sqrMagnitude;   // across the cut, toward the other part
+                        if (o.sqrMagnitude < 1e-10f) continue;
+                        o.Normalize();
+                        Vector3 A = ppos[p0], B = ppos[p1], C = Tip(p1), D = Tip(p0);
+                        if ((C - B).sqrMagnitude < 1e-6f && (D - A).sqrMagnitude < 1e-6f) continue;
+                        bool flip = Vector3.Dot(Vector3.Cross(B - A, C - A) + Vector3.Cross(C - A, D - A), o) < 0f;
+                        var a = new Vector3(Mathf.Abs(o.x), Mathf.Abs(o.y), Mathf.Abs(o.z));
+                        Vector2 Q(Vector3 q) => (a.x >= a.y && a.x >= a.z ? new Vector2(q.z, q.y) : a.y >= a.z ? new Vector2(q.z, q.x) : new Vector2(q.x, q.y)) * tilesPerMetre;
+                        int b0 = v.Count;
+                        foreach (var corner in new[] { A, B, C, D }) { v.Add(corner); n.Add(o); uv.Add(Q(corner)); col.Add(tint); }
+                        foreach (int corner in flip ? new[] { 0, 2, 1, 0, 3, 2 } : new[] { 0, 1, 2, 0, 2, 3 }) t.Add(b0 + corner);
+                        frames++;
+                    }
+            }
             return (v, n, uv, col, t);
+        }
+
+        public static int frames;   // strips made by Interior, for the build log
+        const float FrameMax = 0.06f;
+        static (int, int, int) PosKey(Vector3 p) => (Mathf.RoundToInt(p.x * 1e4f), Mathf.RoundToInt(p.y * 1e4f), Mathf.RoundToInt(p.z * 1e4f));
+        static ((int, int, int), (int, int, int)) EdgeKey((int, int, int) a, (int, int, int) b) => a.CompareTo(b) <= 0 ? (a, b) : (b, a);
+
+        // The edges the split made, per bucket, as opposed to the skin's own open edges (intake lips, nozzle rims, the gaps between
+        // the model's unwelded panels: five times as many). A cut edge is an open edge of its bucket that another bucket has too.
+        // Most match exactly (Clip gives both sides the same points); where one side's triangle was cut again the other side has
+        // the edge in two pieces, so the rest are matched by their midpoint lying on another bucket's open edge.
+        public static Dictionary<int, HashSet<((int, int, int), (int, int, int))>> CutEdges(Dictionary<int, Bucket> buckets)
+        {
+            const float Cell = 0.25f, Tol = 0.0005f;
+            var open = new Dictionary<int, List<(Vector3 a, Vector3 b)>>();
+            var owners = new Dictionary<((int, int, int), (int, int, int)), int>();   // the bucket, or -1 once two have it
+            foreach (var kv in buckets)
+            {
+                var b = kv.Value; var use = new Dictionary<((int, int, int), (int, int, int)), (int n, Vector3 a, Vector3 b)>();
+                for (int i = 0; i < b.t.Count; i += 3)
+                    for (int k = 0; k < 3; k++)
+                    {
+                        Vector3 pa = b.v[b.t[i + k]], pb = b.v[b.t[i + (k + 1) % 3]];
+                        var ka = PosKey(pa); var kb = PosKey(pb);
+                        if (ka.Equals(kb)) continue;
+                        var e = EdgeKey(ka, kb);
+                        use[e] = (use.TryGetValue(e, out var u) ? u.n + 1 : 1, pa, pb);
+                    }
+                var list = open[kv.Key] = new List<(Vector3 a, Vector3 b)>();
+                foreach (var u in use.Where(x => x.Value.n == 1))
+                {
+                    list.Add((u.Value.a, u.Value.b));
+                    owners[u.Key] = owners.ContainsKey(u.Key) ? -1 : kv.Key;
+                }
+            }
+            (int, int, int) CellOf(Vector3 p) => (Mathf.FloorToInt(p.x / Cell), Mathf.FloorToInt(p.y / Cell), Mathf.FloorToInt(p.z / Cell));
+            var grid = new Dictionary<(int, int, int), List<(int bucket, Vector3 a, Vector3 b)>>();
+            foreach (var kv in open)
+                foreach (var (a, b) in kv.Value)
+                {
+                    var lo = CellOf(Vector3.Min(a, b) - Vector3.one * Tol); var hi = CellOf(Vector3.Max(a, b) + Vector3.one * Tol);
+                    for (int x = lo.Item1; x <= hi.Item1; x++) for (int y = lo.Item2; y <= hi.Item2; y++) for (int z = lo.Item3; z <= hi.Item3; z++)
+                    {
+                        if (!grid.TryGetValue((x, y, z), out var cell)) grid[(x, y, z)] = cell = new List<(int, Vector3, Vector3)>();
+                        cell.Add((kv.Key, a, b));
+                    }
+                }
+            var cuts = new Dictionary<int, HashSet<((int, int, int), (int, int, int))>>();
+            foreach (var kv in open)
+            {
+                var set = cuts[kv.Key] = new HashSet<((int, int, int), (int, int, int))>();
+                foreach (var (a, b) in kv.Value)
+                {
+                    var e = EdgeKey(PosKey(a), PosKey(b));
+                    bool isCut = owners[e] == -1;
+                    var m = (a + b) / 2f;
+                    if (!isCut && grid.TryGetValue(CellOf(m), out var cell))
+                        foreach (var s in cell)
+                        {
+                            if (s.bucket == kv.Key) continue;
+                            var d = s.b - s.a; float f = Mathf.Clamp01(Vector3.Dot(m - s.a, d) / d.sqrMagnitude);
+                            if ((s.a + d * f - m).sqrMagnitude < Tol * Tol) { isCut = true; break; }
+                        }
+                    if (isCut) set.Add(e);
+                }
+            }
+            return cuts;
         }
         // RD-33 engine bodies inside the nacelles ("jet_mechanical", like the stock jets' internals): a ring-segmented casing along
         // each engine axis with the fan face in front, every 0.4 m segment on the part its centre lies in. World space.

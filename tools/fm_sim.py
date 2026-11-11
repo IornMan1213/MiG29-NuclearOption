@@ -60,6 +60,11 @@ for p in aero["parts"]:
     q["right"] = np.array(o.get("lnRight", p["lnRight"]), float)
     q["fwd"] = np.array(o.get("lnFwd", p["lnFwd"]), float)
     q["cL"] = np.array(o.get("centerOfLift", p["centerOfLift"]), float)
+    if "centerOfLift" in o and "comMoved" in p:
+        # the config's centerOfLift is from the part's old centre of mass; the build takes the fitted hitbox's move out of it
+        # (MiG29Hitbox.Compensate), so the lift point stays where the config puts it
+        up = np.cross(q["fwd"], q["right"]) if "lnRight" in o else np.array(p["lnUp"], float)
+        q["cL"] -= np.array([q["right"], up, q["fwd"]]) @ np.array(p["comMoved"], float)
     q["ctrl"] = o.get("ctrl")  # "pitch" -> deflects with stabilator
     parts.append(q)
 

@@ -13,6 +13,13 @@
   nozzle no longer leaves an empty can.
 - **Damage shows before the holes from hits.** As a part takes damage from blasts, fire or many hits, small torn patches open
   evenly over it onto the structure underneath, as on the stock jets. Bullet holes still appear exactly where each round lands.
+- **Hits land on the MiG's own shape.** The wings, flaps, ailerons, elevators, fins and wingtips now take hits where the MiG's
+  skin is, instead of on the stock jet's outline underneath it. The centre of gravity and the handling are unchanged.
+- **Fire, smoke and fuel leaks come from the jet.** A burning tank, a leak, a failed engine's smoke and the debris of a part
+  breaking off now start on that part's skin, instead of up to 2 m away (an outer wing tank used to burn in the air ahead of the
+  wing). Needs the plugin.
+- **Broken edges have frames.** Where a part breaks away, its edge shows a few centimetres of structure, like the frame or rib
+  at a real joint, instead of a paper-thin skin.
 
 ## 0.9.4
 - **The jet as a 3D model for livery painters** (`liveries/model`): `MiG-29.fbx`, the whole jet as the game builds it with its
