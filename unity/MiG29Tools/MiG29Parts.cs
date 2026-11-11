@@ -292,7 +292,7 @@ namespace MiG29Tools
         /// it is on weakens it like the rest of its joints: neither side can hold a broken part on. Joined parts do not collide,
         /// so their hitboxes can meet (MiG29Hitbox.Fit). Returns every joined pair.
         /// </summary>
-        public static HashSet<(string, string)> Fasten(IList<Component> parts, Dictionary<int, HashSet<((int, int, int), (int, int, int))>> cuts, Transform root, int solverIterations)
+        public static HashSet<(string, string)> Fasten(IList<Component> parts, Dictionary<int, HashSet<((int, int, int), (int, int, int))>> cuts, Dictionary<int, MiG29Cut.Bucket> buckets, Transform root, int solverIterations)
         {
             var upType = T("UnitPart");
             var all = root.GetComponentsInChildren(upType, true).ToList();
@@ -318,8 +318,11 @@ namespace MiG29Tools
                 {
                     Component a = parts[keys[i]], b = parts[keys[j]];
                     if (pairs.Contains((a.name, b.name))) continue;
+                    // a seam, a corner, or skins whose boxes overlap: parts that close together would otherwise need a gap between their
+                    // hitboxes, and the plane that makes it ran the length of both (rounds went through the jet along the spine's sides,
+                    // seam probe, 2026-11-11)
                     var shared = cuts[keys[i]].Where(cuts[keys[j]].Contains).ToList();
-                    if (shared.Count < 3) continue;   // a corner, not a seam
+                    if (shared.Count == 0 && !Overlap(buckets[keys[i]], buckets[keys[j]])) continue;
                     var on = Depth(a) >= Depth(b) ? a : b; var to = on == a ? b : a;
                     float f = Mathf.Min(Strength(a, out float ta), Strength(b, out float tb)), tq = Mathf.Min(ta, tb);
                     var so = new SerializedObject(on); var js = so.FindProperty("joints");
@@ -329,7 +332,8 @@ namespace MiG29Tools
                     Vector3 V((int, int, int) k) => new Vector3(k.Item1, k.Item2, k.Item3) * 1e-4f;
                     var anchor = new GameObject($"{on.name}_joint_{to.name}").transform;
                     anchor.SetParent(on.transform, false);
-                    anchor.position = shared.Aggregate(Vector3.zero, (s, e) => s + (V(e.Item1) + V(e.Item2)) / 2f) / shared.Count;
+                    anchor.position = shared.Count > 0 ? shared.Aggregate(Vector3.zero, (s, e) => s + (V(e.Item1) + V(e.Item2)) / 2f) / shared.Count
+                        : (on.transform.position + to.transform.position) / 2f;
                     jj.FindPropertyRelative("connectedPart").objectReferenceValue = to;
                     jj.FindPropertyRelative("tensor").objectReferenceValue = to;
                     jj.FindPropertyRelative("solverIterations").intValue = solverIterations;
@@ -343,6 +347,15 @@ namespace MiG29Tools
                 }
             Debug.Log($"[MiG29] parts: {added} seam joints between touching parts");
             return pairs;
+        }
+
+        // the two skins' boxes touch or come within the hitbox gap of each other every way (parts meeting at a corner)
+        static bool Overlap(MiG29Cut.Bucket a, MiG29Cut.Bucket b)
+        {
+            Bounds Box(MiG29Cut.Bucket k) { var bb = new Bounds(k.v[0], Vector3.zero); foreach (var v in k.v) bb.Encapsulate(v); return bb; }
+            Bounds A = Box(a), B = Box(b);
+            var lo = Vector3.Max(A.min, B.min); var hi = Vector3.Min(A.max, B.max);
+            return hi.x - lo.x > -MiG29Hitbox.Gap && hi.y - lo.y > -MiG29Hitbox.Gap && hi.z - lo.z > -MiG29Hitbox.Gap;
         }
 
         /// <summary>Each joint's anchor at the middle of the seam between its two parts (the shared cut edges), where there is one.</summary>

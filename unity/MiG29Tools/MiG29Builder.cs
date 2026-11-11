@@ -820,7 +820,7 @@ namespace MiG29Tools
             var buckets = MiG29Cut.Split(world, hulls);
             var cuts = MiG29Cut.CutEdges(buckets); MiG29Cut.frames = 0;
             MiG29Parts.Anchors(parts, buckets, cuts);
-            var joined = MiG29Parts.Fasten(parts, cuts, root, JointIterations);
+            var joined = MiG29Parts.Fasten(parts, cuts, buckets, root, JointIterations);
             Debug.Log($"[MiG29] timing: split and seams {clock.Elapsed.TotalSeconds:F0} s");
             // the stock jets' own interior materials (game assets, restored at runtime like the KR-67 glass; nothing is shipped)
             var structMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/Blueprinter/_donotship/Material/aircraft_structure_PLACEHOLDER.mat");
