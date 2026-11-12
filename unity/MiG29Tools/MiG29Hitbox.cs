@@ -51,6 +51,8 @@ namespace MiG29Tools
         static double Dot(double[] n, Vector3 p) => n[0] * p.x + n[1] * p.y + n[2] * p.z;
         static double Dot(double[] n, double[] p) => n[0] * p[0] + n[1] * p[1] + n[2] * p[2];
 
+        const double Pad = 0.005;
+
         static List<Pl> Kdop(List<Vector3> pts)
         {
             var planes = new List<Pl>();
@@ -60,6 +62,8 @@ namespace MiG29Tools
                 double lo = double.MaxValue, hi = double.MinValue;
                 foreach (var p in pts) { double s = Dot(n, p); if (s < lo) lo = s; if (s > hi) hi = s; }
                 if (hi - lo < MinThick) { double m = (hi + lo) / 2; lo = m - MinThick / 2.0; hi = m + MinThick / 2.0; }
+                // half a centimetre proud of the skin: neighbours that only touch (no cut between them) still overlap at the seam
+                lo -= Pad; hi += Pad;
                 planes.Add(new Pl(n[0], n[1], n[2], hi)); planes.Add(new Pl(-n[0], -n[1], -n[2], -lo));
             }
             return planes;

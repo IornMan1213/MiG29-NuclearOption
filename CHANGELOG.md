@@ -8,7 +8,7 @@
   wall to wall on the ground with the engines running, and lies flush with the duct roof in flight instead of vanishing. The
   stowed main wheels no longer show inside the ducts.
 - **Breaking apart looks more like the stock jets.** Losing the nose now drops the whole radome, leaving a bulkhead and radar dish
-  behind it, instead of only the pitot. The leading-edge strips of each wing break off visibly instead of vanishing. An exposed
+  behind it, instead of only the pitot. An exposed
   intake duct reads as a metal trunk instead of a black hole. The engines leave with their own stretch of duct, and a broken-off
   nozzle no longer leaves an empty can.
 - **Damage shows before the holes from hits.** As a part takes damage from blasts, fire or many hits, small torn patches open
@@ -27,6 +27,13 @@
   wing). Needs the plugin.
 - **Broken edges have frames.** Where a part breaks away, its edge shows a few centimetres of structure instead of a
   paper-thin skin.
+- **Breaks tear instead of cutting clean.** The skin along a break is ragged, with teeth and waves, instead of a straight
+  line. When a part breaks off, up to 24 torn skin patches rip away from both sides of the break and tumble off (with the
+  plugin). Up close only: at a distance the jet keeps its lighter straight-edged skin.
+- **More inside.** Fuselage frames have inner flanges and stringers run between them, wing ribs have lightening holes and
+  caps, and spars have caps.
+- **A broken part falls clear.** A part that breaks off stops colliding with the jet it left, so it never jams in place.
+  Needs the plugin.
 - **Multiplayer:** the damage parts changed, so players on this version and on 0.9.4 cannot fly together.
 
 ## 0.9.4

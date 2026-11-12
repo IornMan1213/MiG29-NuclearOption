@@ -40,6 +40,9 @@ namespace MiG29Tools
         {
             public List<Plane>[] faces;
             public Func<Vector3, int> fixedPart;                      // -1: no claim
+            public bool torn;                                         // ragged boundaries: no plane cuts, bisect down to TornEdge
+            public Func<Vector3, bool> nearSeam;                      // torn: within reach of a joint, where a tear can run
+            public Func<Vector3, Vector3, int> tornPart;              // torn: the part at a point of the skin with its normal
             public List<Plane> fixedFaces = new List<Plane>();
 
             public float Depth(int k, Vector3 p, out int face)
@@ -108,7 +111,7 @@ namespace MiG29Tools
             }
         }
 
-        const float MinEdge = 0.2f;
+        const float MinEdge = 0.2f, TornEdge = 0.06f;
         const float InnerInset = 0.002f;
 
         // pieces in world space (MiG frame); buckets per hull index
@@ -140,6 +143,12 @@ namespace MiG29Tools
         {
             Func<Vector3, int> label = hulls.Label;
             var labels = new HashSet<int> { label(a.p), label(b.p), label(c.p), label((a.p + b.p) / 2), label((b.p + c.p) / 2), label((c.p + a.p) / 2), label((a.p + b.p + c.p) / 3) };
+            if (hulls.torn)
+            {
+                var cen = (a.p + b.p + c.p) / 3f;
+                if (labels.Count == 1 && !hulls.nearSeam(a.p) && !hulls.nearSeam(b.p) && !hulls.nearSeam(c.p) && !hulls.nearSeam(cen)) { emit(labels.First(), a, b, c, false); return 0; }
+                Tear(a, b, c, hulls.tornPart, hulls.nearSeam, emit, 0); return 2;
+            }
             if (labels.Count == 1) { emit(labels.First(), a, b, c, false); return 0; }
 
             int result = 1;
@@ -227,17 +236,34 @@ namespace MiG29Tools
         static Vtx Mix(Vtx p, Vtx q, float f) =>
             new Vtx { p = Vector3.Lerp(p.p, q.p, f), n = Vector3.Lerp(p.n, q.n, f).normalized, uv = Vector2.Lerp(p.uv, q.uv, f) };
 
-        static void Bisect(Vtx a, Vtx b, Vtx c, Func<Vector3, int> label, Action<int, Vtx, Vtx, Vtx, bool> emit, int depth)
+        static void Bisect(Vtx a, Vtx b, Vtx c, Func<Vector3, int> label, Action<int, Vtx, Vtx, Vtx, bool> emit, int depth, float minEdge = MinEdge)
         {
             var cen = (a.p + b.p + c.p) / 3f; int l = label(cen);
             float ab = (a.p - b.p).sqrMagnitude, bc = (b.p - c.p).sqrMagnitude, ca = (c.p - a.p).sqrMagnitude;
             float longest = Mathf.Sqrt(Mathf.Max(ab, Mathf.Max(bc, ca)));
             bool uniform = label(Vector3.Lerp(a.p, cen, 0.05f)) == l && label(Vector3.Lerp(b.p, cen, 0.05f)) == l && label(Vector3.Lerp(c.p, cen, 0.05f)) == l;
-            if (uniform || longest < MinEdge || depth > 18) { emit(l, a, b, c, true); return; }
+            if (uniform || longest < minEdge || depth > 24) { emit(l, a, b, c, true); return; }
             // split the longest edge
-            if (ab >= bc && ab >= ca) { var m = Mid(a, b); Bisect(a, m, c, label, emit, depth + 1); Bisect(m, b, c, label, emit, depth + 1); }
-            else if (bc >= ca) { var m = Mid(b, c); Bisect(a, b, m, label, emit, depth + 1); Bisect(a, m, c, label, emit, depth + 1); }
-            else { var m = Mid(c, a); Bisect(a, b, m, label, emit, depth + 1); Bisect(m, b, c, label, emit, depth + 1); }
+            if (ab >= bc && ab >= ca) { var m = Mid(a, b); Bisect(a, m, c, label, emit, depth + 1, minEdge); Bisect(m, b, c, label, emit, depth + 1, minEdge); }
+            else if (bc >= ca) { var m = Mid(b, c); Bisect(a, b, m, label, emit, depth + 1, minEdge); Bisect(a, m, c, label, emit, depth + 1, minEdge); }
+            else { var m = Mid(c, a); Bisect(a, b, m, label, emit, depth + 1, minEdge); Bisect(m, b, c, label, emit, depth + 1, minEdge); }
+        }
+
+        // torn boundaries: near a joint every triangle is cut to TornBand so a tear cannot pass between its corners unseen, then
+        // only where the parts differ, down to TornEdge
+        const float TornBand = 0.2f;
+        static void Tear(Vtx a, Vtx b, Vtx c, Func<Vector3, Vector3, int> label, Func<Vector3, bool> near, Action<int, Vtx, Vtx, Vtx, bool> emit, int depth)
+        {
+            var cen = (a.p + b.p + c.p) / 3f; int l = label(cen, a.n + b.n + c.n);
+            float ab = (a.p - b.p).sqrMagnitude, bc = (b.p - c.p).sqrMagnitude, ca = (c.p - a.p).sqrMagnitude;
+            float longest = Mathf.Sqrt(Mathf.Max(ab, Mathf.Max(bc, ca)));
+            bool uniform = label(a.p, a.n) == l && label(b.p, b.n) == l && label(c.p, c.n) == l
+                && label((a.p + b.p) / 2, a.n + b.n) == l && label((b.p + c.p) / 2, b.n + c.n) == l && label((c.p + a.p) / 2, c.n + a.n) == l;
+            bool split = depth < 26 && (uniform ? longest > TornBand && near(cen) : longest > TornEdge);
+            if (!split) { emit(l, a, b, c, !uniform); return; }
+            if (ab >= bc && ab >= ca) { var m = Mid(a, b); Tear(a, m, c, label, near, emit, depth + 1); Tear(m, b, c, label, near, emit, depth + 1); }
+            else if (bc >= ca) { var m = Mid(b, c); Tear(a, b, m, label, near, emit, depth + 1); Tear(a, m, c, label, near, emit, depth + 1); }
+            else { var m = Mid(c, a); Tear(a, b, m, label, near, emit, depth + 1); Tear(m, b, c, label, near, emit, depth + 1); }
         }
 
         static Vtx Mid(Vtx p, Vtx q) { if (Less(q.p, p.p)) { var s = p; p = q; q = s; } return Mix(p, q, 0.5f); }
@@ -372,6 +398,70 @@ namespace MiG29Tools
         const float FrameMax = 0.06f;
         static (int, int, int) PosKey(Vector3 p) => (Mathf.RoundToInt(p.x * 1e4f), Mathf.RoundToInt(p.y * 1e4f), Mathf.RoundToInt(p.z * 1e4f));
         static ((int, int, int), (int, int, int)) EdgeKey((int, int, int) a, (int, int, int) b) => a.CompareTo(b) <= 0 ? (a, b) : (b, a);
+
+        // Torn edges leave the odd island: a scrap of one part's skin cut off inside its neighbour's (it would hang in the air once
+        // the neighbour broke away). Every connected patch of a bucket under minArea that borders other buckets goes to the one it
+        // shares the most edge with; pieces that touch no other part (antennas, probes) stay.
+        public static int Despeckle(Dictionary<int, Bucket> buckets, float minArea)
+        {
+            var owners = new Dictionary<((int, int, int), (int, int, int)), HashSet<int>>();
+            foreach (var kv in buckets)
+                for (int i = 0; i + 2 < kv.Value.t.Count; i += 3)
+                    for (int k = 0; k < 3; k++)
+                    {
+                        var e = EdgeKey(PosKey(kv.Value.v[kv.Value.t[i + k]]), PosKey(kv.Value.v[kv.Value.t[i + (k + 1) % 3]]));
+                        if (!owners.TryGetValue(e, out var o)) owners[e] = o = new HashSet<int>();
+                        o.Add(kv.Key);
+                    }
+            int moved = 0;
+            foreach (var key in buckets.Keys.ToList())
+            {
+                var b = buckets[key]; int nt = b.t.Count / 3;
+                var parent = Enumerable.Range(0, nt).ToArray();
+                int Root(int x) { while (parent[x] != x) { parent[x] = parent[parent[x]]; x = parent[x]; } return x; }
+                var first = new Dictionary<((int, int, int), (int, int, int)), int>();
+                for (int ti = 0; ti < nt; ti++)
+                    for (int k = 0; k < 3; k++)
+                    {
+                        var e = EdgeKey(PosKey(b.v[b.t[ti * 3 + k]]), PosKey(b.v[b.t[ti * 3 + (k + 1) % 3]]));
+                        if (first.TryGetValue(e, out int o)) parent[Root(ti)] = Root(o); else first[e] = ti;
+                    }
+                var area = new Dictionary<int, float>(); var members = new Dictionary<int, List<int>>();
+                for (int ti = 0; ti < nt; ti++)
+                {
+                    int r = Root(ti);
+                    Vector3 p0 = b.v[b.t[ti * 3]], p1 = b.v[b.t[ti * 3 + 1]], p2 = b.v[b.t[ti * 3 + 2]];
+                    area[r] = (area.TryGetValue(r, out var ar) ? ar : 0f) + Vector3.Cross(p1 - p0, p2 - p0).magnitude / 2f;
+                    if (!members.TryGetValue(r, out var ml)) members[r] = ml = new List<int>(); ml.Add(ti);
+                }
+                var gone = new HashSet<int>();
+                foreach (var kv in members)
+                {
+                    if (area[kv.Key] >= minArea) continue;
+                    var votes = new Dictionary<int, int>();
+                    foreach (var ti in kv.Value)
+                        for (int k = 0; k < 3; k++)
+                        {
+                            var e = EdgeKey(PosKey(b.v[b.t[ti * 3 + k]]), PosKey(b.v[b.t[ti * 3 + (k + 1) % 3]]));
+                            foreach (var o in owners[e]) if (o != key) votes[o] = (votes.TryGetValue(o, out int c) ? c : 0) + 1;
+                        }
+                    if (votes.Count == 0) continue;
+                    var to = buckets[votes.OrderByDescending(x => x.Value).First().Key];
+                    foreach (var ti in kv.Value)
+                    {
+                        for (int k = 0; k < 3; k++) { int i = b.t[ti * 3 + k]; to.t.Add(to.Index(new Vtx { p = b.v[i], n = b.n[i], uv = b.uv[i] })); }
+                        to.seam.Add(true); gone.Add(ti);
+                    }
+                    moved += kv.Value.Count;
+                }
+                if (gone.Count == 0) continue;
+                var nt2 = new List<int>(); var ns = new List<bool>();
+                for (int ti = 0; ti < nt; ti++) if (!gone.Contains(ti)) { nt2.Add(b.t[ti * 3]); nt2.Add(b.t[ti * 3 + 1]); nt2.Add(b.t[ti * 3 + 2]); ns.Add(b.seam[ti]); }
+                b.t.Clear(); b.t.AddRange(nt2); b.seam.Clear(); b.seam.AddRange(ns);
+            }
+            Debug.Log($"[MiG29] torn skin: {moved} triangles of small islands given to the part round them");
+            return moved;
+        }
 
         // The edges the split made, per bucket, as opposed to the skin's own open edges (intake lips, nozzle rims, the gaps between
         // the model's unwelded panels: five times as many). A cut edge is an open edge of its bucket that another bucket has too.

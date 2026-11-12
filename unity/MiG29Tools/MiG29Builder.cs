@@ -818,6 +818,13 @@ namespace MiG29Tools
                 return (wv, wn, uv, piece.triangles);
             }).ToList();
             var buckets = MiG29Cut.Split(world, hulls);
+            // The skin you see breaks along torn edges (MiG29Parts.TornLabel); everything behind it (the lining, the structure, the
+            // frame strips, the joints, the hitboxes) keeps to the straight joints, at a tenth of the triangles.
+            var tornHulls = new MiG29Cut.Hulls { faces = hulls.faces, fixedPart = hulls.fixedPart, torn = true,
+                nearSeam = MiG29Parts.NearSeam, tornPart = (c, n) => partIndex[MiG29Parts.TornLabel(c, n)] };
+            var skins = MiG29Cut.Split(world, tornHulls);
+            MiG29Cut.Despeckle(skins, 0.03f);
+            var skinCuts = MiG29Cut.CutEdges(skins);
             var cuts = MiG29Cut.CutEdges(buckets); MiG29Cut.frames = 0;
             MiG29Parts.Anchors(parts, buckets, cuts);
             var joined = MiG29Parts.Fasten(parts, cuts, buckets, root, JointIterations);
@@ -952,18 +959,44 @@ namespace MiG29Tools
                 }
                 Debug.Log("[MiG29] structure: " + structReport);
             }
+            // which part is across each torn edge (the exact twins; the rest are matched by the shards' nearest edge)
+            var across = new Dictionary<((int, int, int), (int, int, int)), List<int>>();
+            foreach (var kv in skinCuts) foreach (var e in kv.Value) { if (!across.TryGetValue(e, out var l)) across[e] = l = new List<int>(); l.Add(kv.Key); }
+            int skinTris = 0;
+            int shardCount = 0;
             foreach (var kv in buckets)
             {
                 var part = parts[kv.Key]; var b = kv.Value; var tr = part.transform;
                 MiG29Cut.Dump("skin_" + part.name, b.v, b.t);
-                var m = new Mesh { name = "MiG29_part_" + part.name };
-                m.indexFormat = b.v.Count > 65000 ? UnityEngine.Rendering.IndexFormat.UInt32 : UnityEngine.Rendering.IndexFormat.UInt16;
-                m.SetVertices(b.v.Select(v => tr.InverseTransformPoint(v)).ToList()); m.SetNormals(b.n.Select(v => tr.InverseTransformDirection(v)).ToList());
-                m.SetUVs(0, b.uv); m.SetTriangles(b.t, 0);
+                // shards: the skin within ShardReach of a break line, in ragged patches. Each triangle carries its patch in UV3 (x:
+                // patch number + 1, y: FxAnchors.PartCode of the part across the break); the plugin cuts the patches out of the mesh and
+                // throws them off when that part breaks (FxAnchors.Shred), so the break shreds instead of parting cleanly
+                if (!skins.TryGetValue(kv.Key, out var sb)) { Debug.LogWarning($"[MiG29] {part.name}: no torn skin, the straight one instead"); sb = b; }
+                var (mainT, shards) = Shards(sb, skinCuts.TryGetValue(kv.Key, out var sc) ? sc : new HashSet<((int, int, int), (int, int, int))>(), across, kv.Key, k => parts[k].name);
+                var map = new Dictionary<(int, int), int>(); var sv = new List<Vector3>(); var sn = new List<Vector3>(); var suv = new List<Vector2>(); var s3 = new List<Vector2>(); var st = new List<int>();
+                void Tri(List<int> tris, int at, int id, int code)
+                {
+                    for (int c = 0; c < 3; c++)
+                    {
+                        int i0 = tris[at + c];
+                        if (!map.TryGetValue((i0, id), out int jv)) { map[(i0, id)] = jv = sv.Count; sv.Add(tr.InverseTransformPoint(sb.v[i0])); sn.Add(tr.InverseTransformDirection(sb.n[i0])); suv.Add(sb.uv[i0]); s3.Add(new Vector2(id, code)); }
+                        st.Add(jv);
+                    }
+                }
+                for (int ti = 0; ti < mainT.Count; ti += 3) Tri(mainT, ti, 0, 0);
+                for (int si = 0; si < shards.Count; si++) for (int ti = 0; ti < shards[si].tris.Count; ti += 3) Tri(shards[si].tris, ti, si + 1, PartCode(shards[si].across));
+                var m = new Mesh { name = "MiG29_part_" + part.name, indexFormat = sv.Count > 65000 ? UnityEngine.Rendering.IndexFormat.UInt32 : UnityEngine.Rendering.IndexFormat.UInt16 };
+                m.SetVertices(sv); m.SetNormals(sn); m.SetUVs(0, suv); m.SetUVs(3, s3); m.SetTriangles(st, 0);
                 m.RecalculateBounds(); m.RecalculateTangents();
                 m = CreateOrReplace(m, $"{ModDir}/meshes/MiG29_part_{part.name}.asset");
+                skinTris += st.Count / 3; shardCount += shards.Count;
                 var r = AddMeshObject("MiG29_skin_" + part.name, tr, m, mat);
                 AddDamageRenderer(tr, r);
+                // beyond close range the straight split (MiG29Lod)
+                var lm = new Mesh { name = "MiG29_lodpart_" + part.name, indexFormat = b.v.Count > 65000 ? UnityEngine.Rendering.IndexFormat.UInt32 : UnityEngine.Rendering.IndexFormat.UInt16 };
+                lm.SetVertices(b.v.Select(v => tr.InverseTransformPoint(v)).ToList()); lm.SetNormals(b.n.Select(v => tr.InverseTransformDirection(v)).ToList());
+                lm.SetUVs(0, b.uv); lm.SetTriangles(b.t, 0); lm.RecalculateBounds(); lm.RecalculateTangents();
+                AddDamageRenderer(tr, AddMeshObject("MiG29_lodskin_" + part.name, tr, CreateOrReplace(lm, $"{ModDir}/meshes/{lm.name}.asset"), mat));
 
                 // Fire, fireballs, fuel leaks and break-up effects spawn at the part's own transform: the KR-67's pivots, up to 2 m
                 // off the MiG's skin (the outer wing tanks burned in mid-air ahead of the wing). Anchors on the part's own skin, top
@@ -998,6 +1031,7 @@ namespace MiG29Tools
             }
             Debug.Log($"[MiG29] inner hull: {outsideDropped} inset points outside the skin dropped, {ductDropped} inside the intake ducts");
             Physics.queriesHitBackfaces = backfaces; UnityEngine.Object.DestroyImmediate(rayGo); UnityEngine.Object.DestroyImmediate(ductGo);
+            Debug.Log($"[MiG29] skin: {skinTris} triangles with torn edges, {shardCount} patches along the breaks that tear away");
             Debug.Log($"[MiG29] interior: {innerTris} triangles (inner hull, radome honeycomb, engines), {MiG29Cut.frames} frame strips on {cuts.Values.Sum(c => c.Count)} cut edges");
 
             // Hitboxes fitted to each part's own skin and cut apart from every neighbour (MiG29Hitbox): the part a round hits is the
@@ -1033,6 +1067,48 @@ namespace MiG29Tools
                 SetHitbox(part, CreateOrReplace(m, $"{ModDir}/meshes/{m.name}.asset"));
             }
             Debug.Log($"[MiG29] timing: hitboxes {clock.Elapsed.TotalSeconds:F0} s");
+        }
+
+        // Shards: triangles whose centre is within ShardReach of a cut edge, grouped by a ragged ShardSize grid (the cell of the
+        // centre moved by a jagged offset), labelled with the part across the nearest cut edge. Patches under ShardMin m2 stay on
+        // the part. Returns the part's remaining triangles and the shards.
+        const float ShardReach = 0.35f, ShardSize = 0.28f, ShardMin = 0.006f;
+        // a part's name as a number a float holds exactly (FNV-1a, 20 bits); the plugin's FxAnchors.PartCode is the same
+        static int PartCode(string name) { uint h = 2166136261; foreach (char c in name) { h ^= c; h *= 16777619; } return (int)(h & 0xFFFFF); }
+        static (List<int> main, List<(string across, List<int> tris)> shards) Shards(MiG29Cut.Bucket b, HashSet<((int, int, int), (int, int, int))> cutEdges,
+            Dictionary<((int, int, int), (int, int, int)), List<int>> across, int self, Func<int, string> partName)
+        {
+            Vector3 V((int, int, int) q) => new Vector3(q.Item1, q.Item2, q.Item3) * 1e-4f;
+            const float Cell = 0.4f;
+            (int, int, int) C(Vector3 p, float s) => (Mathf.FloorToInt(p.x / s), Mathf.FloorToInt(p.y / s), Mathf.FloorToInt(p.z / s));
+            var grid = new Dictionary<(int, int, int), List<(Vector3 at, string other)>>();
+            foreach (var e in cutEdges)
+            {
+                var other = across.TryGetValue(e, out var l) ? l.FirstOrDefault(x => x != self) : -1;
+                if (other < 0) continue;   // a T-junction piece: the nearest exact edge names the neighbour
+                var mid = (V(e.Item1) + V(e.Item2)) / 2f; var c = C(mid, Cell);
+                if (!grid.TryGetValue(c, out var g)) grid[c] = g = new List<(Vector3, string)>();
+                g.Add((mid, partName(other)));
+            }
+            var main = new List<int>(); var groups = new Dictionary<(string, (int, int, int)), List<int>>(); var area = new Dictionary<(string, (int, int, int)), float>();
+            for (int i = 0; i + 2 < b.t.Count; i += 3)
+            {
+                Vector3 a = b.v[b.t[i]], bb = b.v[b.t[i + 1]], cc = b.v[b.t[i + 2]];
+                var cen = (a + bb + cc) / 3f; var cc0 = C(cen, Cell);
+                float best = ShardReach * ShardReach; string other = null;
+                for (int dx = -1; dx <= 1; dx++) for (int dy = -1; dy <= 1; dy++) for (int dz = -1; dz <= 1; dz++)
+                    if (grid.TryGetValue((cc0.Item1 + dx, cc0.Item2 + dy, cc0.Item3 + dz), out var g))
+                        foreach (var (at, o) in g) { float d = (at - cen).sqrMagnitude; if (d < best) { best = d; other = o; } }
+                if (other == null) { main.Add(b.t[i]); main.Add(b.t[i + 1]); main.Add(b.t[i + 2]); continue; }
+                var key = (other, C(cen + MiG29Parts.Jag(cen), ShardSize));
+                if (!groups.TryGetValue(key, out var tl)) { groups[key] = tl = new List<int>(); area[key] = 0f; }
+                tl.Add(b.t[i]); tl.Add(b.t[i + 1]); tl.Add(b.t[i + 2]);
+                area[key] += Vector3.Cross(bb - a, cc - a).magnitude / 2f;
+            }
+            var shards = new List<(string, List<int>)>();
+            foreach (var kv in groups)
+                if (area[kv.Key] < ShardMin) main.AddRange(kv.Value); else shards.Add((kv.Key.Item1, kv.Value));
+            return (main, shards);
         }
 
         const float RadomeSeamZ = 8.22f;

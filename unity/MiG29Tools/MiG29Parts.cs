@@ -83,6 +83,61 @@ namespace MiG29Tools
             return ax < BodyHalf ? "MiG29" : S("centre_wing");
         }
 
+        /// <summary>
+        /// The part a point of the skin belongs to, with torn edges: the point is moved by a jagged noise field (a few centimetres,
+        /// in coarse and fine waves) before it is labelled, so every break follows its joint but wanders and tears along it the way
+        /// ripped metal does, where a clean plane read as boxy (user, 2026-11-11). The same point always gets the same part.
+        /// </summary>
+        public static string TornLabel(Vector3 p, Vector3 n)
+        {
+            // along the skin only: a boundary that runs along a surface (the LERX root on the fuselage side, the wing's height
+            // limits) stays put, where moving across it scattered islands of one part over the other
+            var w = Tear(p);
+            if (n.sqrMagnitude > 1e-6f) { n.Normalize(); w -= n * Vector3.Dot(w, n); }
+            return Label(p + w);
+        }
+
+        /// <summary>Whether a joint is within reach (the labels round the point differ): where a torn edge can run.</summary>
+        public static bool NearSeam(Vector3 p)
+        {
+            const float R = 0.22f;   // the tear reaches 0.21 m
+            var l = Label(p);
+            return Label(p + Vector3.right * R) != l || Label(p - Vector3.right * R) != l || Label(p + Vector3.up * R) != l
+                || Label(p - Vector3.up * R) != l || Label(p + Vector3.forward * R) != l || Label(p - Vector3.forward * R) != l;
+        }
+
+        /// <summary>A jagged offset for ragged patch outlines (the shards along the breaks).</summary>
+        public static Vector3 Jag(Vector3 p) => Tear(p * 1.7f) * 0.6f;
+
+        static Vector3 Tear(Vector3 p)
+        {
+            // value noise on two lattices; the fine one is folded (1 - |n|) into sharp ridges, the teeth of a tear (the user's pick
+            // of two previews: about 15 cm waves)
+            Vector3 coarse = new Vector3(Noise(p * 4f, 1), Noise(p * 4f, 2), Noise(p * 4f, 3)) * 0.15f;
+            Vector3 fine = new Vector3(Ridge(p * 14f, 4), Ridge(p * 14f, 5), Ridge(p * 14f, 6)) * 0.06f;
+            return coarse + fine;
+        }
+        static float Ridge(Vector3 p, int seed) => 1f - 2f * Mathf.Abs(Noise(p, seed));
+        static float Hash(int x, int y, int z, int seed)
+        {
+            unchecked
+            {
+                uint h = (uint)(x * 73856093 ^ y * 19349663 ^ z * 83492791 ^ seed * 2654435761u);
+                h ^= h >> 13; h *= 0x5bd1e995; h ^= h >> 15;
+                return (h & 0xffffff) / (float)0xffffff * 2f - 1f;
+            }
+        }
+        static float Noise(Vector3 p, int seed)   // trilinear value noise, -1..1
+        {
+            int x = Mathf.FloorToInt(p.x), y = Mathf.FloorToInt(p.y), z = Mathf.FloorToInt(p.z);
+            float fx = p.x - x, fy = p.y - y, fz = p.z - z;
+            fx = fx * fx * (3 - 2 * fx); fy = fy * fy * (3 - 2 * fy); fz = fz * fz * (3 - 2 * fz);
+            float L(float a, float b, float t) => a + (b - a) * t;
+            float c00 = L(Hash(x, y, z, seed), Hash(x + 1, y, z, seed), fx), c10 = L(Hash(x, y + 1, z, seed), Hash(x + 1, y + 1, z, seed), fx);
+            float c01 = L(Hash(x, y, z + 1, seed), Hash(x + 1, y, z + 1, seed), fx), c11 = L(Hash(x, y + 1, z + 1, seed), Hash(x + 1, y + 1, z + 1, seed), fx);
+            return L(L(c00, c10, fy), L(c01, c11, fy), fz);
+        }
+
         /// <summary>Every plane Label's regions are bounded by (the cuts MiG29Cut makes).</summary>
         public static List<MiG29Cut.Plane> Planes()
         {
@@ -271,6 +326,21 @@ namespace MiG29Tools
                     }
                 ts.ApplyModifiedPropertiesWithoutUndo();
             }
+            // every part bursts into debris when it breaks (the game's own disintegration effect; the KR-67 had it on 14 of its 34)
+            UnityEngine.Object debris = null;
+            foreach (var d in defs)
+            {
+                var de = new SerializedObject(objs[d.name].GetComponent(upType)).FindProperty("disintegrationEffects");
+                if (de.arraySize > 0 && de.GetArrayElementAtIndex(0).objectReferenceValue != null) { debris = de.GetArrayElementAtIndex(0).objectReferenceValue; break; }
+            }
+            int withDebris = 0;
+            if (debris != null)
+                foreach (var d in defs)
+                {
+                    var so = new SerializedObject(objs[d.name].GetComponent(upType)); var de = so.FindProperty("disintegrationEffects");
+                    if (de.arraySize == 0) { de.arraySize = 1; de.GetArrayElementAtIndex(0).objectReferenceValue = debris; so.ApplyModifiedPropertiesWithoutUndo(); withDebris++; }
+                }
+            Debug.Log($"[MiG29] parts: debris burst added to {withDebris} more parts");
             Debug.Log($"[MiG29] parts: {defs.Count} MiG-29 parts ({string.Join(", ", defs.Select(d => d.name))}); "
                 + $"fuel {fuelTotal:F0} kg in {tanks.Count} tanks; KR-67 leading-edge parts removed");
         }
