@@ -387,6 +387,7 @@ namespace MiG29Tools
         /// 1 + a + b z, total unchanged. Its height is the MiG's own, from its parts' weights and hitboxes, and is returned (the
         /// thrust line goes there). Runs once the hitboxes (and so each part's centre of mass) are final.
         /// </summary>
+        public const float TunedCgY = -0.0026f;   // the empty aircraft's centre of gravity height the flight model was tuned with
         public static float Balance(Transform root, float cgZ)
         {
             var parts = root.GetComponentsInChildren(T("UnitPart"), true).Select(p => (part: p, so: new SerializedObject(p))).Where(x => x.so.FindProperty("mass").floatValue > 0f).ToList();
@@ -413,6 +414,18 @@ namespace MiG29Tools
                 parts[i].so.ApplyModifiedPropertiesWithoutUndo();
             }
             float cgY = (float)(my2 / m0);
+            // The flight model was tuned with the centre of gravity at TunedCgY and gives its lift points for that. The MiG's own
+            // weights put it lower; moved with it, every lift point keeps its height over the centre of gravity, so the forces and
+            // moments are the ones it was tuned with (left where they were, they stood 0.43 m higher over it: the sustained turn fell
+            // and the roll bled off sooner, user flight 2026-11-11).
+            foreach (var (part, so) in parts)
+            {
+                var cl = so.FindProperty("centerOfLift");
+                if (cl == null || cl.vector3Value == Vector3.zero) continue;
+                var ln = so.FindProperty("liftNormal").objectReferenceValue as Transform ?? part.transform;
+                cl.vector3Value += Quaternion.Inverse(ln.rotation) * new Vector3(0f, cgY - TunedCgY, 0f);
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
             Debug.Log($"[MiG29] parts: {m0:F0} kg empty, centre of gravity z {cz:F3} y {cy:F3} from the MiG weights, held at z {cgZ:F3} (y {cgY:F3}); masses x {lo:F2}..{hi:F2}");
             if (lo < 0.5 || hi > 2.0) throw new Exception($"[MiG29] part mass balance out of range: factors {lo:F2}..{hi:F2}");
             return cgY;

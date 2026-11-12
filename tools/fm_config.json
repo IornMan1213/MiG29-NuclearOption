@@ -520,5 +520,6 @@
    "wingArea": 0,
    "dragArea": 0
   }
- }
+ },
+ "tunedCgY": -0.0026
 }

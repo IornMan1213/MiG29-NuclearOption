@@ -48,6 +48,7 @@ def CD(af, a):
 
 
 # ---- parts: apply the FM config overrides on top of the dumped geometry
+_cg_y = sum(p["mass"] * p["com"][1] for p in aero["parts"]) / sum(p["mass"] for p in aero["parts"])
 parts = []
 for p in aero["parts"]:
     o = cfg["parts"].get(p["name"], {})
@@ -61,9 +62,11 @@ for p in aero["parts"]:
     q["fwd"] = np.array(o.get("lnFwd", p["lnFwd"]), float)
     q["cL"] = np.array(o.get("centerOfLift", p["centerOfLift"]), float)
     if "liftPoint" in o:
-        # a lift point in the aircraft frame: the build sets centerOfLift from the part's centre of mass (MiG29FlightModel)
+        # a lift point in the aircraft frame: the build sets centerOfLift from the part's centre of mass (MiG29FlightModel), then
+        # moves it with the centre of gravity from the height the model was tuned at (MiG29Parts.Balance)
         up = np.cross(q["fwd"], q["right"]) if "lnRight" in o else np.array(p["lnUp"], float)
-        q["cL"] = np.array([q["right"], up, q["fwd"]]) @ (np.array(o["liftPoint"], float) - q["com"])
+        lp = np.array(o["liftPoint"], float); lp[1] += _cg_y - cfg.get("tunedCgY", _cg_y)
+        q["cL"] = np.array([q["right"], up, q["fwd"]]) @ (lp - q["com"])
     q["ctrl"] = o.get("ctrl")  # "pitch" -> deflects with stabilator
     parts.append(q)
 
