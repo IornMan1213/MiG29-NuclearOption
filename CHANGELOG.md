@@ -32,6 +32,14 @@
   plugin). Up close only: at a distance the jet keeps its lighter straight-edged skin.
 - **More inside.** Fuselage frames have inner flanges and stringers run between them, wing ribs have lightening holes and
   caps, and spars have caps.
+- **Broken members stick out.** Where a part breaks off, the ribs, spars and stringers that crossed the joint snap a little
+  way past it: the part that stays keeps a ragged stub of each, 7 to 21 cm long.
+- **The cockpit section takes its corners.** The leading-edge extensions' forward corners beside the cockpit (the gun bay on
+  the left) now break with the cockpit section instead of coming off as a block of their own; each extension runs from the
+  frame behind the canopy to the wing.
+- **The damage display works again.** It shows every one of the MiG's own parts; most of it had gone blank.
+- **No bulkhead edge under the nose.** The bulkhead behind the radome follows the nose's own shape instead of an oval whose
+  rim showed through the skin above and below the nose.
 - **A broken part falls clear.** A part that breaks off stops colliding with the jet it left, so it never jams in place.
   Needs the plugin.
 - **Multiplayer:** the damage parts changed, so players on this version and on 0.9.4 cannot fly together.

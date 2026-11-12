@@ -907,7 +907,51 @@ namespace MiG29Tools
                     }
                     for (int i = 0; i < Sides; i++) bt.AddRange(new[] { c0, c0 + 1 + i, c0 + 1 + (i + 1) % Sides });   // facing forward: cross(b - a, c - a) along +z
                 }
-                Disc(seam, 0.47f, 0.62f, 0f, new Color32(0x57, 0x57, 0x57, 255));                                  // bulkhead: the seam ring
+                // bulkhead: the seam ring, traced from the skin's own section there two centimetres inside it (an ellipse fitted to the
+                // nose's width and height stuck out above and below it, where the section narrows: user screenshot, 2026-11-12)
+                {
+                    // the section: the skin's edges cut by the seam plane, as 2D segments round the seam centre; each side of the
+                    // bulkhead reaches along its ray to the nearest of them (points alone let the straight sides cut outside where
+                    // the underside curves in between them)
+                    const int Sides = 96; var radius = new float[Sides];
+                    var segs = new List<(Vector2 a, Vector2 b)>();
+                    foreach (var (wv, _, _, tris) in world)
+                        for (int k = 0; k + 2 < tris.Length; k += 3)
+                        {
+                            var cut = new List<Vector2>(2);
+                            for (int e = 0; e < 3; e++)
+                            {
+                                Vector3 p = wv[tris[k + e]], q = wv[tris[k + (e + 1) % 3]];
+                                if ((p.z - seam.z) * (q.z - seam.z) > 0f || Mathf.Abs(q.z - p.z) < 1e-6f) continue;
+                                var d = p + (q - p) * ((seam.z - p.z) / (q.z - p.z)) - seam;
+                                cut.Add(new Vector2(d.x, d.y));
+                            }
+                            if (cut.Count >= 2) segs.Add((cut[0], cut[1]));
+                        }
+                    for (int i = 0; i < Sides; i++)
+                    {
+                        float a = i * Mathf.PI * 2f / Sides; var dir = new Vector2(Mathf.Cos(a), Mathf.Sin(a));
+                        radius[i] = float.MaxValue;
+                        foreach (var (sa, sb) in segs)
+                        {
+                            var e = sb - sa; float den = dir.x * e.y - dir.y * e.x;
+                            if (Mathf.Abs(den) < 1e-9f) continue;
+                            float t = (sa.x * e.y - sa.y * e.x) / den, u = (sa.x * dir.y - sa.y * dir.x) / den;
+                            if (t > 0.05f && u >= 0f && u <= 1f) radius[i] = Mathf.Min(radius[i], t);
+                        }
+                    }
+                    int c0 = bv.Count; var tint = new Color32(0x57, 0x57, 0x57, 255);
+                    bv.Add(seam); bn.Add(Vector3.forward); buv.Add(new Vector2(0.5f, 0.5f)); bc.Add(tint);
+                    for (int i = 0; i < Sides; i++)
+                    {
+                        float a = i * Mathf.PI * 2f / Sides;
+                        float ellipse = 1f / Mathf.Sqrt(Mathf.Pow(Mathf.Cos(a) / 0.47f, 2) + Mathf.Pow(Mathf.Sin(a) / 0.62f, 2));
+                        float r = radius[i] < 2f ? radius[i] - 0.02f : ellipse;   // no skin in that direction: the old ellipse
+                        bv.Add(seam + new Vector3(Mathf.Cos(a) * r, Mathf.Sin(a) * r, 0f)); bn.Add(Vector3.forward);
+                        buv.Add(new Vector2(0.5f + Mathf.Cos(a) * r * 0.46f, 0.5f + Mathf.Sin(a) * r * 0.46f)); bc.Add(tint);
+                    }
+                    for (int i = 0; i < Sides; i++) bt.AddRange(new[] { c0, c0 + 1 + i, c0 + 1 + (i + 1) % Sides });
+                }
                 Disc(seam + new Vector3(0f, -0.03f, 0.2f), 0.36f, 0.36f, -0.06f, new Color32(0x8a, 0x8a, 0x8a, 255));   // radar dish, dished
                 AddMeshObject("MiG29_inner_bulkhead", holder.transform, PartMesh("MiG29_inner_bulkhead", holder.transform, bv, bn, buv, bc, bt), structMat);
                 Debug.Log($"[MiG29] radome: bulkhead and radar dish on {holder.name}");

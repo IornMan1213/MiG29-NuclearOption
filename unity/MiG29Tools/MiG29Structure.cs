@@ -27,13 +27,35 @@ namespace MiG29Tools
             IList<(Vector3 rear, Vector3 fwd)> engines, float tilesPerMetre, Color32 tint, out string report)
         {
             var parts = new Dictionary<string, Piece>();
-            int mask = 1 << skinLayer, quads = 0, dropped = 0;
+            int mask = 1 << skinLayer, quads = 0, dropped = 0, stubs = 0;
 
-            void Quad(Vector3 a, Vector3 b, Vector3 c, Vector3 d, Vector3 normal)
+            // a rib, spar or stringer crossing a joint snaps a little way past it: the piece within StubMin..StubMax of a part it
+            // is fastened to (a length that changes every StubCell along the joint, so the ends are ragged) stays with that part,
+            // a stub of the member sticking out of the break (user, 2026-11-12). Frames lie across their joint, so they stay whole.
+            const float StubMin = 0.07f, StubMax = 0.21f, StubCell = 0.2f;
+            Vector3[] probes = { Vector3.right, Vector3.left, Vector3.up, Vector3.down, Vector3.forward, Vector3.back };
+            string Stub(Vector3 cen, Vector3 normal, string name)
+            {
+                var held = MiG29Parts.HeldBy(name);
+                if (held.Length == 0) return name;
+                var cell = new Vector3(Mathf.Floor(cen.x / StubCell), Mathf.Floor(cen.y / StubCell), Mathf.Floor(cen.z / StubCell));
+                float h = Mathf.Abs(Mathf.Sin(Vector3.Dot(cell, new Vector3(12.9898f, 78.233f, 37.719f))) * 43758.5453f) % 1f;
+                float reach = StubMin + (StubMax - StubMin) * h;
+                foreach (var dir in probes)
+                {
+                    if (Mathf.Abs(Vector3.Dot(normal.normalized, dir)) > 0.5f) continue;   // only along the member, not through its face
+                    var other = MiG29Parts.Label(cen + dir * reach);
+                    if (Array.IndexOf(held, other) >= 0) return other;
+                }
+                return name;
+            }
+
+            void Quad(Vector3 a, Vector3 b, Vector3 c, Vector3 d, Vector3 normal, bool stub = true)
             {
                 var cen = (a + b + c + d) / 4f;
                 if (drop(a) || drop(b) || drop(c) || drop(d)) { dropped++; return; }
                 var name = MiG29Parts.Label(cen);
+                if (stub) { var s = Stub(cen, normal, name); if (s != name) { stubs++; name = s; } }
                 if (!MiG29Parts.Skinned.Contains(name)) { dropped++; return; }
                 if (!parts.TryGetValue(name, out var p)) parts[name] = p = new Piece();
                 var an = new Vector3(Mathf.Abs(normal.x), Mathf.Abs(normal.y), Mathf.Abs(normal.z));
@@ -72,9 +94,9 @@ namespace MiG29Tools
                 {
                     int j = (i + 1) % FrameRays;
                     if (outer[i] == null || outer[j] == null || (outer[i].Value - outer[j].Value).magnitude > MaxGap) continue;
-                    Quad(outer[i].Value, outer[j].Value, inner[j], inner[i], axis);
+                    Quad(outer[i].Value, outer[j].Value, inner[j], inner[i], axis, false);
                     var inward = (centre - (inner[i] + inner[j]) / 2f).normalized;
-                    Quad(inner[i], inner[j], inner[j] + axis * Flange, inner[i] + axis * Flange, inward);
+                    Quad(inner[i], inner[j], inner[j] + axis * Flange, inner[i] + axis * Flange, inward, false);
                 }
                 return outer;
             }
@@ -209,7 +231,7 @@ namespace MiG29Tools
                     float zz = z;
                     Web(t => new Vector3(sx * t, 0f, zz), 0.55f, 1.7f, 0.045f, Vector3.forward, 0.35f, holes: true);
                 }
-            report = $"{frames} frames, {webs} rib and spar webs, {quads} quads on {parts.Count} parts ({dropped} dropped in the cockpit, the ducts or off the parts)";
+            report = $"{frames} frames, {webs} rib and spar webs, {quads} quads ({stubs} as stubs past a joint) on {parts.Count} parts ({dropped} dropped in the cockpit, the ducts or off the parts)";
             return parts;
         }
     }

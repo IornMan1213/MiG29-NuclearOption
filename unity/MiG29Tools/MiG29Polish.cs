@@ -382,17 +382,38 @@ namespace MiG29Tools
             disp.name = "StatusDisplay_MiG29";
             var rootRect = (RectTransform)disp.transform;
             disp.GetComponent<Image>().sprite = outlineSprite;
-            foreach (var img in disp.GetComponentsInChildren<Image>(true))
+            // one image per MiG part, named after it (the game pairs each image with the part of that name). The KR-67 layout's
+            // images carry the Ifrit's part names, so after the MiG got its own parts most of them matched nothing and stayed
+            // blank (user report, 2026-11-12): they are replaced by images made from the first of them.
+            var templates = disp.GetComponentsInChildren<Image>(true)
+                .Where(img => img.gameObject != disp && img.transform.parent == disp.transform && !img.name.StartsWith("ENGINE FIRE")).ToList();
+            var display = disp.GetComponent(T("StatusDisplay"));
+            var dso = new SerializedObject(display);
+            var list = dso.FindProperty("statusDisplays");
+            float red = list.arraySize > 0 ? list.GetArrayElementAtIndex(0).FindPropertyRelative("redStatusThreshold").floatValue : 0.5f;
+            var template = templates[0].gameObject;
+            var made = new List<Image>();
+            foreach (var kv in partSprites.OrderBy(kv => kv.Key, StringComparer.Ordinal))
             {
-                if (img.gameObject == disp) continue;
-                if (img.name.StartsWith("ENGINE FIRE") || img.transform.parent != disp.transform) continue;
-                if (img.name == "Multirole1") img.gameObject.name = go.name; // root part name
+                var obj = UnityEngine.Object.Instantiate(template, disp.transform); obj.name = kv.Key;
+                var img = obj.GetComponent<Image>();
                 var rt = (RectTransform)img.transform;
                 rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f); rt.pivot = new Vector2(0.5f, 0.5f);
                 rt.anchoredPosition = Vector2.zero; rt.sizeDelta = rootRect.sizeDelta; rt.localScale = Vector3.one; rt.localRotation = Quaternion.identity;
-                if (partSprites.TryGetValue(img.name, out var s)) { img.sprite = s; img.enabled = true; }
-                else { img.sprite = null; img.enabled = false; }
+                img.sprite = kv.Value; img.enabled = true;
+                made.Add(img);
             }
+            foreach (var t in templates) UnityEngine.Object.DestroyImmediate(t.gameObject);
+            for (int i = 0; i < made.Count; i++) made[i].transform.SetSiblingIndex(i);   // under the engine fire lamps
+            list.arraySize = made.Count;
+            for (int i = 0; i < made.Count; i++)
+            {
+                var e = list.GetArrayElementAtIndex(i);
+                e.FindPropertyRelative("partImage").objectReferenceValue = made[i];
+                e.FindPropertyRelative("redStatusThreshold").floatValue = red;
+            }
+            dso.ApplyModifiedPropertiesWithoutUndo();
+            var madeNames = made.Select(m => m.name).ToList();
             // engine fire lamps over the MiG engines
             foreach (var side in new[] { "L", "R" })
             {
@@ -405,7 +426,7 @@ namespace MiG29Tools
             var path = $"{UiDir}/StatusDisplay_MiG29.prefab";
             var prefab = PrefabUtility.SaveAsPrefabAsset(disp, path);
             UnityEngine.Object.DestroyImmediate(disp);
-            Debug.Log($"[MiG29] damage display: {partSprites.Count} part images; map icon built");
+            Debug.Log($"[MiG29] damage display: {madeNames.Count} part images ({string.Join(", ", madeNames)}), red below {red}; map icon built");
             return new Displays { mapIcon = mapIcon, statusDisplay = prefab };
         }
 

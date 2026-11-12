@@ -67,8 +67,11 @@ namespace MiG29Tools
             if (z > WingFrame)
             {
                 if (z > Radome) return "radome";
-                if (y <= LerxFloor && z < Canopy && ax >= BellyHalf) return S("intake");
-                if (ax < BodyHalf) return z > Canopy ? "cockpit_section" : "forward_fuselage";
+                // ahead of the frame behind the canopy the LERX's forward corners (the gun bay on the left, equipment on the
+                // right) are built into the nose section, so they go with the cockpit, not as a block of their own (user, 2026-11-12)
+                if (z > Canopy) return "cockpit_section";
+                if (y <= LerxFloor && ax >= BellyHalf) return S("intake");
+                if (ax < BodyHalf) return "forward_fuselage";
                 return S("lerx");
             }
             if (z <= NozzleFrame && InNozzle(ax, y)) return S("nozzle");
@@ -179,6 +182,14 @@ namespace MiG29Tools
         // in the centre wing), scaled to the aircraft's empty mass. Fuel: the fuselage tanks 1-3 (forward fuselage, centre, aft
         // spine) and the wing tanks (centre wing and inner consoles). Joint strengths in kN: the fuselage frames and wing root the
         // strongest, tips, radome and tail cone the weakest.
+        static Dictionary<string, string[]> holds;
+        /// <summary>The parts each part is fastened to by its own joints (they stay when it breaks off).</summary>
+        public static string[] HeldBy(string part)
+        {
+            holds ??= Table().ToDictionary(d => d.name, d => (d.joints ?? new Joint[0]).Select(j => j.to).ToArray());
+            return holds.TryGetValue(part, out var h) ? h : new string[0];
+        }
+
         static List<Def> Table()
         {
             var t = new List<Def>
