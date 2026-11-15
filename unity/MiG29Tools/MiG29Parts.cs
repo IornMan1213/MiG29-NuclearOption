@@ -225,6 +225,14 @@ namespace MiG29Tools
             return t;
         }
 
+        // A missile's blast reaches each part along one line from the burst to the part's centre, and any other part on that line
+        // shields it. The MiG's booms, fins, LERX, intakes, wing panels and radome stand out to the side with nothing in front of
+        // them, so a side burst took them all where the KR-67's wingtip shields its own (blast tests, 2026-11-14: 11 parts off at
+        // 7 m against the KR-67's 5). Their blast tolerance (the KR-67 part each is built from) is raised by half. The plugin also aims
+        // those lines deeper into each part (MiG29Instruments/BlastAim.cs); with both, a 7 m side burst takes 7 parts.
+        static readonly string[] BlastHardened = { "boom_", "fin_", "lerx_", "intake_", "wing_inner_", "wing_outer_", "centre_wing_", "radome" };
+        const float BlastToughness = 1.5f;
+
         // the KR-67's leading-edge strips: the MiG's leading edge is part of the wing panel it is on
         static readonly string[] Dropped = { "wing1_FL", "wing1_FR", "wing2_FL", "wing2_FR" };
 
@@ -313,6 +321,11 @@ namespace MiG29Tools
                     if (j.FindPropertyRelative("breakSound").objectReferenceValue == null) j.FindPropertyRelative("breakSound").objectReferenceValue = sound ?? FindSound(root);
                 }
                 so.FindProperty("mass").floatValue = d.mass * dryMass / massSum;
+                if (BlastHardened.Any(d.name.StartsWith))
+                {
+                    var tol = so.FindProperty("armorProperties.blastTolerance");
+                    tol.floatValue *= BlastToughness;
+                }
                 so.ApplyModifiedPropertiesWithoutUndo();
 
                 var tank = objs[d.name].GetComponent(tankType);

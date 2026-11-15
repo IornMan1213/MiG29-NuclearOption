@@ -56,6 +56,7 @@ namespace MiG29Instruments
             TryPatch(harmony, typeof(CmPodSpawn), "countermeasure pods"); TryPatch(harmony, typeof(CmPodAttach), "countermeasure pod points");   // the wingtip countermeasure pods: all their dispensers attached, their ejection points given the wing's part (Stores.cs)
             TryPatch(harmony, typeof(FxTankFire), "tank fire position"); TryPatch(harmony, typeof(FxTankLeak), "fuel leak position");   // fire, leaks and smoke on the MiG's skin (FxAnchors.cs)
             TryPatch(harmony, typeof(FxEngineFail), "engine smoke position"); TryPatch(harmony, typeof(FxFragments), "break-up effect position");
+            TryPatch(harmony, typeof(BlastAim), "missile blast aim points");   // blast lines aimed deeper into the MiG's parts (BlastAim.cs)
             PanelLighting = Config.Bind("Cockpit", "Night panel lighting", 1f,
                 new BepInEx.Configuration.ConfigDescription("Brightness of the cockpit flood lights at night (0 = off)", new BepInEx.Configuration.AcceptableValueRange<float>(0f, 4f)));
             JettisonKey = Config.Bind("Drop tanks", "Jettison key", new BepInEx.Configuration.KeyboardShortcut(KeyCode.J, KeyCode.LeftControl),

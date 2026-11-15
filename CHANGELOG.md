@@ -1,6 +1,13 @@
 # Changelog
 
 ## Unreleased
+- **Missiles no longer strip a whole side off as easily.** A missile's blast reaches each part in a straight line, and anything in
+  the way shields it. The MiG's booms, fins, LERX, intakes and wing panels stick out to the side with nothing in front of them,
+  so a near miss from the side took them all at once. They now stand up to blast half again as well, and the blast now reaches
+  each part at its inboard side, so it has to get through the parts further out first. In tests, a burst 7 m to the side takes
+  7 parts instead of 11 (that wing, its control surfaces and the fin; the boom, LERX, intake and nose stay on), and one 5 m out
+  takes 7 instead of about 14. Ailerons, flaps and stabilators can now be damaged by blast too; before, it missed them.
+  Blast damage is worked out by the host, so this applies when the host has this version.
 - **The intakes run all the way to the engines.** Looking into an intake you now see down the duct to the RD-33's fan face, as
   on the stock jets whose ducts reach their engines, instead of a black panel half a metre inside the lip. The duct darkens toward
   the back and takes no livery paint.
