@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- **Dropping an empty drop tank no longer destroys the jet.** Once a tank had fed most of its fuel into the internal tanks (for
+  example after a while in flight with the internal tanks half full), releasing it threw the jet away at once, and could push
+  nearby boats and aircraft. The game took the full tank's weight off a fuselage part that no longer carried it. The fuel weight
+  now goes back on the pylon just before release, so only the tank that is really there leaves. Thanks to SaWools for the report
+  and the loadout that reproduced it.
 - **Missiles no longer strip a whole side off as easily.** A missile's blast reaches each part in a straight line, and anything in
   the way shields it. The MiG's booms, fins, LERX, intakes and wing panels stick out to the side with nothing in front of them,
   so a near miss from the side took them all at once. They now stand up to blast half again as well, and the blast now reaches

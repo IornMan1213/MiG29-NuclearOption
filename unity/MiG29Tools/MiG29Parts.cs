@@ -258,6 +258,17 @@ namespace MiG29Tools
                 foreach (var c in d.Cast<Transform>().ToList()) if (c.GetComponent(upType) != null) c.SetParent(d.parent, true);
                 UnityEngine.Object.DestroyImmediate(d.gameObject);
             }
+            // the inner wings' HighLiftDevice moved those strips as slats: its entries for them now point at nothing, and the game
+            // animated a missing transform every physics step (two NullReferenceExceptions a step per wing). Only those entries go.
+            foreach (var hld in root.GetComponentsInChildren(T("HighLiftDevice"), true))
+            {
+                var hso = new SerializedObject(hld); var mps = hso.FindProperty("movingParts");
+                if (mps == null) continue;
+                int pruned = 0;
+                for (int i = mps.arraySize - 1; i >= 0; i--)
+                    if (mps.GetArrayElementAtIndex(i).FindPropertyRelative("transform")?.objectReferenceValue == null) { mps.DeleteArrayElementAtIndex(i); pruned++; }
+                if (pruned > 0) { hso.ApplyModifiedPropertiesWithoutUndo(); Debug.Log($"[MiG29] {hld.name}: {pruned} slat entries removed with the leading-edge strips"); }
+            }
             // 2. rename, and the fins as parts of their own (their rudders and lift move onto them; the booms carry the stabilators)
             var objs = new Dictionary<string, Transform>();
             foreach (var d in defs.Where(d => d.from != null)) { var tr = Find(root, d.from); tr.name = d.name; objs[d.name] = tr; }

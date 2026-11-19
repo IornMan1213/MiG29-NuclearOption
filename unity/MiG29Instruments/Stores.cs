@@ -65,6 +65,19 @@ namespace MiG29Instruments
                 }
         }
 
+        internal bool Owns(Weapon w) { foreach (var t in tanks) if (t.w == w) return true; return false; }
+
+        // the game is about to take the store's full mass off its pylon (TankRelease): put back the fuel mass moved off it first
+        internal void BeforeRelease(Weapon w)
+        {
+            foreach (var t in tanks)
+                if (t.w == w && t.moved != 0f)
+                {
+                    ShiftPylonMass(t, t.moved);
+                    t.moved = 0f; t.fuel = 0f;
+                }
+        }
+
         static void ShiftPylonMass(Tank t, float amount)
         {
             if (amount == 0f || HardpointField == null) return;
@@ -176,6 +189,30 @@ namespace MiG29Instruments
         }
 
         static bool IsPlayer(Aircraft a) { var h = SceneSingleton<CombatHUD>.i; return h != null && h.aircraft == a; }
+    }
+
+    // A dropped tank must leave the pylon with its full mass on it. While a tank hangs, StoresDriver moves the fuel it gives the
+    // internal tanks off the pylon's part, but the game takes the store's whole mass (empty tank + full fuel, 1,253 kg for the
+    // PTB-1500) off that part when it lets go (MountedMissile.RemoveFromHardpoint). Once most of the fuel had moved in, that left
+    // the forward fuselage with less than nothing for a physics step and the jet was flung away at millions of m/s (tester report,
+    // 2026-11-16: 50% internal fuel, so the tank had emptied). The moved mass now goes back on the pylon just before the game takes
+    // the store off, so the part only ever loses the tank it really carries.
+    [HarmonyLib.HarmonyPatch(typeof(MountedMissile), "RemoveFromHardpoint")]
+    static class TankRelease
+    {
+        static void Prefix(MountedMissile __instance)
+        {
+            try
+            {
+                if (__instance == null || StoresDriver.Capacity(__instance.info) <= 0f) return;
+                var ac = __instance.GetComponentInParent<Aircraft>();
+                var driver = ac != null ? ac.GetComponent<StoresDriver>() : null;
+                if (driver == null)
+                    foreach (var d in Object.FindObjectsOfType<StoresDriver>()) if (d.Owns(__instance)) { driver = d; break; }
+                driver?.BeforeRelease(__instance);
+            }
+            catch (System.Exception ex) { MiG29InstrumentsPlugin.Log.LogWarning($"drop tank release: {ex.Message}"); }
+        }
     }
 
     // The wingtip countermeasure pods carry a FlareEjector / ChaffEjector whose ejection points have no part: a prefab cannot point at
