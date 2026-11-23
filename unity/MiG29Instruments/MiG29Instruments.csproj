@@ -7,7 +7,7 @@
     <AssemblyName>MiG29Instruments</AssemblyName>
     <RootNamespace>MiG29Instruments</RootNamespace>
     <LangVersion>latest</LangVersion>
-    <Version Condition="'$(Version)' == ''">0.9.4</Version>
+    <Version Condition="'$(Version)' == ''">0.9.5</Version>
     <GameDir Condition="'$(GameDir)' == '' And $([MSBuild]::IsOSPlatform('Windows'))">C:\Program Files (x86)\Steam\steamapps\common\Nuclear Option</GameDir>
     <GameDir Condition="'$(GameDir)' == ''">$(HOME)/.steam/steam/steamapps/common/Nuclear Option</GameDir>
     <Managed>$(GameDir)/NuclearOption_Data/Managed</Managed>
@@ -28,6 +28,7 @@
     <Reference Include="UnityEngine"><HintPath>$(Managed)/UnityEngine.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="UnityEngine.CoreModule"><HintPath>$(Managed)/UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="UnityEngine.PhysicsModule"><HintPath>$(Managed)/UnityEngine.PhysicsModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.ParticleSystemModule"><HintPath>$(Managed)/UnityEngine.ParticleSystemModule.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="UnityEngine.ImageConversionModule"><HintPath>$(Managed)/UnityEngine.ImageConversionModule.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="UnityEngine.UIModule"><HintPath>$(Managed)/UnityEngine.UIModule.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="UnityEngine.UI"><HintPath>$(Managed)/UnityEngine.UI.dll</HintPath><Private>false</Private></Reference>

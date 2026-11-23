@@ -15,6 +15,7 @@ for name, p in c["parts"].items():
         "wingArea": p.get("wingArea", -1), "dragArea": p.get("dragArea", -1),
         "hasCom": "com" in p, "com": p.get("com", [0, 0, 0]),
         "hasCenterOfLift": "centerOfLift" in p, "centerOfLift": p.get("centerOfLift", [0, 0, 0]),
+        "hasLiftPoint": "liftPoint" in p, "liftPoint": p.get("liftPoint", [0, 0, 0]),
     })
 import os
 dst = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.environ["BLUEPRINTER_PROJECT"], "MiG29Source", "fm_unity.json")

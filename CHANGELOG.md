@@ -1,6 +1,26 @@
 # Changelog
 
-## Unreleased
+## 0.9.5 (Update 9.5)
+**A MiG-29 damage model.** The MiG now takes damage and breaks apart as a MiG-29, not as a reskinned KR-67.
+
+**Multiplayer:** the damage parts changed, so players on this version and on 0.9.4 cannot fly together. Everyone in a server
+needs the same version.
+
+- **Dropping an empty drop tank no longer destroys the jet.** Once a tank had fed most of its fuel into the internal tanks (for
+  example after a while in flight with the internal tanks half full), releasing it threw the jet away at once, and could push
+  nearby boats and aircraft. The game took the full tank's weight off a fuselage part that no longer carried it. The fuel weight
+  now goes back on the pylon just before release, so only the tank that is really there leaves. Thanks to SaWools for the report
+  and the loadout that reproduced it.
+- **The centreline drop tank no longer knocks the tail cone loose.** The PTB-1500's tail reached a few centimetres into the
+  tail cone's hitbox, and on spawning the game pushed the two apart hard enough to break the tail cone's joint before the jet
+  had moved. The tail cone then hung on its nozzles alone. The tank now clears it.
+- **Missiles no longer strip a whole side off as easily.** A missile's blast reaches each part in a straight line, and anything in
+  the way shields it. The MiG's booms, fins, LERX, intakes and wing panels stick out to the side with nothing in front of them,
+  so a near miss from the side took them all at once. They now stand up to blast half again as well, and the blast now reaches
+  each part at its inboard side, so it has to get through the parts further out first. In tests, a burst 7 m to the side takes
+  7 parts instead of 11 (that wing, its control surfaces and the fin; the boom, LERX, intake and nose stay on), and one 5 m out
+  takes 7 instead of about 14. Ailerons, flaps and stabilators can now be damaged by blast too; before, it missed them.
+  Blast damage is worked out by the host, so this applies when the host has this version.
 - **The intakes run all the way to the engines.** Looking into an intake you now see down the duct to the RD-33's fan face, as
   on the stock jets whose ducts reach their engines, instead of a black panel half a metre inside the lip. The duct darkens toward
   the back and takes no livery paint.
@@ -8,11 +28,40 @@
   wall to wall on the ground with the engines running, and lies flush with the duct roof in flight instead of vanishing. The
   stowed main wheels no longer show inside the ducts.
 - **Breaking apart looks more like the stock jets.** Losing the nose now drops the whole radome, leaving a bulkhead and radar dish
-  behind it, instead of only the pitot. The leading-edge strips of each wing break off visibly instead of vanishing. An exposed
+  behind it, instead of only the pitot. An exposed
   intake duct reads as a metal trunk instead of a black hole. The engines leave with their own stretch of duct, and a broken-off
   nozzle no longer leaves an empty can.
 - **Damage shows before the holes from hits.** As a part takes damage from blasts, fire or many hits, small torn patches open
   evenly over it onto the structure underneath, as on the stock jets. Bullet holes still appear exactly where each round lands.
+- **The MiG breaks up like a MiG.** Its damage parts are its own now, instead of the stock KR-67's: 32 parts split on the
+  MiG-29's own joints (the radome seam, the frame behind the canopy, the wing frame, the nacelle frame, the wing root rib, the
+  rib between flap and aileron, the tip rib, the fin roots). A broken cockpit section takes the canopy and nose gear, the
+  leading-edge extensions and intakes break off whole, the fins can be shot off on their own, and pylons leave with their wing
+  panel. Masses, joint strengths and fuel tanks follow the real jet; the flight model is unchanged.
+- **Hits land on the MiG's own shape.** Every part's hitbox is fitted to its own skin, and rounds no longer pass between parts
+  along the seams.
+- **Ribs, spars and frames inside.** Broken wings show their ribs and spars, with a rib on each side of every joint, and the
+  fuselage, engine bays and leading-edge extensions show their frames, through holes and at breaks.
+- **Fire, smoke and fuel leaks come from the jet.** A burning tank, a leak, a failed engine's smoke and the debris of a part
+  breaking off now start on that part's skin, instead of up to 2 m away (an outer wing tank used to burn in the air ahead of the
+  wing). Needs the plugin.
+- **Broken edges have frames.** Where a part breaks away, its edge shows a few centimetres of structure instead of a
+  paper-thin skin.
+- **Breaks tear instead of cutting clean.** The skin along a break is ragged, with teeth and waves, instead of a straight
+  line. When a part breaks off, up to 24 torn skin patches rip away from both sides of the break and tumble off (with the
+  plugin). Up close only: at a distance the jet keeps its lighter straight-edged skin.
+- **More inside.** Fuselage frames have inner flanges and stringers run between them, wing ribs have lightening holes and
+  caps, and spars have caps.
+- **Broken members stick out.** Where a part breaks off, the ribs, spars and stringers that crossed the joint snap a little
+  way past it: the part that stays keeps a ragged stub of each, 7 to 21 cm long.
+- **The cockpit section takes its corners.** The leading-edge extensions' forward corners beside the cockpit (the gun bay on
+  the left) now break with the cockpit section instead of coming off as a block of their own; each extension runs from the
+  frame behind the canopy to the wing.
+- **The damage display works again.** It shows every one of the MiG's own parts; most of it had gone blank.
+- **No bulkhead edge under the nose.** The bulkhead behind the radome follows the nose's own shape instead of an oval whose
+  rim showed through the skin above and below the nose.
+- **A broken part falls clear.** A part that breaks off stops colliding with the jet it left, so it never jams in place.
+  Needs the plugin.
 
 ## 0.9.4
 - **The jet as a 3D model for livery painters** (`liveries/model`): `MiG-29.fbx`, the whole jet as the game builds it with its

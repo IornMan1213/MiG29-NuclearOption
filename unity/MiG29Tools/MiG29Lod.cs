@@ -17,7 +17,7 @@ namespace MiG29Tools
     // intakes also stop casting shadows.
     static class MiG29Lod
     {
-        static readonly string[] Always = { "MiG29_skin_", "MiG29_aileron_", "MiG29_flap_", "MiG29_rudder_", "MiG29_stab_", "MiG29_canopy", "MiG29_abflame_", "MiG29_nozstatic_" };
+        static readonly string[] Always = { "MiG29_aileron_", "MiG29_flap_", "MiG29_rudder_", "MiG29_stab_", "MiG29_canopy", "MiG29_abflame_", "MiG29_nozstatic_" };
         static readonly string[] Internal = { "MiG29_well_", "MiG29_airbrake_well", "MiG29_fod_", "MiG29_duct_", "MiG29_noz_L_inner", "MiG29_noz_R_inner", "MiG29_noz_L_seal", "MiG29_noz_R_seal", "MiG29_inner_", "MiG29_mech_" };
 
         static bool Middle(string n) =>
@@ -43,6 +43,9 @@ namespace MiG29Tools
                 var mf = r.GetComponent<MeshFilter>();
                 if (r is MeshRenderer && (mf == null || mf.sharedMesh == null)) continue;
                 string n = r.name;
+                // the skin: torn at the breaks close up (MiG29_skin_, this level only), the straight split beyond (a quarter of the
+                // triangles; the tear is not seen there)
+                if (n.StartsWith("MiG29_lodskin_")) { mid.Add(r); far.Add(r); continue; }
                 all.Add(r);
                 if (Always.Any(p => n.StartsWith(p))) { mid.Add(r); far.Add(r); }
                 else if (Middle(n)) mid.Add(r);

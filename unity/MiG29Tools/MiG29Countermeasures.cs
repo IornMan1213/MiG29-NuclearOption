@@ -67,7 +67,7 @@ namespace MiG29Tools
             for (int i = 0; i < 2; i++)
             {
                 float side = i == 0 ? -1f : 1f;
-                var part = Find(root, side < 0 ? "engine_L" : "engine_R");
+                var part = Find(root, side < 0 ? "nacelle_L" : "nacelle_R");
                 var t = new GameObject(side < 0 ? "chaffEjector_L" : "chaffEjector_R").transform;
                 t.SetParent(part, false);
                 t.SetPositionAndRotation(new Vector3(side * ChaffPoint.x, ChaffPoint.y, ChaffPoint.z) + modelOffset, Quaternion.LookRotation(EjectDir(side), Vector3.forward));

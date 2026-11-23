@@ -18,7 +18,7 @@ namespace MiG29Instruments
     public class MiG29InstrumentsPlugin : BaseUnityPlugin
     {
         // same as MiG29Builder.Version (build_mig29.ps1 checks): mod managers match the release version against this DLL's version
-        public const string ModVersion = "0.9.4";
+        public const string ModVersion = "0.9.5";
         internal static ManualLogSource Log;
         internal static BepInEx.Configuration.ConfigEntry<float> PanelLighting;
         internal static BepInEx.Configuration.ConfigEntry<BepInEx.Configuration.KeyboardShortcut> JettisonKey;
@@ -54,6 +54,10 @@ namespace MiG29Instruments
             TryPatch(harmony, typeof(ChaffDatalinkPatch), "chaff against datalinks"); TryPatch(harmony, typeof(ChaffTerminalPatch), "chaff seduction");
             TryPatch(harmony, typeof(LiveryWorkshopTag), "livery uploads");   // the MiG's Workshop tag, for liveries made with Shockfront's kit (Liveries.cs)
             TryPatch(harmony, typeof(CmPodSpawn), "countermeasure pods"); TryPatch(harmony, typeof(CmPodAttach), "countermeasure pod points");   // the wingtip countermeasure pods: all their dispensers attached, their ejection points given the wing's part (Stores.cs)
+            TryPatch(harmony, typeof(FxTankFire), "tank fire position"); TryPatch(harmony, typeof(FxTankLeak), "fuel leak position");   // fire, leaks and smoke on the MiG's skin (FxAnchors.cs)
+            TryPatch(harmony, typeof(FxEngineFail), "engine smoke position"); TryPatch(harmony, typeof(FxFragments), "break-up effect position");
+            TryPatch(harmony, typeof(TankRelease), "drop tank release");   // a dropped tank leaves with its full mass on the pylon (Stores.cs)
+            TryPatch(harmony, typeof(BlastAim), "missile blast aim points");   // blast lines aimed deeper into the MiG's parts (BlastAim.cs)
             PanelLighting = Config.Bind("Cockpit", "Night panel lighting", 1f,
                 new BepInEx.Configuration.ConfigDescription("Brightness of the cockpit flood lights at night (0 = off)", new BepInEx.Configuration.AcceptableValueRange<float>(0f, 4f)));
             JettisonKey = Config.Bind("Drop tanks", "Jettison key", new BepInEx.Configuration.KeyboardShortcut(KeyCode.J, KeyCode.LeftControl),

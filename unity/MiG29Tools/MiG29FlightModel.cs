@@ -13,7 +13,7 @@ namespace MiG29Tools
         [Serializable] public class Key { public float t, v; }
         [Serializable] public class Airfoil { public string name; public Key[] CL, CD; }
         [Serializable] public class Engine { public float dryN, abN, maxSpeed, minDensity, fuelConsumptionMin, fuelConsumptionMax, abFuelConsumption; }
-        [Serializable] public class Part { public string name; public float wingArea, dragArea; public bool hasCom, hasCenterOfLift; public float[] com, centerOfLift; }
+        [Serializable] public class Part { public string name; public float wingArea, dragArea; public bool hasCom, hasCenterOfLift, hasLiftPoint; public float[] com, centerOfLift, liftPoint; }
         [Serializable] public class Config { public float fuelKg; public Engine engine; public Key[] altitudeThrust; public Airfoil[] airfoils; public Part[] parts; }
 
         public static Config Load() => JsonUtility.FromJson<Config>(File.ReadAllText("MiG29Source/fm_unity.json"));
@@ -30,10 +30,10 @@ namespace MiG29Tools
         // Each physics surface's lift normal follows the MiG's own animated surface, so the visible deflection is the aerodynamic one.
         static readonly (string part, string pivot, bool flatten)[] LiftOwners =
         {
-            ("elevator_L", "MiG29_stab_L_pivot", true), ("elevator_R", "MiG29_stab_R_pivot", true),
+            ("stabilator_L", "MiG29_stab_L_pivot", true), ("stabilator_R", "MiG29_stab_R_pivot", true),
             ("aileron_L", "MiG29_aileron_L_pivot", false), ("aileron_R", "MiG29_aileron_R_pivot", false),
             ("flap_L", "MiG29_flap_L_pivot", false), ("flap_R", "MiG29_flap_R_pivot", false),
-            ("tail_L", "MiG29_rudder_L_pivot", false), ("tail_R", "MiG29_rudder_R_pivot", false),
+            ("fin_L", "MiG29_rudder_L_pivot", false), ("fin_R", "MiG29_rudder_R_pivot", false),
         };
 
         public static void ApplyToPrefab(Transform root, Config cfg, Func<string, Vector3, Mesh> cubeAt)
@@ -47,7 +47,6 @@ namespace MiG29Tools
                 if (p.dragArea >= 0) so.FindProperty("dragArea").floatValue = p.dragArea;
                 if (p.hasCenterOfLift) so.FindProperty("centerOfLift").vector3Value = new Vector3(p.centerOfLift[0], p.centerOfLift[1], p.centerOfLift[2]);
                 so.ApplyModifiedPropertiesWithoutUndo();
-                // (centre-of-mass overrides are gone: lift points are placed with centerOfLift instead; hitboxes stay the KR-67's)
             }
 
             foreach (var (partName, pivotName, flatten) in LiftOwners)
@@ -65,6 +64,18 @@ namespace MiG29Tools
                 ln.SetParent(pivot, true);
                 ln.position = pivot.position;
                 so.FindProperty("liftNormal").objectReferenceValue = ln;
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
+
+            // Lift points given in the aircraft frame (fm_config.json "liftPoint"): lift acts at the part's centre of mass (its hitbox's
+            // centre) plus its lift normal's rotation times centerOfLift, so centerOfLift is set from where the hitbox ended up
+            foreach (var p in cfg.parts.Where(p => p.hasLiftPoint))
+            {
+                var part = Find(root, p.name).GetComponent(aeroType);
+                var so = new SerializedObject(part);
+                var ln = so.FindProperty("liftNormal").objectReferenceValue as Transform ?? part.transform;
+                var lp = new Vector3(p.liftPoint[0], p.liftPoint[1], p.liftPoint[2]);
+                so.FindProperty("centerOfLift").vector3Value = Quaternion.Inverse(ln.rotation) * (lp - MiG29Hitbox.Com(part));
                 so.ApplyModifiedPropertiesWithoutUndo();
             }
 
