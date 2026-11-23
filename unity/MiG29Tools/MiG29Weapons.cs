@@ -192,7 +192,7 @@ namespace MiG29Tools
 
             // ---------- drop tanks (released like a dumb bomb; the instruments plugin feeds their fuel to the internal tanks) ----------
             var ptb1500Mount = BuildDropTank("PTB1500", "PTB-1500", meshes["PTB1500"], meshes["PTB_PYLON_C"], mat, length: 4.9f, halfHeight: 0.34f, radius: 0.34f,
-                pylonDepth: 0.08f, fullMass: 1300f, pylonMass: 35f, drag: 0.10f, rcs: 0.06f,
+                pylonDepth: 0.08f, fullMass: 1300f, pylonMass: 35f, drag: 0.10f, rcs: 0.06f, tailClearance: 0.3f,
                 desc: "PTB-1500 centreline drop tank: 1,500 litres (about 1,180 kg) of fuel, used before the internal fuel. Select it and fire to drop it, or press the jettison key (Ctrl+J by default).");
             var ptb1150Mount = BuildDropTank("PTB1150", "PTB-1150", meshes["PTB1150"], meshes["PTB_PYLON_W"], mat, length: 4.6f, halfHeight: 0.32f, radius: 0.32f,
                 pylonDepth: 0.10f, fullMass: 1000f, pylonMass: 30f, drag: 0.08f, rcs: 0.05f,
@@ -357,7 +357,7 @@ namespace MiG29Tools
         // The tank is a "bomb" with no steering authority (torque 0) and almost no warhead: on impact it bursts with a small puff of
         // dust or spray. Its weapon info has zero effectiveness against everything, so the AI never picks it as a weapon.
         static ScriptableObject BuildDropTank(string id, string name, Mesh tank, Mesh pylon, Material mat, float length, float halfHeight, float radius,
-            float pylonDepth, float fullMass, float pylonMass, float drag, float rcs, string desc)
+            float pylonDepth, float fullMass, float pylonMass, float drag, float rcs, string desc, float tailClearance = 0f)
         {
             var go = MakeMissile("bomb_250_1", "mig29_" + id, tank, mat, length, radius, seekerFrom: null, seekerType: null);
             UnityEngine.Object Fx(string n) => AssetDatabase.LoadAssetAtPath<GameObject>(GO + n + "_PLACEHOLDER.prefab");
@@ -421,6 +421,18 @@ namespace MiG29Tools
             mm.FindProperty("railLength").floatValue = 0.12f;
             mm.FindProperty("railSpeed").floatValue = 2f;
             mm.ApplyModifiedPropertiesWithoutUndo();
+            // While it hangs on the jet, the tank's collider belongs to the jet's main body, and the parts it is not fastened to
+            // collide with it. The PTB-1500's 4.9 m capsule reached 8 cm into the tail cone's hitbox: on spawn the overlap pushed the
+            // tail cone off its joint (431 kN against a 500 kN limit) before the jet moved (in-game contact log, 2026-11-23). The
+            // mounted collider stops short of its tail by tailClearance; the dropped tank keeps its full length.
+            if (tailClearance > 0f)
+                foreach (var cap in root.GetComponentsInChildren<CapsuleCollider>(true))
+                    if (cap.gameObject.GetComponent(T("MountedMissile")) != null && cap.direction == 2)
+                    {
+                        cap.height -= tailClearance;
+                        cap.center += Vector3.forward * (tailClearance / 2f);
+                        Debug.Log($"[MiG29] {id} mounted collider: {cap.height:F2} m, its tail {tailClearance:F2} m short of the tank's");
+                    }
             PrefabUtility.SaveAsPrefabAsset(root, path);
             PrefabUtility.UnloadPrefabContents(root);
             mountPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);

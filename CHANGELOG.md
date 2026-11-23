@@ -6,6 +6,9 @@
   nearby boats and aircraft. The game took the full tank's weight off a fuselage part that no longer carried it. The fuel weight
   now goes back on the pylon just before release, so only the tank that is really there leaves. Thanks to SaWools for the report
   and the loadout that reproduced it.
+- **The centreline drop tank no longer knocks the tail cone loose.** The PTB-1500's tail reached a few centimetres into the
+  tail cone's hitbox, and on spawning the game pushed the two apart hard enough to break the tail cone's joint before the jet
+  had moved. The tail cone then hung on its nozzles alone. The tank now clears it.
 - **Missiles no longer strip a whole side off as easily.** A missile's blast reaches each part in a straight line, and anything in
   the way shields it. The MiG's booms, fins, LERX, intakes and wing panels stick out to the side with nothing in front of them,
   so a near miss from the side took them all at once. They now stand up to blast half again as well, and the blast now reaches
