@@ -1,6 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.9.5 (Update 9.5)
+**A MiG-29 damage model.** The MiG now takes damage and breaks apart as a MiG-29, not as a reskinned KR-67.
+
+**Multiplayer:** the damage parts changed, so players on this version and on 0.9.4 cannot fly together. Everyone in a server
+needs the same version.
+
 - **Dropping an empty drop tank no longer destroys the jet.** Once a tank had fed most of its fuel into the internal tanks (for
   example after a while in flight with the internal tanks half full), releasing it threw the jet away at once, and could push
   nearby boats and aircraft. The game took the full tank's weight off a fuselage part that no longer carried it. The fuel weight
@@ -57,7 +62,6 @@
   rim showed through the skin above and below the nose.
 - **A broken part falls clear.** A part that breaks off stops colliding with the jet it left, so it never jams in place.
   Needs the plugin.
-- **Multiplayer:** the damage parts changed, so players on this version and on 0.9.4 cannot fly together.
 
 ## 0.9.4
 - **The jet as a 3D model for livery painters** (`liveries/model`): `MiG-29.fbx`, the whole jet as the game builds it with its
